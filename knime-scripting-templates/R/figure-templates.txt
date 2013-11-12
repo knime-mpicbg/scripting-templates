@@ -174,6 +174,266 @@ Enter an additional title
 
 </rgg>
 ########################################################################################
+# name: Barplot with plot options
+# author: Antje Niederlein, modified Martin Stšter
+# category: basic/barplots
+# preview: simplebarplot.png
+
+Flexible template to create a barplot or barplot grid with optional errorbars
+HINT: use GroupBy node to aggregated the data to e.g mean and sd columns 
+
+Parameter:
+Bar height - One or multiple numerical variables. Each value will result in one bar
+Error bar checkbox - Draw errorbars?
+Error bar - Error bar values corresponding to the height values (same number of columns have to be selected)
+To use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
+x-axis - Label to put at the x-axis for each bar (mulitple columns can be selected to combine information)
+2D-grid grouping parameter - Allows to split the dataset into multiple plots by this condition (mulitple columns can be selected to combine information)
+bar colour - Colour bars by condition (mulitple columns can be selected to combine information)
+Layout Options: 
+ - select background/theme and set general font size in plot (default = 14)
+ - give plot title and title factor (default = 1.2)
+ - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
+ - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
+ - adjust y-axis scale (check fixed and enter min + max; free for 2D grid)
+ - give legend title, adjust position (fixed position outside diagram or free(range:0-1): [0.1,0.9] = top-left) and legend title/text size factor(default = 0.8)   
+######
+
+<rgg>
+
+    <!--1. Title and short description -->
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+    <gaprow height="1"/>
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    #1.0 Parameter selection
+	<group>
+
+	# Define your numerical parameters represented by bar height
+	barHeight = c(<panellistbox label="select columns with values for bar height" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+	plot.Errorbars = <checkbox label="draw errorbars (select column with errorbar values)" selected="t"/>
+	
+	# Define your numerical parameters for error bars
+	barError = c(<panellistbox label="cErrorBars" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+	<gaprow height="2"/>
+
+	<hbox>  #define use of flow variables
+	<checkbox label="use flow variable" var="useFlowVar" selected="false" />
+	<textfield label="bar height flow variable:" var="flowVariableBarHeight" data-type="text" default-value= "" size="10" />
+	<textfield label="bar error flow variable:" var="flowVariableBarError" data-type="text" default-value= "" size="10" />
+	</hbox>
+
+	<hbox>  #define x-axis, grid and color group
+	xFactor = c(<listbox label="x-axis" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	facetBy = c(<listbox label="2D grid grouping parameters" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	colourBy = c(<listbox label="coloured by" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	</hbox>
+	
+ 	#diagram options
+	<separator label="Layout Options General Plot" span="full"/>
+	<hbox>
+	plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
+	plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+	</hbox>
+
+	<separator label="Layout Options Title" span="full"/>
+	<hbox>
+	<textfield label="plot title:" var="plotTitle" data-type="text" default-value= "" size="5"/>
+	plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default-value="1.2"/>))
+	</hbox>
+
+	<separator label="Layout Options Axes" span="full"/>	
+	<hbox>
+	xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "0,45,90"/>))
+	axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
+	</hbox>
+	
+	<hbox>
+	<textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
+	useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="f"/>
+	axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
+	</hbox>
+
+	<hbox>
+	useManualYaxisScale = <checkbox label="use fixed y-axis scale" selected="f"/>
+	yAxisScale = as.numeric(c(<vector label="y-axis scale [min,max]:" size="2" default-value=","/>))
+	free.scales = <checkbox label="use free y-scales (for 2D grid)" selected="t"/>
+	</hbox>
+
+	<separator label="Layout Options Legend" span="full"/>
+	<hbox>
+	legendPosition = <combobox label = "legend position:" items = "right,top,botton,left,none"/>
+	useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
+	legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
+	</hbox>
+	
+	<hbox>
+	legendTitle = <textfield label="legend title:" data-type="text" default-value="" size="3"/>
+	legendTextSizeFactor = as.numeric(c(<vector label="text size [title,text]:" size="2" default-value="0.8,0.8"/>))
+	rotateLegend = <checkbox label="rotate 90deg." selected="f"/>
+	</hbox>
+
+	</group>
+
+	<![CDATA[
+	#2.0 R code	
+
+	#2.1 load libaries
+	library(ggplot2)
+	library(reshape)
+	library(grid)
+
+	#2.2.1 manage RGG to R: define as numbers / check input parameters
+	# check flow variables
+	if (useFlowVar && !is.na(flowVariableBarHeight)) {
+    	barHeight <- flowVariableBarHeight
+	}
+	if(plot.Errorbars && useFlowVar && !is.na(flowVariableBarError)) {
+		barError <- flowVariableBarError
+	}
+	# no bar height columns selected
+	if(is.null(barHeight)) stop("Error: Template initialization fails - no columns for bar height selected")
+	# errorbars checked but no column selected
+	if(plot.Errorbars & is.null(barError)) plot.Errorbars <- FALSE	# simply don't plot any errorbars
+	if(plot.Errorbars & length(barHeight) != length(barError)) stop("Error: Template initialization fails - number of bar height columns not equal to number of error bar columns")
+	# no xFactor selected
+	if("-NO SELECTION-" %in% xFactor) xFactor <- NULL
+	if("-NO SELECTION-" %in% facetBy) facetBy <- NULL
+	if("-NO SELECTION-" %in% colourBy) colourBy <- NULL
+
+	xFactorFlag <- facetFlag <- colourFlag <- FALSE
+	if(is.null(xFactor)) xFactor <- "-ROW ID-"
+	if(!is.null(xFactor) && "-USE COLUMN SELECTION-" %in% xFactor) { xFactorCol <- NULL; xFactorFlag <- TRUE } else xFactorCol <- xFactor
+	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) { facetCol <- NULL; facetFlag <- TRUE } else facetCol <- facetBy
+	if(!is.null(colourBy) && "-USE COLUMN SELECTION-" %in% colourBy) { colourCol <- NULL; colourFlag <- TRUE } else colourCol <- colourBy
+
+	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
+	
+	#2.2.2 manage RGG to R: set scales to default and check scales
+	if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
+	if (is.na(plotTextSize[1]) | (plotTextSize[1] < 0) | (plotTextSize[1] > 40)) plotTextSize[1] <- 14
+	if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
+	if (is.na(yAxisLabel))	yAxisLabel <- NULL
+	if (is.na(xAngle))	xAngle <- 0
+	if (is.na(axisTextSizeFactor[1]) | (axisTextSizeFactor[1] < 0) | (axisTextSizeFactor[1] > 5)) axisTextSizeFactor[1] <- 0.8
+	if (is.na(axisTextSizeFactor[2]) | (axisTextSizeFactor[2] < 0) | (axisTextSizeFactor[2] > 5)) axisTextSizeFactor[2] <- 0.8
+	if (is.na(axisTitleSizeFactor[1]) | (axisTitleSizeFactor[1] < 0) | (axisTitleSizeFactor[1] > 5)) axisTitleSizeFactor[1] <- 1
+	if (is.na(axisTitleSizeFactor[2]) | (axisTitleSizeFactor[2] < 0) | (axisTitleSizeFactor[2] > 5)) axisTitleSizeFactor[2] <- 1
+	if (is.na(yAxisScale[1]) | is.na(yAxisScale[2]))	yAxisScale <- NULL
+	if (useParameternameAsAxisLabel) yAxisLabel <- barHeight
+	if (is.na(legendCoordinate[1]) | is.na(legendCoordinate[2]) | (legendCoordinate[1] < 0) | (legendCoordinate[1] > 1) | (legendCoordinate[2] < 0) | (legendCoordinate[2] > 1)) useLegendCoordinate <- FALSE
+	if (is.na(legendTextSizeFactor[1]) | (legendTextSizeFactor[1] < 0) | (legendTextSizeFactor[1] > 5)) legendTextSizeFactor[1] <- 0.8
+	if (is.na(legendTextSizeFactor[2]) | (legendTextSizeFactor[2] < 0) | (legendTextSizeFactor[2] > 5)) legendTextSizeFactor[2] <- 0.8
+	if (xAngle == 0 ) xAxisAjust <- c(0.5,1.0) #xAxisAjust = c(hjust,vjust)
+	if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
+	if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
+
+
+	#2.3. calulate
+	# create rowID column if needed
+	if("-ROW ID-" %in% xFactorCol) kIn[,"-ROW ID-"] <- rownames(kIn)
+
+	# combine columns if necessary
+	if(length(xFactor) > 1) {
+		xFactorCol <- paste(xFactor, collapse = " + ")
+		kIn[,xFactorCol] <- apply(kIn[,xFactor], 1, paste, collapse = " + ")
+	}
+	if(length(facetBy) > 1) {
+		facetCol <- paste(facetBy, collapse = " + ")
+		kIn[,facetCol] <- apply(kIn[,facetBy], 1, paste, collapse = " + ")
+	}
+	if(length(colourBy) > 1) {
+		colourCol <- paste(colourBy, collapse = " + ")
+		kIn[,colourCol] <- apply(kIn[,colourBy], 1, paste, collapse = " + ")
+	}
+	if (is.na(legendTitle)) legendTitle <- colourCol		#default if no title is given
+
+	# extract necessary data and reshape it
+	meanData <- kIn[,c(barHeight,xFactorCol, facetCol, colourCol)]
+
+	meanDataLong <- melt(meanData, measure.vars = barHeight, variable_name = "- PARAMETERS -")
+	names(meanDataLong)[which(names(meanDataLong) == "value")] <- "height"
+
+	# add errorbar data
+	if(plot.Errorbars) {
+		sdData <- kIn[,c(barError,xFactorCol, facetCol, colourCol)]
+		sdDataLong <- melt(sdData, measure.vars = barError)
+		meanDataLong$error <- sdDataLong$value
+		meanDataLong$low <- with(meanDataLong, height - error)
+		meanDataLong$high <- with(meanDataLong, height + error)
+	}
+
+	if(xFactorFlag) xFactorCol <- "- PARAMETERS -"
+	if(facetFlag) facetCol <- "- PARAMETERS -"
+	if(colourFlag) colourCol <- "- PARAMETERS -"
+
+	if(!is.null(facetBy)) { facetTitle <- facetCol; meanDataLong$template.facet.column <- meanDataLong[,facetCol]; facetCol <- "template.facet.column" }
+
+	#2.4.1 plot
+	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height))
+
+	my.dodge <- position_dodge(width=0.9)
+	if(!is.null(colourBy)) {
+		p <- p + geom_bar(aes(fill = get(colourCol)), stat = "identity", position = my.dodge, colour = "black")
+		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high, group = get(colourCol)), position = my.dodge, width = 0.35)
+		} else {
+		p <- p + geom_bar(stat = "identity", position = my.dodge, colour = "black", fill = "grey")
+		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high), position = my.dodge, width = 0.35) 
+	}
+
+	p <- p + scale_x_discrete(name = xFactorCol)
+	if(!is.null(colourCol)) {  #legend title and rotation
+		if(rotateLegend) {
+			p <- p + scale_fill_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position="bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+			} else {
+			p <- p + scale_fill_discrete(name = legendTitle)
+		}
+	}
+
+	if(!is.null(facetBy)) {
+		p <- p + facet_wrap(~ template.facet.column, scales=free.scales)
+		fTitle <- paste("Grid factor: ",facetTitle,sep = "")
+		if(!is.null(plotTitle)) plotTitle <- paste(plotTitle,fTitle,sep = " / ") else plotTitle <- fTitle
+		p <- p + opts(title = plotTitle)
+		} else {
+		if(!is.null(plotTitle)) p <- p + opts(title = plotTitle)
+	}
+	
+	#2.4.1 layout plot
+	#general
+	if(plotTheme == "grey"){
+		p <- p + theme_grey(base_size=plotTextSize[1])
+		} else {
+		p <- p + theme_bw(base_size=plotTextSize[1])
+	}
+
+	#title options
+	p <- p + opts(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
+
+	#axis label options
+	p <- p + opts(axis.title.x = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
+	p <- p + opts(axis.text.x = theme_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = theme_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+	p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
+
+	#legend
+	p <- p + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	if (useLegendCoordinate) {
+		p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
+		} else {
+		p <- p + theme(legend.position = legendPosition) 
+	}
+	print(p)
+
+    ]]>
+</rgg>
+########################################################################################
 # name: Boxplot (with configuration and flow variable option)
 # author: Holger Brandl, Martin Stoeter
 # category: basic/boxplots
