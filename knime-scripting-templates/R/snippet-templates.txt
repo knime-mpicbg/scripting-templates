@@ -168,20 +168,22 @@ rOut <- kIn;
 ]]>
 
 </rgg>
-#######################################################################################
-# name: Power transformation and Z rank transformation
+######################################################################################
+# name: Power transformation and Z rank transformation (Caro)
 # author: Martin Stoeter
 # category: distributions
 # preview: 
 
-This rank normalization project each group of values per parameter to a normal distribution.
+This rank-preserving data transformation is a pre-processing technique to stabilize the variance and to make the data more normal distribution-like. The Z rank transformation (project_to_Gaussian) projects the data to a random normal distribution. For each group and each parameter the values are transformed independently.
 - select type of normalization
-- select a group column that should be used for ranking (e.g. barcode, date, project name,...)
 - select parameters that should be rank normalized 
+- select a group column that should be used for ranking (e.g. barcode, date, project name,...)
+If subset data is chosen as reference, only this subset data is used to calculate the lambda for the transformation (either a) or b); not possible in Z rank!).
+a) select a column and give name of subset data used as reference 
+b) select subset of column 'treatment' to be used as reference (needs a column with name 'treatment') 
 ######
 
 <rgg>
-
 <!--1. Title and short description -->
 
 <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
@@ -190,23 +192,28 @@ This rank normalization project each group of values per parameter to a normal d
 <gaprow height="1"/>
 
 <!-- 2. Configuration-->
-
 <separator label="Options" span="full"/>
 <gaprow height="2"/>
 
 #1.0 Parameter selection
-
 <group>
 # 1.1 select type of transformation
 transformation = <combobox items="Box-Cox,Yeo-Johnson,basic,project_to_Gaussian" label="Power transformation"/>;
-# 1.2 select group
-group = <combobox items="$$$STR_ATTRIBUTES$$$" label="Group column"/>;
-#group = "barcodePlate"
-#subGroup = "library"
 
-# 1.3 select the columns
+# 1.2 select the columns
 selectedParams = match(c(<panellistbox label="Column selection" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>), names(kIn));
-#selectedParams = names(kIn[,13:18])
+
+# 1.3 select group
+group = <combobox items="$$$STR_ATTRIBUTES$$$" label="Group column"/>
+
+# 1.4 select subset
+<separator label="Subset data as reference" span="full"/>
+subsetOption = <combobox items="-NO SUBSET - USE ALL DATA IN GROUP!-,a) subset column,b) subset of column 'treatment'" label="Subset column"/>
+<hbox>
+subsetColumn = <combobox items="-NOT USED-,$$$STR_ATTRIBUTES$$$" label="a) Subset column"/>
+<textfield label="subset:" var="subsetName" data-type="text" default-value= "" size="5" />
+</hbox>
+subsetTreatment = <combobox label="b) Subset of column 'treatment'" items="-NOT USED-,$$$DOMAIN('treatment')$$$" />
 
 </group>
 
@@ -225,74 +232,109 @@ library(alr3)
 #2.3. calulate
 
 data <-kIn
+allGroups <- unique(data[,group])
 
-#calc max number of values per group
-allGroups <- unique(kIn[,group])
-maxNumberOfValues <- list()
-for (i in 1:(length(allGroups))) {
-	maxNumberOfValues[[i]] <- data.frame(columnName= allGroups[i], values=length(which(data[,group] == allGroups[i]))) 
-		}
-maxNumberOfValues <- do.call("rbind", maxNumberOfValues) 
 
 if (transformation == "project_to_Gaussian") {
-	#debug plot set plot
-	#par(mfrow=c(as.integer(length(selectedParams)/2),3))
+
+	#calc max number of values per group
+	maxNumberOfValues <- list()
+	for (i in 1:(length(allGroups))) {
+		maxNumberOfValues[[i]] <- data.frame(columnName = allGroups[i], values = length(which(data[,group] == allGroups[i]))) 
+		}
+	maxNumberOfValues <- do.call("rbind", maxNumberOfValues) 
 
 	#calc z rank normalization per group
 	for (i in 1:(length(allGroups))) {	
 		#generate normal distributes data (100-fold resolution of number of value in group)
-		#normData <- sort(rnorm((maxNumberOfValues+1)*100, mean = 0, sd = 1))
 		normData <- sort(rnorm((maxNumberOfValues[i, "values"]+1)*100, mean = 0, sd = 1))	
 	
 		for (param in 1:(length(selectedParams))) {
-			#debug plot raw data
-			#hist(data[temp[,"rowID"], selectedParams[param]], density=30.0, breaks = 50, main = selectedParams[param], freq = TRUE)
-			#lines(density(data[temp[,"rowID"], selectedParams[param]]), col = "red")
-
 			#replace raw values with projected raw data to normal distribution
 			temp <- data.frame(rowID = which(data[,group] == allGroups[i]), values = data[which(data[,group] == allGroups[i]), selectedParams[param]], rank = as.integer(rank(data[which(data[,group] == allGroups[i]), selectedParams[param]])), normData = normData[as.integer(rank(data[which(data[,group] == allGroups[i]), selectedParams[param]]))*100+50])
 			data[temp[,"rowID"], selectedParams[param]] <- temp[,"normData"] 
-		
-			#debug plot z rank
-			#hist(data[temp[,"rowID"], selectedParams[param]], density=30.0, breaks = 50, main = "z rank", freq = FALSE)
-			#lines(density(data[temp[,"rowID"], selectedParams[param]]), col = "red")
-			#plot(temp[,"normData"],temp[,"values"])
 			}
 		}
-		
+		transformedNames <- paste(names(data)[selectedParams], '.zrank', sep = "") #project_to_Gaussian	
+
 	} else {
-		
-	#ensure that all values are strictly positive
-	data[, selectedParams] <- data[, selectedParams] - min(data[, selectedParams]) +0.01
+	
+	if ((transformation == "Box-Cox") | (transformation == "basic")) {
+	
+		#ensure that all values are strictly positive
+		for (j in 1:length(selectedParams)) {
+			param <- selectedParams[j]
+			data[, param] <- data[, param] - min(data[, param]) + 0.01
+			}
+		}
 
 	for (i in 1:(length(allGroups))) {	
 		# calculate the optimal lambda for the trafo
-		powers <- powerTransform(as.matrix(data[which(data[,group] == allGroups[i]), selectedParams]))
+		switch(which(subsetOption == c("-NO SUBSET - USE ALL DATA IN GROUP!-","a) subset column","b) subset of column 'treatment'")), {
+			#all data
+			dataMatrix <- as.matrix(data[which(data[,group] == allGroups[i]), selectedParams]) 
+			}, {
+			#a) subset column
+			if (subsetColumn != "-NOT USED-") {
+				dataMatrix <- as.matrix(data[which((data[,group] == allGroups[i]) & (data[, subsetColumn] == subsetName)), selectedParams])
+				} else {
+				dataMatrix <- as.matrix(NA)	
+				}
+			}, { 
+			#b) 'treatment'
+			if (subsetTreatment != "-NOT USED-") {
+				dataMatrix <- as.matrix(data[which((data[,group] == allGroups[i]) & (data[,"treatment"] == subsetTreatment)), selectedParams])
+				} else {
+				dataMatrix <- as.matrix(NA)	
+				}
+			})
 
-		# apply the trafo
-		switch(which(transformation == c('Box-Cox','Yeo-Johnson','basic')), {
-			data[which(data[,group] == allGroups[i]), selectedParams] <- bcPower(data[which(data[,group] == allGroups[i]), selectedParams], powers$lambda)}, { #Box-Cox
-			data[which(data[,group] == allGroups[i]), selectedParams] <- yjPower(data[which(data[,group] == allGroups[i]), selectedParams], powers$lambda)}, { #Yeo-Johnson
-			data[which(data[,group] == allGroups[i]), selectedParams] <- basicPower(data[which(data[,group] == allGroups[i]), selectedParams], powers$lambda)}  #basic power transformation
-			)
+		if (length(dataMatrix) > 2) {
+			
+			# apply the trafo
+			switch(which(transformation == c('Box-Cox','Yeo-Johnson','basic')), {
+
+				powers <- c()
+				for (k in 1:ncol(dataMatrix)) {
+					powers[k] <- powerTransform(dataMatrix[,k])$lambda
+					}
+				data[which(data[,group] == allGroups[i]), selectedParams] <- bcPower(data[which(data[,group] == allGroups[i]), selectedParams], powers) #Box-Cox
+				transformedNames <- paste(names(data)[selectedParams], '.bcPower', sep = "")}, { 
+
+				powers <- c()
+				for (k in 1:ncol(dataMatrix)) {
+					powers[k] <- powerTransform(dataMatrix[,k],family="yjPower")$lambda
+					}
+				data[which(data[,group] == allGroups[i]), selectedParams] <- yjPower(data[which(data[,group] == allGroups[i]), selectedParams], powers) #Yeo-Johnson
+				transformedNames <- paste(names(data)[selectedParams], '.yjPower', sep = "")}, { 
+
+				powers <- c()
+				for (k in 1:ncol(dataMatrix)) {
+					powers[k] <- powerTransform(dataMatrix[,k])$lambda
+					}
+				data[which(data[,group] == allGroups[i]), selectedParams] <- basicPower(data[which(data[,group] == allGroups[i]), selectedParams], powers) #basic power transformation
+				transformedNames <- paste(names(data)[selectedParams], '.power', sep = "")})
+			
+			} else {
+			data[which(data[,group] == allGroups[i]), selectedParams] <- NA	
+			}
 		}
 	}
 	
 #rename transformed data columns
-switch(which(transformation == c('Box-Cox','Yeo-Johnson','basic','project_to_Gaussian')), {
-	transformedNames <- paste(names(data)[selectedParams], '.bcPower', sep = "")}, { #Box-Cox
-	transformedNames <- paste(names(data)[selectedParams], '.yjPower', sep = "")}, { #Yeo-Johnson
-	transformedNames <- paste(names(data)[selectedParams], '.power', sep = "")}, {   #basic power transformation
-	transformedNames <- paste(names(data)[selectedParams], '.zrank', sep = "")} #project_to_Gaussian
-	)
-names(data)[selectedParams] <- transformedNames
-
-# bind both dataframes together
-rOut <- cbind(kIn,  data[,transformedNames])
-
+#switch(which(transformation == c('Box-Cox','Yeo-Johnson','basic','project_to_Gaussian')), {
+#	transformedNames <- paste(names(data)[selectedParams], '.bcPower', sep = "")}, { #Box-Cox#
+#	transformedNames <- paste(names(data)[selectedParams], '.yjPower', sep = "")}, { #Yeo-Johnson
+#	transformedNames <- paste(names(data)[selectedParams], '.power', sep = "")}, { #basic power transformation
+#	transformedNames <- paste(names(data)[selectedParams], '.zrank', sep = "")} #project_to_Gaussian
+#	)
+	
+# bind both dataframes together	
+newColNames <- c(names(kIn), transformedNames)
+rOut <- cbind(kIn, data[,selectedParams])	
+names(rOut) <- newColNames	
 
 ]]>
-
 </rgg>
 
 ########################################################################################
@@ -933,6 +975,56 @@ rOut <- outputTable
 ]]>
 
 </rgg>
+#######################################################################################
+# name: Get info from R-server (installed packages, R version, system info)
+# author: Martin Stoeter
+# category: utilities
+# preview: 
+
+This snippet lists the version and packages installed on your R-server.
+a) installed packages and their versions (installed.packages())
+b) libraries/packages that can be loaded (library())
+c) base packages (sessionInfo()["basePkgs"])
+d) R version and platform (sessionInfo()[1])
+e) other packages installed (not always present)
+f) system information (Sys.info())
+######
+
+<rgg>
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+<group>
+# 1.1 select type of transformation
+getInfo = <combobox items="installed_packages,libraries,base_packages,R_version,other_packages,system_info" label="Power transformation"/>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+rOut <- switch(getInfo,
+	installed_packages = as.data.frame(installed.packages()), libraries = as.data.frame(library()[2]), base_packages = as.data.frame(sessionInfo()["basePkgs"]), R_version = as.data.frame(sessionInfo()[1]), other_packages = as.data.frame(names(sessionInfo()["otherPkgs"][[1]])), system_info = as.data.frame(Sys.info()))
+
+#rOut <- as.data.frame(installed.packages())
+#rOut <- as.data.frame(library()[2])
+#rOut <- as.data.frame(sessionInfo()["basePkgs"])
+#rOut <- as.data.frame(sessionInfo()[1])
+#rOut <- as.data.frame(names(sessionInfo()["otherPkgs"][[1]]))
+#rOut <- as.data.frame(Sys.info())
+
+]]>
+</rgg>
+
 ########################################################################################
 # name: Reshape to long format
 # category: utilities
