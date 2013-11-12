@@ -68,6 +68,7 @@ Enter an additional title
 	# load libraries
 	library(ggplot2)
 	library(reshape)
+	library(grid)
 
 	# check input parameters
 	# -------------------------------------------------------------
@@ -323,6 +324,8 @@ params =  which(names(kIn) %in% c(<panellistbox label="Assay parameters of inter
 
 <![CDATA[
 
+library(grid)
+
 # slim down your dataset if necessary
 #kIn <- subset(kIn, treatment != "jak3 inhibitor" && librarycode == "ADD");
 
@@ -449,6 +452,7 @@ gridFactor = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="Grid-factor"/>
 
 #1.0. load libaries
 library(lattice)
+library(grid)
 
 #2.1 manage RGG to R: define as numbers
 
@@ -549,6 +553,7 @@ colorPalette = <combobox items="Set1,Set2,Set3,Set4,clarity,standard,KNIME color
 
 #2.1.1 load libaries
 library(ggplot2)
+library(grid)
 
 #2.1.2 Define the data
 #Define the (factor)
@@ -658,8 +663,6 @@ Options:
 - plot density line (default: false)
 - set color of histogram or line (default: black; see colors here http://research.stowers-institute.org/efg/R/Color/Chart/)
 
-(TDS internal)
-
 ######
 
 <rgg>
@@ -723,8 +726,6 @@ Options:
 # author: Holger Brandl
 # category: basic/histograms
 # preview: histogram-grid.png
-
-
 
 Creates a grid containing a number densityplots, each for a different feature dimension. Within each plot the densities are factorized according to a chosen grouping factor.
 
@@ -1411,6 +1412,7 @@ doFlipCoord = <checkbox label="Flip Coordinate Axes" span="2"/>;
 kIn$xGrouping <- xGroupFac;
 
 library(ggplot2)
+library(grid)
 
 barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + facet_wrap( ~ xGrouping) + opts(title = plotTitle);
 
@@ -1492,6 +1494,7 @@ doFlipCoord = <checkbox label="Flip Coordinate Axes" span="2"/>;
 <![CDATA[
 
 library(ggplot2)
+library(grid)
 
 kIn$xGrouping <- xGroupFac;
 limits = aes(ymax = selParam + selParamSD, ymin=selParam - selParamSD)
@@ -1620,6 +1623,8 @@ labelVariable = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="barcod
 
 
 <![CDATA[
+
+library(grid)
 
 numGridRows = ifelse(length(params) > 1, 2, 1);
 par(mfrow = c(numGridRows, ceiling(length(params) / numGridRows)))
@@ -2354,6 +2359,7 @@ parameters =  c(<panellistbox label="Assay parameters of interest" items="$$$NUM
 #2.1 load libaries
 library(ggplot2)
 library(reshape)
+library(grid)
 
 #2.2.1 manage RGG to R: define as numbers
 hLines <- as.numeric(hLines)
@@ -2490,6 +2496,7 @@ selReadouts = c(<panellistbox label="Parameters of interest" items="$$$NUM_ATTRI
 #2. r-code
 
 #2.0 load libaries
+library(grid)
 
 #2.1 manage RGG to R: define as numbers
 
@@ -2612,6 +2619,7 @@ params =  c(<panellistbox label="Parameters" items="$$$NUM_ATTRIBUTES$$$" span="
 
 #2.1.1 load libaries
 library(grDevices)
+library(grid)
 
 #2.1.2 Define the data
 if (catVar == "-USE SELECTED TREATMENTS-") {
