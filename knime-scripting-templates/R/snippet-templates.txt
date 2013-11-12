@@ -107,7 +107,7 @@ rOut <- data.frame(do.call("cbind", new.l))
 # name: Mahalanobis Distance Calculator
 # category: distance measures
 
-Calculates mahalonobis distances to the mean of a control group (typically your negative controls).
+Calculates mahalanobis distances to the mean of a control group (typically your negative controls).
 
 ######
 
@@ -120,7 +120,6 @@ Calculates mahalonobis distances to the mean of a control group (typically your 
 <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
-
 <!-- 2. Configuration-->
 
 <separator label="Options" span="full"/>
@@ -132,21 +131,37 @@ Calculates mahalonobis distances to the mean of a control group (typically your 
 # 1) select the readouts that span the phenotypic space
 featSelection = match(c(<panellistbox label="Features of interest" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>), names(kIn));
 
-
 # 2) calculate mean and covariance of the negative controls
 negCtrls = subset(kIn, treatment == <combobox items="$$$DOMAIN('treatment')$$$" label="Negative Control"/>);
 
 </group>
 
-
 <![CDATA[
+#2.0 R code
 
+#2.1 load libraries
+library(MASS)
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set values to default and check values
+
+#2.3. calulate
 nc = negCtrls[,featSelection];
 ncCov = cov(na.omit(array(nc)));
 ncMean = mean(nc, na.rm=TRUE);
 
+#check the determinant of the covariance matrix to prevent error message if determinant is too small
+if(det(ncCov) < .Machine$double.eps) {
+	#if too small take inverse matrix
+	ncCov <- ginv(ncCov)
+	mahaInverted <- TRUE
+	} else {
+	mahaInverted <- FALSE
+	}
+
 # append the distance as additional column
-kIn$mahadist <- mahalanobis(array(kIn[featSelection]), ncMean, ncCov);
+kIn$mahadist <- mahalanobis(array(kIn[featSelection]), ncMean, ncCov, inverted = mahaInverted);
 
 rOut <- kIn;
 
