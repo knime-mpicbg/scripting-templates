@@ -160,17 +160,15 @@ Enter an additional title
 		
 		fTitle <- paste("Grid factor: ",facetTitle,sep = "")
 		if(!is.null(plotTitle)) plotTitle <- paste(plotTitle,fTitle,sep = " / ") else plotTitle <- fTitle
-		p <- p + ggtitle(plotTitle)
+		p <- p + opts(title = plotTitle)
 	} else {
-		if(!is.null(plotTitle)) p <- p + ggtitle(plotTitle)
+		if(!is.null(plotTitle)) p <- p + opts(title = plotTitle)
 	}
 
-	tm <- theme_grey(base_size=14)
-	p <- p + tm + theme(axis.text.x = element_text(angle=90, hjust=1))
+	p <- p + theme_grey(base_size=14) + opts(axis.text.x = theme_text(angle = 90, hjust = 1))
 
 	print(p)
 	# -------------------------------------------------------------
-
 
     ]]>
 
@@ -632,7 +630,7 @@ lapply(params, FUN = function (param) {
 
 	#set the title to the unmodified attribute-name
 	if (useJoinParameterToTitle) title <- paste(title, origNames[param])
-	m <- m + xlab(origNames[param]) + labs(fill = origNames[factorIndex]) + ggtitle(title)
+	m <- m + xlab(origNames[param]) + labs(fill = origNames[factorIndex]) + opts(title = title)
    	
 	plotNum <- which(params == param)
 	curRow <- ceiling(plotNum/numGridCols)
@@ -866,7 +864,7 @@ Allows modification of number of bins.
     dataRange <- range(newdata$readout, na.rm = TRUE)
     extend <- dataRange[2]-dataRange[1]
 
-    m <- ggplot(newdata, aes(x=readout, y = ..density.., fill=groupby)) +  ggtitle(plotTitle) + geom_histogram(binwidth = extend/bw) + xlab(numAttributeName)
+    m <- ggplot(newdata, aes(x=readout, y = ..density.., fill=groupby)) +  opts(title = plotTitle) + geom_histogram(binwidth = extend/bw) + xlab(numAttributeName)
 
     print(m)
 
@@ -1000,7 +998,7 @@ names(kIn)[factorIndex] <- "treatmentRinternalColumnName"
 	m <- m + facet_grid(. ~ treatmentRinternalColumnName) + coord_flip() + opts(panel.grid.minor=theme_blank())
 
 	if (useJoinParameterToTitle) title <- paste(title, origNames[paramIndex])
-	m <- m + xlab(origNames[paramIndex]) + labs(fill = origNames[factorIndex]) + ggtitle(title)	
+	m <- m + xlab(origNames[paramIndex]) + labs(fill = origNames[factorIndex]) + opts(title = title)	
 
 	print(m)
 
@@ -1256,7 +1254,7 @@ doFlipCoord = <checkbox label="Flip Coordinate Axes" span="2"/>;
 
 library(ggplot2)
 
-barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + ggtitle(plotTitle)
+barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + opts(title = plotTitle)
 
 #change the color scale
 barplot = barplot + scale_colour_brewer(type="qual");
@@ -1332,7 +1330,7 @@ doFlipCoord = <checkbox label="Flip Coordinate Axes" span="2"/>;
 library(ggplot2)
 limits = aes(ymax = selParam + selParamSD, ymin=selParam - selParamSD)
 
-barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + ggtitle(plotTitle) + scale_colour_brewer(type="seq");
+barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + opts(title = plotTitle) + scale_colour_brewer(type="seq");
 
 # add errors
 dodge <- position_dodge(width=0.9);
@@ -1412,7 +1410,7 @@ kIn$xGrouping <- xGroupFac;
 library(ggplot2)
 library(grid)
 
-barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + facet_wrap( ~ xGrouping) + ggtitle(plotTitle);
+barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + facet_wrap( ~ xGrouping) + opts(title = plotTitle);
 
 
 #change the color scale
@@ -1497,7 +1495,7 @@ library(grid)
 kIn$xGrouping <- xGroupFac;
 limits = aes(ymax = selParam + selParamSD, ymin=selParam - selParamSD)
 
-barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + facet_wrap( ~ xGrouping) + ggtitle(plotTitle);
+barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + facet_wrap( ~ xGrouping) + opts(title = plotTitle);
 
 # add errors
 dodge <- position_dodge(width=0.9);
@@ -1698,7 +1696,7 @@ Displays a histogram (distribution) of a numerical attribute
     m <- ggplot(kIn, aes_string(x= numAttributeNameFixed)) + geom_histogram(binwidth= rangeWidth/numBins) + geom_density();
 
     # add title and proper label
-    m <- m +  ggtitle(plotTitle) + xlab(numAttributeName);
+    m <- m +  opts(title = plotTitle) + xlab(numAttributeName);
 
     # print it
     print(m, newpage=FALSE, pretty=FALSE)
@@ -2118,7 +2116,7 @@ switch(which(colorPalette == c('standard','clarity','Spectral','manual')), {
 	)
 
 #plot title
-p <- p + ggtitle(plotTitle)
+p <- p + opts(title = plotTitle)
 
 #set background on/off
 if (setBkgWhite) p <- p + theme_bw()
@@ -2282,7 +2280,7 @@ p <- p + opts(axis.text.x = theme_text(hjust = 1, angle = 90))
 #p <- p + scale_colour_manual(values = colorPaletteVector)
 if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
 if (!is.na(hLines[2])) p <- p + geom_hline(yintercept = hLines[2])
-p <- p + ggtitle(mainTitle) 
+p <- p + opts(title = mainTitle) 
 print(p)
 
 ]]>
@@ -2443,7 +2441,7 @@ if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
 if (!is.na(hLines[2])) p <- p + geom_hline(yintercept = hLines[2])
 p <- p + labs(x = parameterLabel, y = yLabel)
 p <- p + opts(axis.text.x = theme_text(hjust = 1, angle = 90))
-p <- p + ggtitle(mainTitle) 
+p <- p + opts(title = mainTitle) 
 p <- p + facet_wrap(~ catVar)
 print(p)
 
