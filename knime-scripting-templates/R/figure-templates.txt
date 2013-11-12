@@ -1,0 +1,2721 @@
+########################################################################################
+# name: Barplot
+# author: Antje Niederlein
+# category: basic/barplots
+# preview: simplebarplot.png
+
+Flexible template to create a barplot or barplot grid with optional errorbars
+
+Parameter:
+Bar height - One or multiple numerical variables. Each value will result in one bar
+Error bar checkbox - Draw errorbars?
+Error bar - Error bar values corresponding to the height values (same number of columns have to be selected)
+To use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
+x-axis - Label to put at the x-axis for each bar (mulitple columns can be selected to combine information)
+2D-grid grouping parameter - Allows to split the dataset into multiple plots by this condition (mulitple columns can be selected to combine information)
+bar colour - Colour bars by condition (mulitple columns can be selected to combine information)
+Enter an additional title
+######
+
+<rgg>
+
+    <!--1. Title and short description -->
+
+    <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+    <separator label="Description" span="full"/>
+    <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+    <gaprow height="1"/>
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    # 1. Parameter selection
+	<group>
+
+	# Define your numerical parameters represented by bar height
+	barHeight = c(<panellistbox label="select columns with values for bar height" items="$$$NUM_ATTRIBUTES$$$"
+	                                             span="full"/>)
+	plot.Errorbars = <checkbox label="draw errorbars (select column with errorbar values)" selected="t"/>
+	# Define your numerical parameters for error bars
+	barError = c(<panellistbox label="cErrorBars" items="$$$NUM_ATTRIBUTES$$$"
+	                                             span="full"/>)
+	<gaprow height="2"/>
+
+	<hbox>
+	<checkbox label="use flow variable" var="useFlowVar" selected="false" />
+	<textfield label="bar height flow variable:" var="flowVariableBarHeight" data-type="text" default-value= "" size="10" />
+	<textfield label="bar error flow variable:" var="flowVariableBarError" data-type="text" default-value= "" size="10" />
+	</hbox>
+
+	<hbox>
+	xFactor = c(<listbox label="x-axis" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	facetBy = c(<listbox label="2D grid grouping parameters" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	colourBy = c(<listbox label="coloured by" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	</hbox>
+	
+	<textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "" size="10" span="full"/>
+	xAngle = as.numeric(c(<combobox label = "angle of x-axis labels"
+	  items = "0,90"/>))
+	free.scales = <checkbox label="use free y-scales" selected="t"/>
+	
+	</group>
+
+	<!-- 2. r code-->
+
+	<![CDATA[
+	# load libraries
+	library(ggplot2)
+	library(reshape)
+
+	# check input parameters
+	# -------------------------------------------------------------
+	# check flow variables
+	if (useFlowVar && !is.na(flowVariableBarHeight)) {
+    	barHeight <- flowVariableBarHeight
+	}
+	if(plot.Errorbars && useFlowVar && !is.na(flowVariableBarError)) {
+		barError <- flowVariableBarError
+	}
+	# no bar height columns selected
+	if(is.null(barHeight)) stop("Error: Template initialization fails - no columns for bar height selected")
+	# errorbars checked but no column selected
+	if(plot.Errorbars & is.null(barError)) plot.Errorbars <- FALSE	# simply don't plot any errorbars
+	if(plot.Errorbars & length(barHeight) != length(barError)) stop("Error: Template initialization fails - number of bar height columns not equal to number of error bar columns")
+	# no xFactor selected
+	if("-NO SELECTION-" %in% xFactor) xFactor <- NULL
+	if("-NO SELECTION-" %in% facetBy) facetBy <- NULL
+	if("-NO SELECTION-" %in% colourBy) colourBy <- NULL
+
+	xFactorFlag <- facetFlag <- colourFlag <- FALSE
+	if(is.null(xFactor)) xFactor <- "-ROW ID-"
+	if(!is.null(xFactor) && "-USE COLUMN SELECTION-" %in% xFactor) { xFactorCol <- NULL; xFactorFlag <- TRUE } else xFactorCol <- xFactor
+	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) { facetCol <- NULL; facetFlag <- TRUE } else facetCol <- facetBy
+	if(!is.null(colourBy) && "-USE COLUMN SELECTION-" %in% colourBy) { colourCol <- NULL; colourFlag <- TRUE } else colourCol <- colourBy
+
+	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
+	
+	if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
+
+	# -------------------------------------------------------------
+
+	# create rowID column if needed
+	if("-ROW ID-" %in% xFactorCol) kIn[,"-ROW ID-"] <- rownames(kIn)
+
+	# combine columns if necessary
+	if(length(xFactor) > 1) {
+		xFactorCol <- paste(xFactor, collapse = " + ")
+		kIn[,xFactorCol] <- apply(kIn[,xFactor], 1, paste, collapse = " + ")
+	}
+	if(length(facetBy) > 1) {
+		facetCol <- paste(facetBy, collapse = " + ")
+		kIn[,facetCol] <- apply(kIn[,facetBy], 1, paste, collapse = " + ")
+	}
+	if(length(colourBy) > 1) {
+		colourCol <- paste(colourBy, collapse = " + ")
+		kIn[,colourCol] <- apply(kIn[,colourBy], 1, paste, collapse = " + ")
+	}
+
+	# extract necessary data and reshape it
+	meanData <- kIn[,c(barHeight,xFactorCol, facetCol, colourCol)]
+
+	meanDataLong <- melt(meanData, measure.vars = barHeight, variable_name = "- PARAMETERS -")
+	names(meanDataLong)[which(names(meanDataLong) == "value")] <- "height"
+
+	# add errorbar data
+	if(plot.Errorbars) {
+		sdData <- kIn[,c(barError,xFactorCol, facetCol, colourCol)]
+		sdDataLong <- melt(sdData, measure.vars = barError)
+		meanDataLong$error <- sdDataLong$value
+		meanDataLong$low <- with(meanDataLong, height - error)
+		meanDataLong$high <- with(meanDataLong, height + error)
+	}
+
+	if(xFactorFlag) xFactorCol <- "- PARAMETERS -"
+	if(facetFlag) facetCol <- "- PARAMETERS -"
+	if(colourFlag) colourCol <- "- PARAMETERS -"
+
+	if(!is.null(facetBy)) { facetTitle <- facetCol; meanDataLong$template.facet.column <- meanDataLong[,facetCol]; facetCol <- "template.facet.column" }
+
+
+	# plot data
+	# -------------------------------------------------------------
+	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height))
+
+	my.dodge <- position_dodge(width=0.9)
+	if(!is.null(colourBy)) {
+		p <- p + geom_bar(aes(fill = get(colourCol)), stat = "identity", position = my.dodge, colour = "black")
+		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high, group = get(colourCol)), position = my.dodge, width = 0.35)
+		} else {
+		p <- p + geom_bar(stat = "identity", position = my.dodge, colour = "black", fill = "grey")
+		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high), position = my.dodge, width = 0.35) }
+
+	p <- p + scale_x_discrete(name = xFactorCol)
+
+	if(!is.null(colourCol)) p <- p + scale_fill_discrete(name = colourCol)
+	if(!is.null(facetBy)) {
+		p <- p + facet_wrap(~ template.facet.column, scales=free.scales)
+		
+		fTitle <- paste("Grid factor: ",facetTitle,sep = "")
+		if(!is.null(plotTitle)) plotTitle <- paste(plotTitle,fTitle,sep = " / ") else plotTitle <- fTitle
+		p <- p + opts(title = plotTitle)
+	} else {
+		if(!is.null(plotTitle)) p <- p + opts(title = plotTitle)
+	}
+
+	tm <- theme_grey(base_size=14)
+	formals(tm$axis.text.x)$angle <- 90
+	formals(tm$axis.text.x)$hjust <- 1
+	p <- p + tm
+
+	print(p)
+	# -------------------------------------------------------------
+
+
+    ]]>
+
+</rgg>
+########################################################################################
+# name: Boxplot (with configuration and flow variable option)
+# author: Holger Brandl, Martin Stoeter
+# category: basic/boxplots
+# preview: simpleboxplot.png
+
+A simple box plot with Options:
+- set the y-axis limits (default: none (=automatic); min AND max values are neccessary, if you want to set limits)
+- set the magnification factor to be used for axis annotation (default: 1) or set automatically according to number of x-axis factors
+- set color of histogram or line (default: lightblue; see colors here http://research.stowers-institute.org/efg/R/Color/Chart/)
+- set outer margins in lines of text (vector of form (bottom, left, top, right) corresponding to command "oma" in R)
+- to use a flow variable check box and type in variable name using the format: FLOWVAR(variable name)
+
+######
+
+<rgg>
+
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+<hbox>
+numAttributeName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Numeric variable"/>;
+<checkbox  label="use flow variable" var="useFlowVar" selected="false"/>
+<textfield label="flow variable:" var="flowVariable" data-type="text" default-value= "" size="10" span="full"/>
+</hbox>
+
+rawFactor = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis factor"/>;
+<textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "" size="10" span="full"/>
+useVerticalLabels =  <checkbox label="Use vertical labels" span="2" selected="false"/>;
+<vector label="y-axis scale:" var="yScale" size="2" vector-type="character"/>
+
+<hbox>
+<textfield label="Magnification factor (axis annotation):" var="axisAnnotationScale" data-type="number" default-value="1"/>
+<checkbox  label="Auto-magnification factor" var="useAutoAxisAnnotationScale" selected="false"/>
+</hbox>
+
+<textfield label="Color of histogram:" var="color" data-type="text" default-value= "lightblue" size="5"/>
+<vector label="margins (bottom, left, top, right):" var="margins" size="4" default-value="7,1,1,1" vector-type="character"/>
+
+</group>
+
+
+# 2. r-code
+
+<![CDATA[
+
+#1. load libaries
+
+#2.1 manage RGG to R: define as numbers
+
+#define as numbers
+yScale <- as.numeric(yScale)
+margins <- as.numeric(margins)
+axisAnnotationScale <- as.numeric(axisAnnotationScale)
+
+#2.2 manage RGG to R: set scales to default and check scales
+
+#set scales to default and check scales 
+if (is.na(yScale[1]) | is.na(yScale[2])) 	yScale <- NULL		#default
+if (is.na(axisAnnotationScale)) 	axisAnnotationScale <- 1		#default
+if (is.na(color)) color <- 'lightblue'
+if (is.na(margins[1]) | is.na(margins[2]) | is.na(margins[3]) | is.na(margins[4])) 	margins <- c(7,1,1,1)	#default
+
+#3. calulate
+if (useFlowVar) numAttributeName = flowVariable
+numAttribute <- kIn[,which(names(kIn) == numAttributeName)]
+
+factor = factor(rawFactor, levels=unique(rawFactor))
+
+#set auto axis annotation scale
+if ((useAutoAxisAnnotationScale) && (length(levels(factor)) > 80)) axisAnnotationScale <- sqrt(80)/sqrt(length(levels(factor))) 
+
+
+#4.1 layout plot 
+par(oma=margins)
+
+#4.2 plot data
+
+boxplot(numAttribute ~ factor, main = plotTitle, col = color, ylim = yScale, ylab = numAttributeName, cex.axis = axisAnnotationScale, las = ifelse(useVerticalLabels, 2, 1));
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Multi-parameteric parallel boxplot grid 
+# author: Holger Brandl
+# category: basic/boxplots
+# preview: multipar-boxplotgrid.png
+
+
+A grid of parallel boxplots, one for each selected assay parameter. The number of actual parallel boxplots is defined by a categorical variable (like a well-treatment)
+
+
+######
+
+
+
+<rgg>
+
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+# a) Define your categorical variable of interest
+# make sure that the sorting of the data is being preserved
+rawFactor = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="X-axis factor"/>;
+catVar = factor(rawFactor, levels=unique(rawFactor));
+
+
+
+# b) Define your assay parameters of interest
+params =  which(names(kIn) %in% c(<panellistbox label="Assay parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>));
+
+</group>
+
+
+# 2. r-code
+
+<![CDATA[
+
+# slim down your dataset if necessary
+#kIn <- subset(kIn, treatment != "jak3 inhibitor" && librarycode == "ADD");
+
+numGridRows = 2;
+par(mfrow = c(numGridRows, ceiling(length(params) / numGridRows)))
+par(oma=c(1,3,1,1)); # the 3 defines the length of the labels, just increase it if necessary
+
+# iterate over all parameters and create plots for all of them
+lapply(params, FUN = function (param) {
+
+	boxplot(eval(parse(text = paste("kIn$\"", names(kIn)[param], "\"", sep = ''))) ~ catVar, horizontal = TRUE, las = 2, col = c('lightblue') )
+	title(names(kIn[param]));
+
+})
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Notched Boxplot
+# author: Holger Brandl
+# category: basic/boxplots
+# preview: notched-boxplot.png
+
+A boxplot with notches that indicate significant differences of the median between groups in case of equal sample sizes. Refer to the R-documentation or further details.
+
+######
+
+<rgg>
+
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+numAttribute = kIn$<combobox items="$$$NUM_ATTRIBUTES$$$" label="Numeric variable"/>;
+
+# make sure that the sorting of the data is being preserved
+rawFactor = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis factor"/>;
+factor = factor(rawFactor, levels=unique(rawFactor));
+
+<textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value="" size="10" span="full" />
+
+useVerticalLabels =  <checkbox label="Use vertical labels" span="2" selected="false"/>;
+
+</group>
+
+
+# 2. r-code
+
+<![CDATA[
+
+boxplot(numAttribute ~ factor, notch = TRUE, main = plotTitle, las = ifelse(useVerticalLabels, 2, 1));
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Parallel Boxplot grid (with flow variable option)
+# author: Holger Brandl, modified Martin Stoeter
+# category: basic/boxplots
+# preview: lattice-boxplotgrid.png
+
+A grid of parallel boxplots.
+
+Inputs
+1) The parameter that is plotted 
+2) A categorial variable which defines the number of parallel boxplots (X-axis factor)
+3) A categorial variable which defines the grouping into the different grids
+- to use a flow variable check box and type in variable name using the format: FLOWVAR(variable name)
+
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+<hbox>
+numAttributeName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Parameter of interest"/>
+<checkbox  label="use flow variable 1" var="useFlowVarNumAttributeName" selected="false"/>
+<textfield label="flow variable 1:" var="flowVariableNumAttributeName" data-type="text" default-value= "" size="10" span="full"/>
+</hbox>
+
+<hbox>
+rawFactor = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="X-axis factor"/>
+<checkbox  label="use flow variable 2" var="useFlowVarRawFactor" selected="false"/>
+<textfield label="flow variable 2:" var="flowVariableRawFactor" data-type="text" default-value= "" size="10" span="full"/>
+</hbox>
+
+<hbox>
+gridFactor = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="Grid-factor"/>
+<checkbox  label="use flow variable 3" var="useFlowVarGridFactor" selected="false"/>
+<textfield label="flow variable 3:" var="flowVariableGridFactor" data-type="text" default-value= "" size="10" span="full"/>
+</hbox>
+</group>
+
+<![CDATA[
+
+# 2. r-code
+
+#1.0. load libaries
+library(lattice)
+
+#2.1 manage RGG to R: define as numbers
+
+#2.2 manage RGG to R: set scales to default and check scales
+if (useFlowVarNumAttributeName) numAttributeName <- flowVariableNumAttributeName
+if (useFlowVarRawFactor) rawFactor <- flowVariableRawFactor
+if (useFlowVarGridFactor) gridFactor <- flowVariableGridFactor
+
+#3. calulate
+parallelFactor <- factor(rawFactor, levels=unique(rawFactor));
+numAttribute = eval(parse(text = paste("kIn$\"", numAttributeName, "\"", sep = '')))
+
+#4.1 layout plot
+
+#4.2 plot data
+m <- bwplot(factor(parallelFactor) ~ numAttribute | factor(gridFactor), xlab = numAttributeName)
+print(m, newpage=FALSE, pretty=FALSE)
+
+]]>
+</rgg>
+
+########################################################################################
+# name: Factorized density grid, KNIME colors
+# author: Holger Brandl, modified by Martin Stoeter
+# category: basic/histograms
+# preview: factorized_density_plot_grid.png
+
+Creates a grid of density plots for selected columns and plots densities for each factor (group).
+
+1) Select numerical variables. Each variable will result in a subplot. Multiple parameters are plotted as grid of subplots. 
+ - To use a flow variable check box and type in variable name using the format: FLOWVAR(variable name) (doesn't work like this for grid of subplots)
+2) Select a column that contains the factors/groups of densities to plot.
+
+Options for visualization:
+a) how to plot the colors (fill densities or lines).
+b) color palette the is used (KNIME colors: if colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories)
+c) Select if background should be white.
+d) optional title and whether parameter name should be plotted in title 
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+#1.0 Parameter selection
+
+<group>
+
+# a) Define your numerical attribute of interest
+params = c(<panellistbox label="Numerical attributes" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+<hbox>
+<checkbox  label="use flow variable" var="useFlowVar" selected="false"/>
+<textfield label="flow variable:" var="flowVariable" data-type="text" default-value="" size="10"/>
+</hbox>
+
+<gaprow height="1"/>
+
+# b) Define the grouping factor
+factorName = c(<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="treatment" label="Factor"/>)
+
+<gaprow height="1"/>
+
+# c) Options for visualization
+<separator label="more layout options" span="full"/>
+<gaprow height="1"/>
+
+<hbox>
+# d) Define the colour of fill or line
+<checkbox label="Plot lines instead of fill densities" var="plotLineColour" selected="false"/>
+
+# c) Define the colour of fill or line
+colorPalette = <combobox items="Set1,Set2,Set3,Set4,clarity,standard,KNIME colors" label="Color palette:"/>
+
+# e) Define the colour of fill or line
+<checkbox label="White background?" var="setBkgWhite" selected="false"/>
+</hbox>
+
+<hbox>
+# e) set title
+<textfield label="Title of plot:" var="title" data-type="text" default-value= "" size="1"/>
+<checkbox label="Join parameter name with title?" var="useJoinParameterToTitle" selected="false"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1.1 load libaries
+library(ggplot2)
+
+#2.1.2 Define the data
+#Define the (factor)
+factorIndex <- which(names(kIn) %in% factorName)
+factors <- levels(factor(kIn[, factorName]))
+if (useFlowVar) params <- flowVariable
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(title)) title <- NULL
+#check if color model is joined to data table
+if (colorPalette == "KNIME colors") {
+	if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) colorPalette <- "standard"
+	} 
+
+#2.3. calulate
+if (colorPalette == "KNIME colors") {
+	#generate color table from KNIME colors
+	colorTable <- lapply(factors, FUN = function(x) {
+		subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)[1,]
+		})
+	names(colorTable) <- factors
+	colorTable <- do.call("rbind", colorTable)
+	factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, names = NULL, max =  255) 
+	} else {
+	factorColors <- colors()[c(185,121,150,100,48,490,98, round(runif(50,min=1, max = 600)))] #default definition of colors	
+	}
+
+#reshape table and column names to make it work with ggplot(aes_string(...))
+params <- which(names(kIn) %in% params)
+plotData <- kIn
+origNames <- names(kIn)
+
+#new ggplot compatible column names
+names(plotData) <- paste("p", as.character(1:length(names(plotData))), sep ='')
+factorName <- names(plotData)[factorIndex]
+
+#2.4.1 layout plot
+numGridRows = ifelse(length(params) > 1, 2, 1)
+numGridCols = ceiling(length(params) / numGridRows)
+
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(numGridRows, numGridCols)))
+
+vplayout<-function(x,y) viewport(layout.pos.row = x, layout.pos.col=y)
+
+#2.4.2 plot data
+# iterate over all parameters and create plots for all of them
+
+lapply(params, FUN = function (param) {
+
+	if (plotLineColour) {
+		#plot colored lines
+		m <- ggplot(plotData, aes_string(x = names(plotData)[param], colour = names(plotData)[factorIndex])) + geom_density()
+		switch(which(colorPalette == c('standard','clarity','KNIME colors','Set1','Set2','Set3','Set4')), {
+		}, { #standard
+		if(length(factors) < 9) m <- m + scale_colour_brewer("clarity")}, { #clarity
+		m <- m + scale_colour_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)}, { #Knime colors
+		if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
+		if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
+		if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
+		if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set4")}    #Set4
+		)
+		} else {
+		#plot colored densities
+		m <- ggplot(plotData, aes_string(x= names(plotData)[param], fill= names(plotData)[factorIndex])) +  geom_density(alpha= 0.4)
+		switch(which(colorPalette == c('standard','clarity','KNIME colors','Set1','Set2','Set3','Set4')), {
+		}, { #standard
+		if(length(factors) < 9) m <- m + scale_fill_brewer("clarity")}, { #clarity
+		m <- m + scale_fill_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)}, { #Knime colors
+		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
+		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
+		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
+		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set4")}    #Set4
+		)
+		}
+
+	#set the title to the unmodified attribute-name
+	if (useJoinParameterToTitle) title <- paste(title, origNames[param])
+	m <- m + xlab(origNames[param]) + labs(fill = origNames[factorIndex]) + opts(title = title)
+   	
+	plotNum <- which(params == param)
+	curRow <- ceiling(plotNum/numGridCols)
+	curCol <- ceiling(plotNum - numGridCols * (curRow-1))
+	#set background on/off
+	if (setBkgWhite) m <- m + theme_bw()
+
+	print(m, vp=vplayout(curRow, curCol))
+})
+
+]]>
+</rgg>
+########################################################################################
+# name: Histogram
+# author: Holger Brandl, Martin Stoeter
+# category: basic/histograms
+# preview: simple_histogram.png
+
+Displays a histogram (distribution) of a numerical attribute.
+Allows modification of bins, axis, color, and optional probability density
+
+Options:
+- set number of bins: (default: 15)
+- set the x and y-axis limits (default: none (=automatic); min AND max values are neccessary, if you want to set limits)
+- y-axis is probability density (default: false (=frequency)
+- plot density line (default: false)
+- set color of histogram or line (default: black; see colors here http://research.stowers-institute.org/efg/R/Color/Chart/)
+
+(TDS internal)
+
+######
+
+<rgg>
+
+    <!--1. Title and short description -->
+
+    <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+
+    <separator label="Description" span="full"/>
+    <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+    <gaprow height="1"/>
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    # 1. Parameter selection
+
+    <group>
+
+    numAttributeName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Variable of interest"/>;
+    <textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "my plot" size="10" span="full"/>
+    <textfield label="Number of bins:" var="bins" data-type="number" default-value="15"/>
+    <textfield label="Color of histogram:" var="color" data-type="text" default-value= "black" size="5"/>
+    <vector label="y-axis scale:" var="yScale" size="2" vector-type="character"/>
+    <vector label="x-axis scale:" var="xScale" size="2" vector-type="character"/>
+    <checkbox label="Probability density" var="probability" selected="false"/>
+    <checkbox label="Draw density" var="drawDensity" selected="false"/>
+    <textfield label="Color of density line:" var="densityColor" data-type="text" default-value= "black" size="5"/>
+
+    </group>
+
+
+    # 2. r-code
+
+    <![CDATA[
+    numAttribute = eval(parse(text = paste("kIn$\"", numAttributeName, "\"", sep = '')))
+    bins <- as.numeric(bins)
+
+    #define as numbers
+    yScale <- as.numeric(yScale)
+    xScale <- as.numeric(xScale)
+
+    #set scales to default and check scales
+    if (is.na(yScale[1]) | is.na(yScale[2])) 	yScale <- NULL		#default
+    if (is.na(xScale[1]) | is.na(xScale[2])) 	xScale <- range(numAttribute)	#default
+    if (probability) yScale <- NULL
+
+    #plot histogram
+    hist(numAttribute, density=30.0, angle=45, xlab=numAttributeName, main=plotTitle, breaks = bins, col = color, ylim = yScale, xlim = xScale, freq = !probability)
+
+    #plot density line
+    if (drawDensity) lines(density(numAttribute), col = densityColor)
+
+    ]]>
+
+</rgg>
+########################################################################################
+# name: Histogram grid
+# author: Holger Brandl
+# category: basic/histograms
+# preview: histogram-grid.png
+
+
+
+Creates a grid containing a number densityplots, each for a different feature dimension. Within each plot the densities are factorized according to a chosen grouping factor.
+
+1) A selection of numerical variables. Each variable will result in a subplot. 
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+# a) Define your numerical attribute of interest
+params = which(names(kIn) %in% c(<panellistbox label="Numerical attributes" items="$$$NUM_ATTRIBUTES$$$"
+                                             span="full"/>));
+
+# c) Define the number of bins
+numBins = as.numeric(<textfield label="Number of bins" var="" data-type="number" default-value= "30" size="10" span="full"/>);
+
+</group>
+
+
+<![CDATA[
+
+library(ggplot2)
+library(grid)
+
+
+# convert operator chars in attribute names to underscores
+replaceInvalidVarNameChars <- function(x){
+    gsub("[)]", "_", gsub("[(]", "_", gsub("[/]", "_", gsub("[+]", "_", gsub("-", "_", gsub(" ", "_",x))))))
+}
+
+origNames <- names(kIn);
+names(kIn) <- replaceInvalidVarNameChars(names(kIn));
+
+
+numGridRows = ifelse(length(params) > 1, 2, 1);
+numGridCols = ceiling(length(params) / numGridRows);
+
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(numGridRows, numGridCols)));
+
+vplayout<-function(x,y) viewport(layout.pos.row = x, layout.pos.col=y);
+
+# iterate over all parameters and create plots for all of them
+
+lapply(params, FUN = function (param) {
+
+	varName = names(kIn)[param];
+	varVect = eval(parse(text = paste("kIn$\"", varName, "\"", sep = '')));
+	dataRange = range(varVect, na.rm=TRUE);
+	rangeWidth = dataRange[2] - dataRange[1];
+
+	m <- ggplot(kIn, aes_string(x= names(kIn)[param])) + geom_histogram(binwidth= rangeWidth/numBins) + geom_density();
+
+    #set the title to the unmodified attribute-name
+    m <- m + xlab(origNames[param]);
+
+	plotNum<- which(params== param);
+	curRow <- ceiling(plotNum/numGridCols);
+	curCol <- ceiling(plotNum - numGridCols*(curRow-1));
+
+	print(m, vp=vplayout(curRow, curCol));
+});
+
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Stacked Histogram
+# author: Holger Brandl, modified by Antje Niederlein
+# category: basic/histograms
+# preview: stacked-histogram.png
+
+Displays a stacked histogram (distribution) of a numerical attribute.
+Allows modification of number of bins.
+
+######
+
+<rgg>
+
+    <!--1. Title and short description -->
+
+    <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+    <separator label="Description" span="full"/>
+    <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+    <gaprow height="1"/>
+
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    # 1. Parameter selection
+
+    <group>
+
+    # a) Define the attribute of interest
+    numAttributeName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Variable of interest"/>;
+    numAttributeIndex = which(names(kIn) ==  numAttributeName);
+
+    # 2) Define the label-column (factor)
+    labelVariable = <combobox items="$$$STR_ATTRIBUTES$$$" label="Factor"/>;
+    labelVariableIndex = which(names(kIn) ==  labelVariable);
+
+    # c) the title of the plot
+    <textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value="my plot" size="10" span="full"/>
+
+    # d) binwidth
+    <textfield var="bw"  label="binwidth" data-type="number" default-value = "15" size="5"/>
+
+    </group>
+
+
+    # 2. r-code
+
+    <![CDATA[
+
+    library(ggplot2)
+
+    bw <- as.numeric(bw)
+    newdata <- data.frame(readout = kIn[,numAttributeIndex], groupby = kIn[,labelVariableIndex])
+
+    dataRange <- range(newdata$readout, na.rm = TRUE)
+    extend <- dataRange[2]-dataRange[1]
+
+    m <- ggplot(newdata, aes(x=readout, y = ..density.., fill=groupby)) +  opts(title = plotTitle) + geom_histogram(binwidth = extend/bw) + xlab(numAttributeName)
+
+    print(m)
+
+
+    ]]>
+
+</rgg>
+########################################################################################
+# name: Violin Plot
+# author: Martin Stoeter
+# category: basic/histograms
+# preview: ViolinPlot.png
+
+Creates a Violin plot: for a selected columns and densities for each factor (group).
+
+1) Select numerical variable / parameter
+ - To use a flow variable check box and type in variable name using the format: FLOWVAR(variable name)
+2) Select a column that contains the factors/groups of densities to plot.
+
+Options for visualization:
+a) adjust y-axis: default = min-max +/- 5%; optional use of quantiles = (lower quantile * lower scale factor) until (upper quantile * upper scale factor)
+	  extended range factor: e.g. 0.05 extends y-axis by +/- 5%   
+b) optional title and whether parameter name should be plotted in title 
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+#1.0 Parameter selection
+
+<group>
+
+# a) Define your numerical attribute of interest
+params = c(<combobox items="$$$NUM_ATTRIBUTES$$$" label="Numerical attributes"/>)
+
+<hbox>
+<checkbox  label="use flow variable" var="useFlowVar" selected="false"/>
+<textfield label="flow variable:" var="flowVariable" data-type="text" default-value="" size="10"/>
+</hbox>
+
+<gaprow height="2"/>
+
+# b) Define the grouping factor
+factorName = c(<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="treatment" label="Factor"/>)
+
+<gaprow height="1"/>
+
+# c) Options for visualization
+<separator label="more layout options" span="full"/>
+<gaprow height="1"/>
+
+<label text="                                                                                   y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]" aligment="center" span="full"/>
+<hbox>
+<checkbox label="Default y-Axis scale?" var="useDefaultyAxisScale" selected="true"/>
+<vector label="y-axis scale factors:" var="yAxisScaleFactors" size="5" default-value="0.005,0.995,1,1,0" vector-type="character"/>
+</hbox>
+
+<hbox>
+# e) set title
+<textfield label="Title of plot:" var="title" data-type="text" default-value= "" size="1"/>
+<checkbox label="Join parameter name with title?" var="useJoinParameterToTitle" selected="false"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1.1 load libaries
+library(ggplot2)
+
+#2.1.2 Define the data
+#Define the (factor)
+factorIndex <- which(names(kIn) %in% factorName)
+factors <- levels(factor(kIn[, factorName]))
+if (useFlowVar) params <- flowVariable
+
+#2.2.1 manage RGG to R: define as numbers
+yAxisScaleFactors <- as.numeric(yAxisScaleFactors)
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(yAxisScaleFactors[1]) | (yAxisScaleFactors[1] < 0) | (yAxisScaleFactors[1] >= 1)) yAxisScaleFactors[1] <- 0
+if (is.na(yAxisScaleFactors[2]) | (yAxisScaleFactors[2] <= 0) | (yAxisScaleFactors[2] > 1)) yAxisScaleFactors[2] <- 1
+if (is.na(yAxisScaleFactors[3])) yAxisScaleFactors[3] <- 1
+if (is.na(yAxisScaleFactors[4])) yAxisScaleFactors[4] <- 1
+if (is.na(yAxisScaleFactors[5]) | (useDefaultyAxisScale)) yAxisScaleFactors[5] <- 0.05
+
+if (is.na(title)) title <- NULL
+
+#2.3. calulate
+#reshape table and column names to make it work with ggplot(aes(...))
+paramIndex <- which(names(kIn) %in% params)
+origNames <- names(kIn)
+
+#new ggplot compatible column names
+names(kIn)[paramIndex] <- "paramRinternalColumnName"
+names(kIn)[factorIndex] <- "treatmentRinternalColumnName"
+
+#set y-axis scale
+	if (useDefaultyAxisScale) {
+		yAxisScale <- extendrange(kIn[, paramIndex], f = yAxisScaleFactors[5])
+		} else {
+		yAxisScale <- c(quantile(kIn[, paramIndex], na.rm = TRUE, names = FALSE, yAxisScaleFactors[1]), quantile(kIn[, paramIndex], na.rm = TRUE, names = FALSE, yAxisScaleFactors[2])) * c(yAxisScaleFactors[3], yAxisScaleFactors[4])
+		#check if data is there/yAxisScales are numbers (otherwise plot fails) then do subplot without data (no points are plotted)
+		if ((is.na(yAxisScale)[1] == TRUE) || (is.na(yAxisScale)[2] == TRUE)
+			|| (is.infinite(yAxisScale)[1] == TRUE) || (is.infinite(yAxisScale)[2] == TRUE)) {
+			yAxisScale <- extendrange(kIn[, paramIndex], f = yAxisScaleFactors[5])
+			} else {
+			yAxisScale <- extendrange(r = yAxisScale, f = yAxisScaleFactors[5])
+			}
+		}
+
+#2.4.1 layout plot
+
+#2.4.2 plot data
+
+	m <- ggplot(kIn, aes(x = paramRinternalColumnName)) + stat_density(aes(ymax = ..density..,  ymin = -..density..), fill = "grey50", colour = "grey20", geom = "ribbon", position = "identity") 
+	m <- m + scale_x_continuous(limits = yAxisScale)
+	m <- m + opts(axis.text.x  = theme_text(angle=90, hjust=1.2, size=8))
+	m <- m + facet_grid(. ~ treatmentRinternalColumnName) + coord_flip() + opts(panel.grid.minor=theme_blank())
+
+	if (useJoinParameterToTitle) title <- paste(title, origNames[paramIndex])
+	m <- m + xlab(origNames[paramIndex]) + labs(fill = origNames[factorIndex]) + opts(title = title)	
+
+	print(m)
+
+]]>
+</rgg>
+########################################################################################
+# name: Association Plot
+# author: Holger Brandl
+# category: basic/others
+
+######
+
+% insert a list of numerical attributes
+assocplot(cbind($$ATTRIBUTES$), space=0.5, col=c("black", "red"))
+########################################################################################
+# name: Cleveland Dot Plot
+# author: Holger Brandl
+# category: basic/others
+
+######
+
+dotchart($$ATTRIBUTE$, pch='*', "xlab="my label")
+########################################################################################
+# name: ROC curves
+# author: Martin Stoeter
+# category: basic/others
+# preview: ROC.png
+
+Plots ROC curves (receiver operating characteristic) for several case groups (TP=true positives) against one controls group (TN=true negatives) for each parameter. This results in a curve with "sensitivity" = TPR(true positive rate) on y-axis and "1-specificity" = FPR (false positive rate) on the x-axis.
+
+1) Select numerical variables for ROC curves (parameter).
+2) Template expects a column named "treatment" as category column. Enter the name of the negative control class as plain text. Select several classes as positive controls (cases) that will be plotted against the single negative control class (controls).
+
+Options for visualization:
+a) plot method can be "automatic" (=done with R package "pROC") or "manual" (=plotted point by point). For "manual" controls and cases will be assigned automatically; then controls and cases will be swapped if median(controls) > median(cases).
+b) enter the title of the plot and check if the parameter name should be in the title as well.
+c) enter the x-axis label and check if the name of negative control group should be in the x-axis as well
+d) enter the y-axis label
+e) set aspect ratio (height/width), depends on pixel dimensions in "output option" tab (default:=700/1000)
+f) scale the legend (default:=1) and set position
+######
+<rgg>
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+#1.0 Parameter selection
+
+<group>
+# a) Define your numerical attribute of interest
+parameter = c(<panellistbox label="Numerical attributes for ROC" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+<gaprow height="1"/>
+# b) Define the treatment column, needs further development
+category = c(<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="treatment" label="Category Column:"/>)
+
+# c) Define the controls group factor (negative controls)
+<textfield label="Negative control:" var="controlVar" data-type="text" default-value= "UT" size="1"/>
+
+# d) Define the case group factor (positve controls)
+caseVar = c(<listbox items="$$$DOMAIN('treatment')$$$" selected-item="treatment" label="Positive control:" visible-row-count="7"/>)
+
+<gaprow height="1"/>
+
+# e) Options for visualization
+<separator label="more layout options" span="full"/>
+<gaprow height="1"/>
+
+<hbox>
+plotMethod = c(<combobox items="automatic,manual" selected-item="automatic" label="Plot method:"/>)
+controlCaseDirection = c(<combobox items="automatic,as_it_is" selected-item="automatic" label="Direction of comparison:"/>)
+</hbox>
+
+<hbox>
+<textfield label="Title of plot:" var="titleLabel" data-type="text" default-value= "ROC analysis" size="1"/>
+<checkbox label="Join parameter name with title?" var="useJoinParameterToTitle" selected="true"/>
+</hbox>
+<hbox>
+<textfield label="x-axis:" var="xAxisLabel" data-type="text" default-value= "1-sensitivity" size="1"/>
+<checkbox label="Join negative control name with x-axis?" var="useJoinNegativeControlToXAxis" selected="true"/>
+</hbox>
+<textfield label="y-axis:" var="yAxisLabel" data-type="text" default-value= "specificity" size="1"/>
+<hbox>
+<textfield label="Aspect ratio:" var="aspRatio" data-type="text" default-value= "0.7" size="1"/>
+<textfield label="Legend size:" var="legendScale" data-type="text" default-value= "1" size="1"/>
+legendPosition = c(<combobox items="bottomright,topleft,center" selected-item="bottomright" label="Position of legend:"/>)
+</hbox>
+</group>
+
+<![CDATA[
+
+#2.0 R code
+#2.1.1 load libaries
+library(pROC)
+
+#2.1.2 Define the data
+#Define the layout
+colVector <- c("black", "orange", "blue", "green", "red", "yellow", "pink", "brown", "magenta", "gold", "lightgreen", "lightblue", "lightgrey", "darkgrey", "darkgreen", "darkblue")
+#if (useFlowVar) params <- flowVariable
+
+#2.2.1 manage RGG to R: define as numbers
+aspRatio <-as.numeric(aspRatio)
+legendScale <-as.numeric(legendScale)
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(titleLabel)) titleLabel <- NULL
+if (is.na(xAxisLabel)) xAxisLabel <- NULL
+if (is.na(yAxisLabel)) yAxisLabel <- NULL
+if (is.na(aspRatio)) aspRatio <- 1
+if (is.na(legendScale)) legendScale <- 1
+errorMessage <- NULL
+if ((is.null(parameter)) && (is.null(errorMessage))) errorMessage <- "Select at least one parameter"
+#if treatment column is not present/selected used first class of selected column as control and all the others as cases
+if ((category != "treatment") && (is.null(errorMessage))) {
+	if (length(unique(kIn[,category])) < 2) {
+		errorMessage <- "Please rename the category column to 'treatment'"
+		} else {
+		controlVar <- unique(kIn[,category])[1]
+		caseVar <- unique(kIn[,category])[2:length(unique(kIn[,category]))]
+		}
+	}
+if ((is.null(caseVar)) && (is.null(errorMessage))) errorMessage <- "Select at least one positive control"
+if (!(controlVar %in% kIn[,category]) && (is.null(errorMessage))) errorMessage <- paste("Didnt find negative control value in column ", category, sep="")
+
+#2.3. calulate
+if ((useJoinParameterToTitle) && (length(parameter) == 1)) titleLabel <- paste(titleLabel,": (", parameter,")", sep="")
+if (useJoinNegativeControlToXAxis) xAxisLabel <- paste(xAxisLabel,"(", controlVar,")", sep="")
+
+#2.4.1 layout plot
+legendTitle <- NULL
+controlCaseResorted <- NULL
+
+#2.4.2 plot data
+if (!is.null(errorMessage)){
+	plot(0,0,main=errorMessage)
+	} else {
+	#itereate over j-parameters and i-cases
+	for (j in 1:length(parameter)) {
+		for (i in 1:length(caseVar)) {
+			if (plotMethod=="manual") {
+				#set up plot for first iteration, take first color
+				if ((i == 1) && (j == 1)) {
+					plot(0.5,0.5, type = "p", col = "white", xlim <- c(0,1), ylim <- c(0,1), main=titleLabel, xlab=xAxisLabel, ylab=yAxisLabel, asp=aspRatio)
+					legendVector <- NULL
+					}
+				controlCaseResorted <- NULL
+				#define the ROC data: contols and one case -> remove NAs -> sort
+				data <- na.omit(rbind(subset(kIn,kIn[,category] == controlVar, select = c(parameter[j], category)), subset(kIn,kIn[,category] == caseVar[i], select = c(parameter[j], category))))
+				if (median(data[which(data[,category] == controlVar),parameter[j]], na.rm = TRUE) > median(data[which(data[,category] == caseVar[i]),parameter[j]], na.rm = TRUE) || (controlCaseDirection != "automatic")) {
+					data <- data[order(data[,parameter[j]], decreasing = FALSE),]
+					} else {
+					#data is sorted the other way, because control bigger values bigger that case values. Then set * to legend curve and add title to lagend
+					data <- data[order(data[,parameter[j]], decreasing = TRUE),]
+					controlCaseResorted <- "*"
+					legendTitle <- "* = control & case inverted"
+					}
+				#define length of steps to walk in x and y per data point
+				xLength <- 1/(length(which(data[,category] == controlVar))-1)
+				yLength <- 1/(length(which(data[,category] == caseVar[i]))-1)
+				#initalize first point, then draw steps
+				previousPoint <- c(0,0)
+				for (d in 1:length(data[,1])){
+					if (data[d,category] == controlVar){
+						currentPoint <- c(previousPoint[1]+xLength,previousPoint[2])
+						} else {
+						currentPoint <- c(previousPoint[1],previousPoint[2]+yLength)
+						}
+					lines(c(previousPoint[1],currentPoint[1]),c(previousPoint[2],currentPoint[2]), type = "l", col = colVector[(j-1)*length(caseVar)+i])
+					previousPoint <-currentPoint
+					}
+				} else {
+				#if plotMethod == "auto"
+				#calculate the ROC object
+				currentRoc <- roc(controls = kIn[which(kIn[,category] == controlVar),parameter[j]], cases = kIn[which(kIn[,category] == caseVar[i]),parameter[j]], percent=FALSE)
+				if ((i == 1) && (j == 1)) {
+					#set up plot for first iteration, take first color
+					plot.roc(currentRoc, col=colVector[1], legacy.axes=TRUE, main=titleLabel, xlab=xAxisLabel, ylab=yAxisLabel, asp=aspRatio)
+					#define a variable for legend vector
+					legendVector <- NULL
+					} else {
+					#add lines to plot, colors: e.g. 0*2+1, 0*2+2, 1*2+1, 1*2+2, 2*2+1, ...
+					lines.roc(currentRoc, col=colVector[(j-1)*length(caseVar)+i])
+					}
+				}
+			#make legend vector: only if ONE parameter use the "cases", else use combination "parameter - cases" as legend
+			if (length(parameter) == 1){
+				legendVector[i] <- paste(caseVar[i], controlCaseResorted,sep="")
+				} else {
+				legendVector[(j-1)*length(caseVar)+i] <- paste(parameter[j], " - ", caseVar[i], controlCaseResorted, sep="")
+				}
+			}
+		}
+	legend(legendPosition, legendVector, lty=1, col=colVector[1:length(legendVector)], cex=legendScale, title=legendTitle)
+	}
+]]>
+</rgg>
+########################################################################################
+# name: 2-Factor Barplot
+# author: Holger Brandl
+# category: deprecated/basic/barplots
+
+A barplot of a single attribute which is barplotted after being grouped according to 2 different factors (like barcode and treatment).
+
+######
+
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+plotTitle = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Parameter of Interest"/>;
+selParam = eval(parse(text = paste("kIn$\"", plotTitle, "\"", sep = '')));
+
+xFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis factor"/>;
+xSubFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis sub-factor"/>;
+
+doRotateLabels =  <checkbox label="Rotate Labels" span="2"/>;
+
+doFlipCoord = <checkbox label="Flip Coordinate Axes" span="2"/>;
+
+
+<!--# b. Customize the title-->
+<!--<textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "deparse(selParam)" size="10"-->
+           <!--enabled="dfdf" span="full"/>-->
+</group>
+
+
+# 2. r-code
+
+
+<![CDATA[
+
+library(ggplot2)
+
+barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + opts(title = plotTitle)
+
+#change the color scale
+barplot = barplot + scale_colour_brewer(type="qual");
+
+if(doFlipCoord){
+    barplot = barplot+coord_flip();
+}
+
+if(doFlipCoord){
+    barplot = barplot + opts(axis.text.x=theme_text(angle=-90, hjust=0));
+}
+
+# make the plot visisble
+print(barplot, newpage=FALSE, pretty=FALSE);
+
+
+]]>
+
+</rgg>
+########################################################################################
+# name: 2-Factor Barplot with Errors
+# author: Holger Brandl
+# category: deprecated/basic/barplots
+
+
+A barplot of a single attribute which is barplotted after being grouped according to 2 different factors.
+
+######
+
+<rgg>
+
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+plotTitle = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Parameter of Interest"/>;
+selParam = eval(parse(text = paste("kIn$\"", plotTitle, "\"", sep = '')));
+
+errorParName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="SD of Parameter of Interest"/>
+selParamSD = eval(parse(text = paste("kIn$\"", errorParName, "\"", sep = '')));
+
+xFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis factor"/>;
+xSubFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis sub-factor"/>;
+
+doRotateLabels =  <checkbox label="Rotate Labels" span="2"/>;
+
+doFlipCoord = <checkbox label="Flip Coordinate Axes" span="2"/>;
+
+
+<!--# 2. Customize the title-->
+<!--<textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "deparse(selParam)" size="10"-->
+           <!--enabled="dfdf" span="full"/>-->
+</group>
+
+# 2. r-code
+
+
+<![CDATA[
+
+
+library(ggplot2)
+limits = aes(ymax = selParam + selParamSD, ymin=selParam - selParamSD)
+
+barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + opts(title = plotTitle) + scale_colour_brewer(type="seq");
+
+# add errors
+dodge <- position_dodge(width=0.9);
+barplot = barplot + geom_errorbar(limits, position=dodge, width=0.25);
+
+#change the color scale
+barplot = barplot + scale_colour_brewer(type = "qual")
+
+if(doFlipCoord){
+    barplot = barplot+coord_flip();
+}
+
+if(doFlipCoord){
+    barplot = barplot + opts(axis.text.x=theme_text(angle=-90, hjust=0));
+}
+
+# make the plot visisble
+print(barplot, newpage=FALSE, pretty=FALSE);
+
+
+]]>
+
+</rgg>
+########################################################################################
+# name: 3-Factor Barplot
+# author: Holger Brandl
+# category: deprecated/basic/barplots
+
+
+A barplot of a single attribute which is grouped according to 3 different factors.
+This will generate a 2d-grid with the levels of the first factor on the x- and the levels of the second factor on the y-axis.
+
+######
+
+<rgg>
+
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+plotTitle = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Parameter of Interest"/>;
+selParam = eval(parse(text = paste("kIn$\"", plotTitle, "\"", sep = '')));
+
+xGroupFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="Toplevel-grouping factor"/>;
+xFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis factor"/>;
+xSubFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis sub-factor"/>;
+
+doRotateLabels =  <checkbox label="Rotate Labels" span="2"/>;
+
+doFlipCoord = <checkbox label="Flip Coordinate Axes" span="2"/>;
+
+<!--# 2. Customize the title-->
+<!--<textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "deparse(selParam)" size="10"-->
+           <!--enabled="dfdf" span="full"/>-->
+</group>
+
+
+# 2. r-code
+
+<![CDATA[
+
+kIn$xGrouping <- xGroupFac;
+
+library(ggplot2)
+
+barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + facet_wrap( ~ xGrouping) + opts(title = plotTitle);
+
+
+#change the color scale
+barplot = barplot + scale_colour_brewer(type = "qual")
+
+
+if(doFlipCoord){
+    barplot = barplot+coord_flip();
+}
+
+if(doFlipCoord){
+    barplot = barplot + opts(axis.text.x=theme_text(angle=-90, hjust=0));
+}
+
+# make the plot visisble
+print(barplot, newpage=FALSE, pretty=FALSE);
+
+]]>
+
+</rgg>
+########################################################################################
+# name: 3-Factor Barplot with Errors
+# author: Holger Brandl
+# category: deprecated/basic/barplots
+
+
+A barplot of a single attribute which is grouped according to 3 different factors.
+This will generate a 2d-grid with the levels of the first factor on the x- and the levels of the second factor on the y-axis.
+
+
+######
+
+<rgg>
+
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+plotTitle = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Parameter of Interest"/>;
+selParam = eval(parse(text = paste("kIn$\"", plotTitle, "\"", sep = '')));
+
+errorParName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="SD of Parameter of Interest"/>
+selParamSD = eval(parse(text = paste("kIn$\"", errorParName, "\"", sep = '')));
+
+xGroupFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="Toplevel-grouping factor"/>;
+xFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis factor"/>;
+xSubFac = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis sub-factor"/>;
+
+doRotateLabels =  <checkbox label="Rotate Labels" span="2"/>;
+
+doFlipCoord = <checkbox label="Flip Coordinate Axes" span="2"/>;
+
+
+<!--# 2. Customize the title-->
+<!--<textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "deparse(selParam)" size="10"-->
+           <!--enabled="dfdf" span="full"/>-->
+
+</group>
+
+
+# 2. r-code
+
+
+<![CDATA[
+
+library(ggplot2)
+
+kIn$xGrouping <- xGroupFac;
+limits = aes(ymax = selParam + selParamSD, ymin=selParam - selParamSD)
+
+barplot = qplot(factor(xFac), data=kIn, geom="bar", , fill=factor(xSubFac), stat="identity", y= selParam, position="dodge") + facet_wrap( ~ xGrouping) + opts(title = plotTitle);
+
+# add errors
+dodge <- position_dodge(width=0.9);
+barplot = barplot + geom_errorbar(limits, position=dodge, width=0.25);
+
+
+#change the color scale
+barplot = barplot + scale_colour_brewer(type = "qual")
+
+if(doFlipCoord){
+    barplot = barplot+coord_flip();
+}
+
+if(doFlipCoord){
+    barplot = barplot + opts(axis.text.x=theme_text(angle=-90, hjust=0));
+}
+
+# make the plot visisble
+print(barplot, newpage=FALSE, pretty=FALSE);
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Bar Plot
+# author: Holger Brandl
+# category: deprecated/basic/barplots
+# preview: simplebarplot.png
+
+Creates a barplot. This can be used to visualize zscores, CVs, etc.
+
+Inputs:
+1) A numerical variable. Each observation/well/phenotype will result in one bar
+2) A factor that is used to label each bar.
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+# 1) Define your numerical attribute of interest
+numVarName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Numerical attribute"/>;
+numVariable = kIn[, which(names(kIn)==numVarName)];
+
+# 2) Define the label-column (factor)
+labelVariable = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="Factor"/>;
+
+# (optional) title
+title=<textfield label="Title" var="plotTitle" data-type="text" default-value="" size="10"
+           enabled="dfdf" span="full"/>;
+
+</group>
+
+
+<![CDATA[
+
+#yAxisRange <- c( 0.0, 200.0)
+if(!exists("yAxisRange")) yAxisRange = NULL
+
+
+par(oma=c(8,1,1,1)); # the 3 defines the length of the labels, just increase it if necessary
+
+barplot(numVariable, ylab= numVarName, ylim = yAxisRange, names.arg = labelVariable, main= plotTitle, las = 2, col = c('lightblue'));
+
+]]>
+
+</rgg>
+
+########################################################################################
+# name: Bar Plot Grid
+# author: Holger Brandl
+# category: deprecated/basic/barplots
+
+Creates a grid containing a number of barplots. This can be used to visualize zscores, CVs, etc.
+
+1) A selection of numerical variables. Each variable will result in a subplot.
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+# a) Define your numerical attribute of interest
+params = which(names(kIn) %in% c(<panellistbox label="Numerical attributes" items="$$$NUM_ATTRIBUTES$$$"
+                                             span="full"/>));
+<gaprow height="2"/>
+
+# b) Define the (factor)
+labelVariable = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="barcode" label="Factor"/>;
+
+</group>
+
+
+<![CDATA[
+
+numGridRows = ifelse(length(params) > 1, 2, 1);
+par(mfrow = c(numGridRows, ceiling(length(params) / numGridRows)))
+par(oma=c(1,1,1,1)); # the 3 defines the length of the labels, just increase it if necessary
+
+# iterate over all parameters and create plots for all of them
+lapply(params, FUN = function (param) {
+
+	barplot(eval(parse(text = paste("kIn$\"", names(kIn)[param], "\"", sep = ''))), names.arg = labelVariable, las = 2, col = c('lightblue'));
+	title(names(kIn[param]));
+})
+
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Histogram (beautified)
+# author: Holger Brandl
+# category: deprecated/basic/histograms
+# preview: histogram-single-ggplot.png
+
+Displays a histogram (distribution) of a numerical attribute
+
+######
+
+<rgg>
+
+
+    <!--1. Title and short description -->
+
+    <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+    <separator label="Description" span="full"/>
+    <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+    <gaprow height="1"/>
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    # 1. Parameter selection
+    <group>
+    # a) Define the attribute of interest
+    numAttributeName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Variable of interest"/>;
+
+    # c) the title of the plot
+    <textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "my plot" size="10" span="full"/>
+    </group>
+
+
+    # 2. r-code
+
+    <![CDATA[
+
+    library(ggplot2);
+
+
+    replaceInvalidVarNameChars <- function(x){
+        gsub("[)]", "_", gsub("[(]", "_", gsub("[/]", "_", gsub("[+]", "_", gsub("-", "_", gsub(" ", "_",x))))))
+    }
+
+    # convert operator chars in attribute names to underscores
+    numAttributeNameFixed <- replaceInvalidVarNameChars(numAttributeName)
+    names(kIn) <- replaceInvalidVarNameChars(names(kIn));
+
+
+    #calculate the range manually
+    varVect = eval(parse(text = paste("kIn$\"", numAttributeNameFixed, "\"", sep = '')));
+    dataRange = range(varVect, na.rm=TRUE);
+    rangeWidth = dataRange[2] - dataRange[1];
+
+    m <- ggplot(kIn, aes_string(x= numAttributeNameFixed)) + geom_histogram(binwidth= rangeWidth/numBins) + geom_density();
+
+    # add title and proper label
+    m <- m +  opts(title = plotTitle) + xlab(numAttributeName);
+
+    # print it
+    print(m, newpage=FALSE, pretty=FALSE)
+
+    ]]>
+
+</rgg>
+########################################################################################
+# name: Histogram (Simple)
+# author: Holger Brandl
+# category: deprecated/basic/histograms
+# preview: simple-histogram.png
+
+Displays a histogram (distribution) of a numerical attribute
+
+Parameter:
+variable of interest: vector from which the histgram is calculated.
+lower bound: ... is the lower bound of the x axis, default is minimum value found in the variable of interest.
+upper bound: ... is the upper bound of the x axis, default is maximum value found in the variable of interest.
+number of bins: the bin centers are linearly spaced between upper and lower bound.
+
+######
+
+<rgg>
+
+    <!--1. Title and short description -->
+
+    <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+    <separator label="Description" span="full"/>
+    <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+    <gaprow height="1"/>
+
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    # 1. Parameter selection
+    <group>
+    numAttributeName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Variable of interest"/>;
+    <textfield label="Lower x axis bound" var="lowerBound" data-type="number" span="full"/>
+    <textfield label="Upper x axis bound" var="upperBound" data-type="number" span="full"/>
+    <textfield label="Number of bins" var="nBins" data-type="number" default-value="20" span="full"/>
+    <textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "my plot" size="10" span="full"/>
+    </group>
+
+
+     <!-- 2. r code-->
+
+    <![CDATA[
+    library('matlab')
+
+    numAttribute = eval(parse(text = paste("kIn$\"", numAttributeName, "\"", sep = '')))
+    lowerBound = as.numeric(lowerBound)
+    lowerBound[is.na(lowerBound)] = min(numAttribute)
+    upperBound = as.numeric(upperBound)
+    upperBound[is.na(upperBound)] = max(numAttribute)
+    breaks = linspace(lowerBound, upperBound, as.numeric(nBins));
+
+    hist(numAttribute, breaks, density=30.0, angle=45, xlab=numAttributeName, main=plotTitle );
+    ]]>
+
+</rgg>
+########################################################################################
+# name: Correlogram
+# author: Holger Brandl
+# category: relations
+# preview: correlogram.png
+
+Produces a graphical display of a correlation matrix, called a correlogram. The cells of the matrix can be shaded or colored to show the correlation value. 
+
+Source: http://addictedtor.free.fr/graphiques/RGraphGallery.php?graph=148
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="3"/>
+
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+# a) Define which parameters you would like to visualize
+params =  which(names(kIn) %in% c(<panellistbox label="Parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>));
+
+# a)  (optional) title
+title=<textfield label="Title" var="plotTitle" data-type="text" default-value="" size="10"
+           enabled="dfdf" span="full"/>;
+</group>
+
+
+# 2. r-code
+
+<![CDATA[
+
+subScreen = kIn[, params];
+
+require( corrgram );
+
+
+corrgram(kIn[,params], order=TRUE, row1attop=FALSE,
+         main=plotTitle,
+         upper.panel=panel.ellipse,
+		 lower.panel=panel.pts,
+		 diag.panel=panel.minmax)
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Correlogram (colored ellipses)
+# author: Holger Brandl
+# category: relations
+# preview: ellipse-correlogram.png
+
+Produces a graphical display of a correlation matrix, called a correlogram. The cells of the matrix can be shaded or colored to show the correlation value.
+
+Source: http://addictedtor.free.fr/graphiques/RGraphGallery.php?graph=149
+
+######
+
+<rgg>
+
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="3"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+# a) Define which parameters you would like to visualize
+params =  which(names(kIn) %in% c(<panellistbox label="Parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>));
+
+</group>
+
+
+# 2. r-code
+
+<![CDATA[
+
+library(package="ellipse")
+
+subR <- kIn[,params];
+
+correl <- cor(subR, use="complete.obs")
+ord <- order(correl[1,])
+xc <- correl[ord, ord]
+colors <- c("#A50F15","#DE2D26","#FB6A4A","#FCAE91","#FEE5D9","white","#EFF3FF","#BDD7E7","#6BAED6","#3182BD","#08519C")
+plotcorr(xc, col=colors[5*xc + 6])
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Correlogram with p-values
+# author: Holger Brandl
+# category: relations
+# preview: correlation-scattermatrix+pvalues.png
+
+Visualization of a Correlation Matrix. On top the (absolute) value of the correlation plus the result of the cor.test as stars. On botttom, the bivariate scatterplots, with a fitted line.
+
+Source: http://addictedtor.free.fr/graphiques/RGraphGallery.php?graph=137
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="3"/>
+
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+# a) Define which parameters you would like to visualize
+params =  which(names(kIn) %in% c(<panellistbox label="Parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>));
+
+</group>
+
+
+# 2. r-code
+
+<![CDATA[
+subScreen = kIn[, params];
+
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- cor(x, y, use="complete.obs")
+    absCor <- abs(r);
+    txt <- format(c(r, 0.123456789), digits=digits)[1]
+    txt <- paste(prefix, txt, sep="")
+    if(missing(cex.cor)) cex <- 0.8/strwidth(txt)
+
+    test <- cor.test(x,y, na.action = na.exclude)
+    # borrowed from printCoefmat
+    Signif <- symnum(test$p.value, corr = FALSE, na = FALSE,
+                  cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                  symbols = c("***", "**", "*", ".", " "))
+
+    text(0.5, 0.5, txt, cex = cex * absCor)
+    text(.8, .8, Signif, cex=cex, col=2)
+}
+pairs(subScreen, lower.panel=panel.smooth, upper.panel=panel.cor)
+
+
+]]>
+
+</rgg>
+########################################################################################
+# name: density-scatter-matrix
+# author: Felix Meyenhofer
+# category: relations
+# preview: density-scatter-matrix.png
+
+Displays a scatter matrix where the color code reflect the density of points.
+The densities are log2-scaled.
+
+Parameter:
+Grouping column: cathegorical column that associates the observation to a group.
+Feature space: a set of variables (columns) where each feature is plotted in a
+               scatter plot against all other features.
+
+######
+
+<rgg>
+
+    <!--1. Title and short description -->
+
+    <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+    <separator label="Description" span="full"/>
+    <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+    <gaprow height="1"/>
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+
+    <!-- 2. Configuration -->
+
+    <group>
+        # a) Define the feature space
+        numericColumns= c(<panellistbox items="$$$NUM_ATTRIBUTES$$$" label="Feature space" aligment="center" span="full"/>);
+
+        # b) the title of the plot
+        <textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value="my plot" size="10" aligment="center" span="full"/>
+    </group>
+
+
+    <!-- 2. Code -->
+
+    <![CDATA[
+        library(IDPmisc)
+
+
+        labels <- names(kIn);
+        numericColumns <- which(labels %in% numericColumns);
+        labels <- labels[numericColumns];
+
+        M <- kIn[,numericColumns];
+
+        graph <- ipairs(M, ztransf = function(x){x[x<1] <- 1; log2(x)}, lab.diag=labels, main=plotTitle)
+
+        print(graph)
+    ]]>
+
+</rgg>
+########################################################################################
+# name: Grouped scatter-matrix
+# author: Felix Meyenhofer, modified by Martin Stoeter
+# category: relations
+# preview: grouped-scatter-matrix.png
+
+Diplays a scatter matrix where all the groups found in the grouping column get their own color.
+
+Parameter:
+1) Grouping column: select a categorical column that contains the factors/groups.
+2) Feature space: select numerical variables where each variable is plotted in a scatter plot against all other variables.
+3) Title: enter a title
+4) Layout:
+- Alpha value: define the alpha value of the points. The more data the lower you can set this value.
+- Select color palette for plot.
+- Select if background should be white.
+- If color palette "manual" is used then select colors for each group (in alphabetical order of groups) 
+      - see here for colors: http://research.stowers-institute.org/efg/R/Color/Chart/ColorChart.pdf
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+<!-- 2. Configuration-->
+
+#1.0 Parameter selection
+
+<group>
+
+# a) Define the grouping column
+groupColumn= <combobox items="$$$STR_ATTRIBUTES$$$" label="Grouping column"/>;
+
+# b) Define the feature space
+numericColumns= c(<panellistbox items="$$$NUM_ATTRIBUTES$$$" label="Feature space" aligment="center" span="full"/>);
+
+# c) the title of the plot
+<textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value="my plot" size="10" aligment="center" span="full"/>
+
+<hbox>
+# d) Alpha value
+<textfield label="Alpha value" var="alphaValue" data-type="number" default-value="0.75" aligment="center"/>
+
+# e) Define the colour of fill or line
+colorPalette = <combobox items="standard,Spectral,clarity" label="Color palette"/>;
+
+# f) Define the colour of fill or line
+setBkgWhite = <checkbox label="No background"/>;
+</hbox>
+
+# g) Select manual colors for groups (number of colors and groups must be the same!)
+setColorPaletteManual = <checkbox label="Use manual color palette"/>;
+colorPaletteVector = c(<panellistbox label="Colors for manual palette" items="black,blue,lightblue,darkblue,brown,cyan,darkcyan,lightcyan,gold,green,lightgreen,darkgreen,grey,lightgrey,darkgrey,khaki,magenta,darkmagenta,orange,pink,red,darkred,yellow,yellowgreen" span="full"/>)
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1.1 load libaries
+library(reshape)
+library(ggplot2)
+
+#2.1.2 Define the data
+#see 2.3. calulate
+
+#2.2.1 manage RGG to R: define as numbers
+params <- numericColumns
+alphaValue = as.numeric(alphaValue)
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (setColorPaletteManual) {
+	colorPalette <- "manual"
+	if(length(colorPaletteVector) < length(unique(kIn[,groupColumn]))) colorPaletteVector[(length(colorPaletteVector)+1):length(unique(kIn[,groupColumn]))] <- "black"
+	if(length(colorPaletteVector) > length(unique(kIn[,groupColumn]))) colorPaletteVector <- colorPaletteVector[1:length(unique(kIn[,groupColumn]))]
+	}
+
+#2.3. calulate
+completeDF <- kIn[complete.cases(kIn[,params]),]
+
+dat <- data.frame(t(combn(params, 2)))
+names(dat) <- c("X","Y")
+
+clevels <- unique(c(as.character(dat$X),as.character(dat$Y)))
+
+dat$X <- factor(dat$X, levels = clevels)
+dat$Y <- factor(dat$Y, levels = clevels)
+
+dat <- ddply(dat, c('X', 'Y'), function(d) {
+       xd <- as.character(d$X[1])
+       yd <- as.character(d$Y[1])
+       data.frame(x = completeDF[,xd], y = completeDF[,yd], group = completeDF[,groupColumn])
+       })
+
+#2.4.1 layout plot
+theme <- opts(panel.background = theme_rect(fill = "gray95"),
+                      panel.grid.minor = theme_blank(),
+                      legend.background = theme_rect(fill = "gray85"),
+                      axis.title.x = theme_text(colour = NA),
+                      axis.title.y = theme_text(colour = NA))
+
+#2.4.2 plot data
+p <- ggplot(dat, aes(x = x, y = y, colour = group)) + geom_point(alpha=alphaValue) + facet_grid(Y ~ X, scales='free') + theme
+
+switch(which(colorPalette == c('standard','clarity','Spectral','manual')), {
+	}, { #standard
+	if(length(unique(dat[,"group"])) < 9) p <- p + scale_colour_brewer("clarity")}, {
+	if(length(unique(dat[,"group"])) < 11) p <- p + scale_colour_brewer(pal = "Spectral")}, {
+	p <- p + scale_colour_manual(values = colorPaletteVector)}
+	)
+
+#plot title
+p <- p + opts(title = plotTitle)
+
+#set background on/off
+if (setBkgWhite) p <- p + theme_bw()
+
+print(p)
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Group means parallel-plot
+# author: Holger Brandl, Antje Niederlein, Martin Stoeter              
+# category: screening/profiles
+# preview: group_means_parallel_plot.png
+
+A parallel plot (aka profile plot) of means of different groups with errors bars. If robust statistics is checked the median and mad will be used instead of mean and sd. The y-axis limits are calculated from the input data, optional you can set the limits manually or calculate them from the plot data using min and max plotted valued (auto scale). Horizontal lines can be plotted optionally. 
+
+Inputs
+1) a grouping variable
+2) a selection of assay parameters
+3) option: use robust statistics
+4) option: set the y-axis limits or allow auto scale (on min and max plot value) on y-axis
+5) option: draw horizontal lines at two y values
+6) option: label of y-axis
+7) option: add title
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+# 1. Parameter selection
+
+<group>
+
+# a) define your grouping variable
+catVar = <combobox items="$$$STR_ATTRIBUTES$$$" label="Categorical variable of interest"/>
+
+# b) define your parameters of interest
+parameters =  c(<panellistbox label="Assay parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+# c) use robust statistics?
+<checkbox label="robust statistics" var="robust" selected="false"/>
+
+# d) set y axis scale
+<hbox>
+<vector label="y-axis scale (min, max):" var="yAxisScale" size="2" vector-type="character"/>
+<checkbox label="Auto scale y-axis (min to max)" var="yAxisAutoScale" selected="false"/>
+</hbox>
+
+# e) add horizontal lines
+<vector label="Add horizontal lines at" var="hLines" size="2" vector-type="character"/>
+
+# f) define y-axis label
+<textfield label="y-axis label" var="yLabel" data-type="text" default-value= "" size="10" span="full"/>
+
+# g) define a title for the plot
+<textfield label="Title" var="mainTitle" data-type="text" default-value= "" size="10" span="full"/>
+
+</group>
+
+<![CDATA[
+
+#2. r-code
+
+#2.1 load libaries
+library(ggplot2)
+library(reshape)
+
+#2.2.1 manage RGG to R: define as numbers
+hLines <- as.numeric(hLines)
+yAxisScale <- as.numeric(yAxisScale)
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(yAxisScale[1]) | is.na(yAxisScale[2])) 	yAxisScale <- NULL
+if (is.na(yLabel))	yLabel <- NULL
+if (is.na(mainTitle))	mainTitle <- NULL
+
+#2.3. calulate
+#define functions/methods to calculate central values and error bars
+if (robust == FALSE) {
+	#none robust statistics
+	parameterLabel = "Parameters (aggregation: mean & sd)"
+	centralValue <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	return(x.mean)
+		}
+	errorUpper <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	x.sd <- sd(x, na.rm = TRUE)
+        	return(x.mean + x.sd)
+		}
+	errorLower <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	x.sd <- sd(x, na.rm = TRUE)
+        	return(x.mean - x.sd)
+		}
+	} else {
+	#robust statistics
+	parameterLabel = "Parameters (aggregation: median & mad)"
+	centralValue <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	return(x.median)
+		}
+	errorUpper <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	x.mad <- mad(x, na.rm = TRUE)
+        	return(x.median + x.mad)
+		}
+	errorLower <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	x.mad <- mad(x, na.rm = TRUE)
+        	return(x.median - x.mad)
+		}
+	}
+
+classesOfInterest <- levels(factor(kIn[,catVar]))
+
+# create a subset ony containing entries with classes of interest and parameters of interest
+subData <- subset(kIn, get(catVar) %in% classesOfInterest)
+subData <- subData[, c(catVar,parameters)]
+# set rowID as extra column for reshaping
+#subData$id <- rownames(subData)
+
+#calculate auto y-axis scale
+if (yAxisAutoScale) {
+	minMax <- list()
+	for (i in 1:length(classesOfInterest)) {
+		minMax[[i]] <- c(min(apply(subset(subData, subData[,catVar] == classesOfInterest[i], select = parameters), 2, errorLower)), max(apply(subset(subData, subData[,catVar] == classesOfInterest[i], select = parameters), 2, errorUpper)))
+		}
+	minMax <- do.call("rbind", minMax)
+	yAxisScale <- c(min(minMax), max(minMax))
+	#increase the plot area
+	yAxisScale <- c(yAxisScale[1] - range(yAxisScale[1], yAxisScale[2]) / 20, yAxisScale[2] + range(yAxisScale[1], yAxisScale[2]) / 20)
+	}
+
+# reshape data for ggplot
+plotData <- melt(subData, id = catVar)
+
+#2.4.1 layout plot
+#e.g. par(oma=margins)
+
+#2.4.2 plot data
+p <- ggplot(plotData, aes(x = variable, y = value, colour = get(catVar), group = get(catVar)))
+p <- p + coord_cartesian(ylim = yAxisScale)
+p <- p + stat_summary(fun.y = centralValue, geom = "line") 
+p <- p + stat_summary(fun.ymax = errorUpper, fun.ymin = errorLower, geom = "errorbar", width=0.25)
+p <- p + labs(x = parameterLabel, y = yLabel, colour = catVar)
+p <- p + opts(axis.text.x = theme_text(hjust = 1, angle = 90))
+#colorPaletteVector <- c("red", "blue", "darkgreen", "orange")
+#p <- p + scale_colour_manual(values = colorPaletteVector)
+if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
+if (!is.na(hLines[2])) p <- p + geom_hline(yintercept = hLines[2])
+p <- p + opts(title = mainTitle) 
+print(p)
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Parallel plot grid by factor
+# author: Holger Brandl, Antje Niederlein, Martin Stoeter
+# category: screening/profiles
+# preview: parallel-plot-grid-by-factors.png
+
+A grid of parallel plots where each plot displays a parameter profile for all data points belonging to the same group. Additionally the mean of the data set is shown including error-bars. If robust statistics is checked the median and mad will be used instead of mean and sd.
+
+Inputs:
+1) a grouping variable
+2) a selection of assay parameters
+3) option: use robust statistics
+4) option: scale of y-axis (default, use fixed values, auto-scale (plot area = +/-5% of min/max))
+5) option: draw horizontal lines at two y values
+6) option: label of y-axis
+7) option: add title
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+# 1.0 Parameter selection
+
+<group>
+
+# a) define your grouping variable
+<combobox var = "catVar" label = "Factors used as grid" items = "$$$STR_ATTRIBUTES$$$"/>
+
+# b) define your parameters of interest
+parameters =  c(<panellistbox label="Assay parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+# c) use robust statistics?
+<checkbox label="robust statistics" var="robust" selected="false"/>
+
+# d) set y axis scale
+<hbox>
+<vector label="y-axis scale (min, max):" var="yAxisScale" size="2" vector-type="character"/>
+<checkbox label="Auto scale y-axis (min to max)" var="yAxisAutoScale" selected="false"/>
+</hbox>
+
+# e) add horizontal lines
+<vector label="Add horizontal lines at" var="hLines" size="2" vector-type="character"/>
+
+# f) define y-axis label
+<textfield label="y-axis label" var="yLabel" data-type="text" default-value= "" size="10" span="full"/>
+
+# g) define a title for the plot
+<textfield label="Title" var="mainTitle" data-type="text" default-value= "" size="10" span="full"/>
+
+</group>
+
+<![CDATA[
+
+#2. r-code
+
+#2.1 load libaries
+library(ggplot2)
+library(reshape)
+
+#2.2.1 manage RGG to R: define as numbers
+hLines <- as.numeric(hLines)
+yAxisScale <- as.numeric(yAxisScale)
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(yAxisScale[1]) | is.na(yAxisScale[2])) 	yAxisScale <- NULL
+if (is.na(yLabel))	yLabel <- NULL
+if (is.na(mainTitle))	mainTitle <- NULL
+
+#2.3. calulate
+#define functions/methods to calculate central values and error bars
+if (robust == FALSE) {
+	#none robust statistics
+	parameterLabel = "Parameters (aggregation in red: mean & sd)"
+	centralValue <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	return(x.mean)
+		}
+	errorUpper <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	x.sd <- sd(x, na.rm = TRUE)
+        	return(x.mean + x.sd)
+		}
+	errorLower <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	x.sd <- sd(x, na.rm = TRUE)
+        	return(x.mean - x.sd)
+		}
+	} else {
+	#robust statistics
+	parameterLabel = "Parameters (aggregation in red: median & mad)"
+	centralValue <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	return(x.median)
+		}
+	errorUpper <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	x.mad <- mad(x, na.rm = TRUE)
+        	return(x.median + x.mad)
+		}
+	errorLower <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	x.mad <- mad(x, na.rm = TRUE)
+        	return(x.median - x.mad)
+		}
+	}
+
+classesOfInterest <- levels(factor(kIn[,catVar]))
+
+# create a subset ony containing entries with classes of interest and parameters of interest
+subData <- subset(kIn, get(catVar) %in% classesOfInterest)
+subData <- subData[, c(catVar,parameters)]
+# set rowID as extra column for reshaping
+subData$id <- rownames(subData)
+
+#calculate auto y-axis scale
+if (yAxisAutoScale) {
+	minMax <- list()
+	for (i in 1:length(classesOfInterest)) {
+		minMax[[i]] <- c(min(apply(subset(subData, subData[,catVar] == classesOfInterest[i], select = parameters), 2, errorLower)), max(apply(subset(subData, subData[,catVar] == classesOfInterest[i], select = parameters), 2, errorUpper)))
+		}
+	minMax <- do.call("rbind", minMax)
+	yAxisScale <- c(min(minMax), max(minMax))
+	#increase the plot area
+	yAxisScale <- c(yAxisScale[1] - range(yAxisScale[1], yAxisScale[2]) / 20, yAxisScale[2] + range(yAxisScale[1], yAxisScale[2]) / 20)
+	}
+
+# reshape data for ggplot
+plotData <- melt(subData, id = c(catVar,"id"))
+plotData <- plotData[complete.cases(plotData),]
+names(plotData)[which(names(plotData) == catVar)] <- "catVar"
+
+#2.4.1 layout plot
+#e.g. par(oma=margins)
+
+#2.4.2 plot data
+p <- ggplot(plotData, aes(x = variable, y = value, group = catVar)) + geom_line(aes(group = id), colour = "grey") + geom_point(aes(group = id), colour = "grey")
+p <- p + coord_cartesian(ylim = yAxisScale)
+p <- p + stat_summary(fun.y = centralValue, geom = "line", colour = "red")
+p <- p + stat_summary(fun.ymax = errorUpper, fun.ymin = errorLower, geom = "errorbar", width=0.25, colour = "red")
+if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
+if (!is.na(hLines[2])) p <- p + geom_hline(yintercept = hLines[2])
+p <- p + labs(x = parameterLabel, y = yLabel)
+p <- p + opts(axis.text.x = theme_text(hjust = 1, angle = 90))
+p <- p + opts(title = mainTitle) 
+p <- p + facet_wrap(~ catVar)
+print(p)
+
+]]>
+
+</rgg>
+########################################################################################
+# name: QQ-Plot grid
+# author: Holger Brandl, Martin Stoeter 
+# category: screening/qc
+# preview: qq-plot.png
+
+Creates a grid of qq-plots (with respect to normal distribution) which allow to visually determine which parameters follow a normal distribution
+- to use a flow variable check box and type in variable name using the format: FLOWVAR(variable name)
+- use the R-snippet template "Shapiro-Wilk Normality Test (QQ-Plot)" to get the statistics
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1. Parameter selection
+<group>
+
+#Select the parameter of interest
+<label text="Select your parameters for which you would like to see a qq-plots"/>
+
+selReadouts = c(<panellistbox label="Parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+<hbox>
+<checkbox  label="use flow variable" var="useFlowVarSelReadouts" selected="false"/>
+<textfield label="flow variable:" var="flowVariableSelReadouts" data-type="text" default-value= "" size="10" span="full"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2. r-code
+
+#2.0 load libaries
+
+#2.1 manage RGG to R: define as numbers
+
+#2.2 manage RGG to R: set scales to default and check scales
+if (useFlowVarSelReadouts) selReadouts <- flowVariableSelReadouts
+
+#3. calulate
+
+#4.1 layout plot
+numGridRows = ifelse(length(selReadouts) > 1, 2, 1)
+par(mfrow = c(numGridRows, ceiling(length(selReadouts) / numGridRows)))
+
+#4.2 plot data
+# iterate over all parameters and create plots for all of them
+lapply(selReadouts, FUN = function (param) {
+	plotVar = eval(parse(text = paste("kIn$\"", param, "\"", sep = '')))
+	#remove NA (shapiro test allows NA but data has to have 3 - 5000 non-missing-values)
+	plotVar <- plotVar[which(!is.na(plotVar))]
+
+	#plot
+	qqnorm(plotVar, main = param)
+	qqline(plotVar)
+	
+	# if there are more than 5000 data points, run test on a subset
+	if(length(plotVar) > 5000) {
+		plotVar <- sample(plotVar, 5000)
+	}
+
+	# do the test and add the p-value to the plot
+	testresult <- shapiro.test(plotVar)
+
+	# use relative positioning of the text plotting (http://www.mail-archive.com/r-help@r-project.org/msg15119.html)
+	usr <- par("usr")                      # get user coordinates
+	par(usr = c(0, 1, 0, 1))               # new relative user coordinates
+	text(0.75, 0.05, format(testresult$p.value, scientific=TRUE, digits=4), cex=1.5, col=2)   # if that's what you want
+	par(usr = usr)                         # restore original user coordinates
+})
+
+]]>
+
+</rgg>
+
+########################################################################################
+# name: Screen Scatter Plot Grid / Trend Plot (color model, treatment column)
+# author: Holger Brandl, Martin Stoeter
+# category: screening/qc
+# preview: screenscattergrid.png
+This plot is also known as trend- or sequence-plot ("High-throughput screening in drug discovery, Hueser, 2006, Wiley")
+
+This scatter plot displays all wells of a screen. The bulk data is plotted in grey circles (usually annotated as "library" in categorial column) and all other categories are plotted in different colors and shapes. If colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories. Multiple parameters are plotted as grid of subplots. 
+To use a flow variable check box and type in variable name using the format: FLOWVAR(variable name) (doesn't work like this for grid of subplots)
+
+Further options are:
+- adjust y-axis: default = min-max +/- 5%; optional use of quantiles = (lower quantile * lower scale factor) until (upper quantile * upper scale factor);
+	extended range factor: e.g. 0.05 extends y-axis by +/- 5%   
+- use the scale factors to adjust a) point sizes of bulk and b) rest data as well as c) the legend size
+- horizontal dashed and solid lines can be plotted
+- title can be changed
+
+Hint: use "Nominal row filter" node to select the categories to plot (former treatment column) and "Sorter" node to define well index. 
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+# 1. Parameter selection
+<group>
+# a) Define column with categorial values
+treatments = c(<listbox label="Treatments of interest" items="$$$DOMAIN('treatment')$$$" span="full" visible-row-count="15"/>);
+<hbox>
+<combobox var = "catVar" label = "Categorial values" items = "-USE SELECTED TREATMENTS-,$$$STR_ATTRIBUTES$$$"/>
+</hbox>
+
+# b) Define which parameter you would like to visualize
+params =  c(<panellistbox label="Parameters" items="$$$NUM_ATTRIBUTES$$$" span="3"/>)
+<hbox>
+<checkbox  label="use flow variable" var="useFlowVar" selected="false"/>
+<textfield label="flow variable:" var="flowVariable" data-type="text" default-value= "" size="10"/>
+</hbox>
+<gaprow height="1"/>
+
+# c) Options for visualization
+<separator label="more layout options" span="full"/>
+<gaprow height="1"/>
+
+<checkbox label="Use KNIME colors palette?" var="useKNIMEcolors" selected="false"/>
+<label text="                                                                                   y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]" aligment="center" span="full"/>
+<hbox>
+<checkbox label="Default y-Axis scale?" var="useDefaultyAxisScale" selected="true"/>
+<vector label="y-axis scale factors:" var="yAxisScaleFactors" size="5" default-value="0.005,0.995,1,1,0" vector-type="character"/>
+</hbox>
+
+<hbox>
+<textfield label="Bulk screen data term in categorial column" var="bulkDataTerm" data-type="text" default-value= "library" size="1"/>
+<vector label="Scale factor: size of bulk points / category points / legend" var="scaleFactors" size="3" default-value="1,1,1" vector-type="character"/>
+</hbox>
+
+<vector label="Horizontal lines to be drawn (dashed, solid, dashed)" var="hlines" size="3" default-value=",," vector-type="character"/>
+<hbox>
+<textfield label="Title of plot:" var="title" data-type="text" default-value= "Trend plot: " size="1"/>
+<checkbox label="Join parameter name with title?" var="useJoinParameterToTitle" selected="true"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1.1 load libaries
+library(grDevices)
+
+#2.1.2 Define the data
+if (catVar == "-USE SELECTED TREATMENTS-") {
+	useTreatmentSelection <- TRUE
+	catVar <- "treatment"
+	} else {
+	useTreatmentSelection <- FALSE
+	}
+
+if (useKNIMEcolors) {
+	#generate color table from KNIME colors
+	colorTable <- lapply(unique(kIn[,catVar]), FUN = function(x) {
+		subdata <- subset(kIn, kIn[,catVar] == x, select = c(R, G, B, A, RGBA), drop = FALSE)[1,]
+		})
+	names(colorTable) <- unique(kIn[,catVar])
+	colorTable <- do.call("rbind", colorTable)
+	#if treatments are selected in GUI then color table should contain only selected treatments 
+	if (useTreatmentSelection) colorTable <- colorTable[which(rownames(colorTable) %in% treatments),]
+	factors <- rownames(colorTable)
+	} else {
+	#if treatments are selected in GUI then use selected treatments as factors 
+	if (useTreatmentSelection) {
+		factors <- levels(factor(treatments))
+		} else {
+		factors <- levels(factor(kIn[,catVar]))
+		}
+	}
+
+#make the bulk data / library the first in the list 
+if(bulkDataTerm %in% factors){
+	if (useKNIMEcolors) {
+		colorTable <- rbind(colorTable[which(rownames(colorTable) == bulkDataTerm),],colorTable[-which(rownames(colorTable) == bulkDataTerm),])
+		factors <- rownames(colorTable)
+		} else {
+		factors <- c(bulkDataTerm, factors[- which(bulkDataTerm == factors)])
+		}
+	}
+
+#2.2.1 manage RGG to R: define as numbers
+hlines <- as.numeric(hlines)
+scaleFactors <- as.numeric(scaleFactors)
+yAxisScaleFactors <- as.numeric(yAxisScaleFactors)
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(scaleFactors[1]) | scaleFactors[1] <= 0) 	scaleFactors[1] <- 1		#default
+if (is.na(scaleFactors[2]) | scaleFactors[2] <= 0) 	scaleFactors[2] <- 1		#default
+if (is.na(scaleFactors[3]) | scaleFactors[3] <= 0) 	scaleFactors[3] <- 1		#default
+
+if (is.na(yAxisScaleFactors[1]) | (yAxisScaleFactors[1] < 0) | (yAxisScaleFactors[1] >= 1)) yAxisScaleFactors[1] <- 0
+if (is.na(yAxisScaleFactors[2]) | (yAxisScaleFactors[2] <= 0) | (yAxisScaleFactors[2] > 1)) yAxisScaleFactors[2] <- 1
+if (is.na(yAxisScaleFactors[3])) yAxisScaleFactors[3] <- 1
+if (is.na(yAxisScaleFactors[4])) yAxisScaleFactors[4] <- 1
+if (is.na(yAxisScaleFactors[5]) | (useDefaultyAxisScale)) yAxisScaleFactors[5] <- 0.05
+
+#2.3. calulate
+if (useFlowVar) params <- flowVariable
+
+#2.4.1 layout plot
+if (useKNIMEcolors) {
+	factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, names = NULL, max =  255) #uses KMINE colors (Color Manager -> Extract Colors -> Join color table)
+	} else {
+	factorColors <- colors()[c(185,121,150,100,48,490,98, round(runif(50,min=1, max = 600)))] #default definition of colors	
+	}
+factorSymbols = c(1,rep(19,4),rep(17,4),rep(15,4),rep(18,4),rep(22,50)); #definition of symbols see help pch
+numGridRows = ifelse(length(params) > 1, 2, 1);
+par(mfrow = c(numGridRows, ceiling(length(params) / numGridRows)))
+
+# iterate over all parameters and create plots for all of them
+lapply(params, FUN = function (param) {
+
+if (useJoinParameterToTitle) title <- paste(title, names(kIn[param]))
+
+#2.4.2 plot data
+
+# iterate over categories
+for(factor in factors){
+	index = which(factors == factor)
+	
+	#set y-axis scale
+	if (useDefaultyAxisScale) {
+		yAxisScale <- extendrange(kIn[,param], f = yAxisScaleFactors[5])
+		} else {
+		yAxisScale <- c(quantile(kIn[, param], na.rm = TRUE, names = FALSE, yAxisScaleFactors[1]), quantile(kIn[, param], na.rm = TRUE, names = FALSE, yAxisScaleFactors[2])) * c(yAxisScaleFactors[3], yAxisScaleFactors[4])
+		#check if data is there/yAxisScales are numbers (otherwise plot fails) then do subplot without data (no points are plotted)
+		if ((is.na(yAxisScale)[1] == TRUE) || (is.na(yAxisScale)[2] == TRUE)
+			|| (is.infinite(yAxisScale)[1] == TRUE) || (is.infinite(yAxisScale)[2] == TRUE)) {
+			yAxisScale <- extendrange(kIn[,param], f = yAxisScaleFactors[5])
+			} else {
+			yAxisScale <- extendrange(r = yAxisScale, f = yAxisScaleFactors[5])
+			}
+		}
+
+	if(index == 1){      #is it bulk data?
+		plot(which(kIn[,catVar] == factor), kIn[which(kIn[,catVar] == factor), param], ylim = yAxisScale, main = title, xlab = "well index", ylab = names(kIn[param]), col = factorColors[index], pch = factorSymbols[index], xlim = c(1,max(as.numeric(rownames(kIn)))), cex = scaleFactors[1])
+		} else {
+		points(which(kIn[,catVar] == factor), kIn[which(kIn[,catVar] == factor), param], col = factorColors[index], pch = factorSymbols[index], bg = factorColors[index], cex = scaleFactors[2])
+		}
+	}
+	# adds horizontal lines
+	abline(h = hlines[c(1,3)], lty = 2)
+	abline(h = hlines[2], lwd = 1.5)
+	# add the legend
+	legend("topright", pch= factorSymbols[1:length(factors)], factors, col = factorColors, pt.bg = factorColors, cex = scaleFactors[3])
+})
+
+]]>
+</rgg>

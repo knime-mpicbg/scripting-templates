@@ -1,0 +1,930 @@
+########################################################################################
+# name: R math / absolute values
+# author: Martin Stoeter
+# category: calculators
+
+Calculates absolute values of selected columns. Useful for turning a correlation matrix (e.g. Linear Correlation) containing correlation and anti-correlation into a matrix containing absolute correlation values (anti-correlation = correlation)
+- select columns to be returned as absolute values. Not selected columns will be returned as they are.
+- select if values should be returned as 1-absolute(value), useful for hierarchical clustering, where highly correlating parameters should show low distance (therefore cluster together).
+Available formulars: a) abs(x), b) 1-abs(x)
+######
+<rgg>
+
+<!--1. Title and short description -->
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+<group>
+# 1) select the columns
+parameters = match(c(<panellistbox label="Column selection" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>), names(kIn));
+
+# 2) select math
+mathForm = c(<combobox label="Mathematical formula" items="absolute_values,1-absolute_values"/>)
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1 load libraries
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set values to default and check values
+
+#2.3. calulate
+if (mathForm == "absolute_values"){
+	for (parameter in parameters){
+		kIn[,parameter] <- abs(kIn[,parameter])
+		}
+	}
+
+if (mathForm == "1-absolute_values"){
+	for (parameter in parameters){
+		kIn[,parameter] <- 1-abs(kIn[,parameter])
+		}
+	}
+
+rOut <- kIn
+
+]]>
+</rgg>
+
+########################################################################################
+# name: Unique values
+# author: Antje Niederlein
+# category: calculators
+
+Returns unique values for all selected columns independently. If they differ in length, missing values will be added.
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+# 1) select the columns
+colSelection = match(c(<panellistbox label="Column selection" items="$$$ALL_ATTRIBUTES$$$" visible-row-count="6" span="full"/>), names(kIn));
+
+</group>
+
+
+<![CDATA[
+
+plist <- lapply(kIn[,colSelection], unique)
+
+maxlen<- max(sapply(plist, length))
+
+new.l <- lapply(plist, FUN = function(elem) {  c(elem,rep(NA,maxlen-length(elem))) })
+
+rOut <- data.frame(do.call("cbind", new.l))
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Mahalanobis Distance Calculator
+# category: distance measures
+
+Calculates mahalonobis distances to the mean of a control group (typically your negative controls).
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+# 1) select the readouts that span the phenotypic space
+featSelection = match(c(<panellistbox label="Features of interest" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>), names(kIn));
+
+
+# 2) calculate mean and covariance of the negative controls
+negCtrls = subset(kIn, treatment == <combobox items="$$$DOMAIN('treatment')$$$" label="Negative Control"/>);
+
+</group>
+
+
+<![CDATA[
+
+nc = negCtrls[,featSelection];
+ncCov = cov(na.omit(array(nc)));
+ncMean = mean(nc, na.rm=TRUE);
+
+# append the distance as additional column
+kIn$mahadist <- mahalanobis(array(kIn[featSelection]), ncMean, ncCov);
+
+rOut <- kIn;
+
+]]>
+
+</rgg>
+#######################################################################################
+# name: Power transformation and Z rank transformation
+# author: Martin Stoeter
+# category: distributions
+# preview: 
+
+This rank normalization project each group of values per parameter to a normal distribution.
+- select type of normalization
+- select a group column that should be used for ranking (e.g. barcode, date, project name,...)
+- select parameters that should be rank normalized 
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+
+<group>
+# 1.1 select type of transformation
+transformation = <combobox items="Box-Cox,Yeo-Johnson,basic,project_to_Gaussian" label="Power transformation"/>;
+# 1.2 select group
+group = <combobox items="$$$STR_ATTRIBUTES$$$" label="Group column"/>;
+#group = "barcodePlate"
+#subGroup = "library"
+
+# 1.3 select the columns
+selectedParams = match(c(<panellistbox label="Column selection" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>), names(kIn));
+#selectedParams = names(kIn[,13:18])
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1 load libraries
+library(car)
+library(alr3)
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set values to default and check values
+
+#2.3. calulate
+
+data <-kIn
+
+#calc max number of values per group
+allGroups <- unique(kIn[,group])
+maxNumberOfValues <- list()
+for (i in 1:(length(allGroups))) {
+	maxNumberOfValues[[i]] <- data.frame(columnName= allGroups[i], values=length(which(data[,group] == allGroups[i]))) 
+		}
+maxNumberOfValues <- do.call("rbind", maxNumberOfValues) 
+
+if (transformation == "project_to_Gaussian") {
+	#debug plot set plot
+	#par(mfrow=c(as.integer(length(selectedParams)/2),3))
+
+	#calc z rank normalization per group
+	for (i in 1:(length(allGroups))) {	
+		#generate normal distributes data (100-fold resolution of number of value in group)
+		#normData <- sort(rnorm((maxNumberOfValues+1)*100, mean = 0, sd = 1))
+		normData <- sort(rnorm((maxNumberOfValues[i, "values"]+1)*100, mean = 0, sd = 1))	
+	
+		for (param in 1:(length(selectedParams))) {
+			#debug plot raw data
+			#hist(data[temp[,"rowID"], selectedParams[param]], density=30.0, breaks = 50, main = selectedParams[param], freq = TRUE)
+			#lines(density(data[temp[,"rowID"], selectedParams[param]]), col = "red")
+
+			#replace raw values with projected raw data to normal distribution
+			temp <- data.frame(rowID = which(data[,group] == allGroups[i]), values = data[which(data[,group] == allGroups[i]), selectedParams[param]], rank = as.integer(rank(data[which(data[,group] == allGroups[i]), selectedParams[param]])), normData = normData[as.integer(rank(data[which(data[,group] == allGroups[i]), selectedParams[param]]))*100+50])
+			data[temp[,"rowID"], selectedParams[param]] <- temp[,"normData"] 
+		
+			#debug plot z rank
+			#hist(data[temp[,"rowID"], selectedParams[param]], density=30.0, breaks = 50, main = "z rank", freq = FALSE)
+			#lines(density(data[temp[,"rowID"], selectedParams[param]]), col = "red")
+			#plot(temp[,"normData"],temp[,"values"])
+			}
+		}
+		
+	} else {
+		
+	#ensure that all values are strictly positive
+	data[, selectedParams] <- data[, selectedParams] - min(data[, selectedParams]) +0.01
+
+	for (i in 1:(length(allGroups))) {	
+		# calculate the optimal lambda for the trafo
+		powers <- powerTransform(as.matrix(data[which(data[,group] == allGroups[i]), selectedParams]))
+
+		# apply the trafo
+		switch(which(transformation == c('Box-Cox','Yeo-Johnson','basic')), {
+			data[which(data[,group] == allGroups[i]), selectedParams] <- bcPower(data[which(data[,group] == allGroups[i]), selectedParams], powers$lambda)}, { #Box-Cox
+			data[which(data[,group] == allGroups[i]), selectedParams] <- yjPower(data[which(data[,group] == allGroups[i]), selectedParams], powers$lambda)}, { #Yeo-Johnson
+			data[which(data[,group] == allGroups[i]), selectedParams] <- basicPower(data[which(data[,group] == allGroups[i]), selectedParams], powers$lambda)}  #basic power transformation
+			)
+		}
+	}
+	
+#rename transformed data columns
+switch(which(transformation == c('Box-Cox','Yeo-Johnson','basic','project_to_Gaussian')), {
+	transformedNames <- paste(names(data)[selectedParams], '.bcPower', sep = "")}, { #Box-Cox
+	transformedNames <- paste(names(data)[selectedParams], '.yjPower', sep = "")}, { #Yeo-Johnson
+	transformedNames <- paste(names(data)[selectedParams], '.power', sep = "")}, {   #basic power transformation
+	transformedNames <- paste(names(data)[selectedParams], '.zrank', sep = "")} #project_to_Gaussian
+	)
+names(data)[selectedParams] <- transformedNames
+
+# bind both dataframes together
+rOut <- cbind(kIn,  data[,transformedNames])
+
+
+]]>
+
+</rgg>
+
+########################################################################################
+# name: Shapiro-Wilk Normality Test (QQ-Plot)
+# author: Holger Brandl, Martin Stoeter 
+# category: distributions
+# preview: qq-plot.png
+
+Shapiro-Wilk Normality Test calculates statistics to judge the distribution of data (with respect to normal distribution). 
+The QQ-Plot visualizes the data in respect to a normal distribution. 
+- to use a flow variable check box and type in variable name using the format: FLOWVAR(variable name)
+- use the R-plot template "QQ-Plot grid" to do the QQ-plots
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1. Parameter selection
+<group>
+
+#Select the parameter of interest
+<label text="Select your parameters for which you would like to do the Shapiro-Wilk Normality Test"/>
+
+selReadouts = c(<panellistbox label="Parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+<hbox>
+<checkbox  label="use flow variable" var="useFlowVarSelReadouts" selected="false"/>
+<textfield label="flow variable:" var="flowVariableSelReadouts" data-type="text" default-value= "" size="10" span="full"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2. r-code
+
+#2.0 load libaries
+
+#2.1 manage RGG to R: define as numbers
+
+#2.2 manage RGG to R: set scales to default and check scales
+if (useFlowVarSelReadouts) selReadouts <- flowVariableSelReadouts
+
+#3. calulate
+#allResults <- list()
+# iterate over all parameters and create plots for all of them
+#ret <- apply(selReadouts, FUN = function (param) {
+#	plotVar = eval(parse(text = paste("kIn$\"", param, "\"", sep = '')))
+	#remove NA (shaper test allows only maximum of 5000 NA)
+#	plotVar <- plotVar[which(!is.na(plotVar))]
+
+	# do the test and add the p-value to the plot
+#	testresult <- shapiro.test(plotVar)
+#	ShapiroResults <- data.frame(parameter = param, pvalue = testresult$p.value, W = testresult$statistic, n = length(plotVar))
+#	})
+#   ShapiroResult <- data.frame(do.call("rbind", ret))
+
+
+#3. calulate
+allResults <- list()
+# iterate over all parameters and create plots for all of them
+for (i in 1:length(selReadouts)) {
+	#remove NA (shapiro test allows NA but data has to have 3 - 5000 non-missing-values)
+	data <- kIn[which(!is.na(kIn[,selReadouts[i]])), selReadouts[i]]
+
+    # if there are more than 5000 data points, run test on a subset
+    if(length(data) > 5000) {
+        data <- sample(data, 5000)
+    }
+
+    # do the test and add the p-value to the plot
+	result <- shapiro.test(data)
+	
+	allResults[[i]] <- data.frame(parameter = selReadouts[i], "p-value" = result$p.value, "log10(p-value)" = log10(result$p.value), "p-value.text" = format(result$p.value, scientific = TRUE, digits = 4), W = result$statistic, n = length(data))
+	}
+
+rOut <- data.frame(do.call("rbind", allResults))
+
+]]>
+
+</rgg>
+
+########################################################################################
+# name: Correlation of parameters
+# author: Martin Stoeter
+# category: relations
+
+Calculates the correlation between all chosen parameters.
+
+For all selected parameters a pairwise correlation will be calculated (P1 vs P2, P1 vs P3, P2 vs P3) for the entire table (missing values will be removed/ignored).
+n is the number of data pointe in correlation. The type of correlation can be selected.
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+# 1) select parameters for replicate correlation
+paramName = c(<panellistbox label="Parameters for correlation" items="$$$NUM_ATTRIBUTES$$$" span="full"/>);
+
+# 2) select correlation method
+corrFunctionMethod = <combobox items="pearson, kendall, spearman" label="Select correlation method"/>;
+
+</group>
+
+<![CDATA[
+
+#define replicates: e.g A,B,C
+repVector <- paramName
+
+#iterate all parameters(A,B,C -> AB, AC, BC)
+for (i in 1:(length(repVector)-1)) {
+
+	for (j in (i+1):length(repVector)) {
+
+			corrTable <- as.matrix(kIn[,c(repVector[i], repVector[j])])
+			#remove NA
+			corrTable <- corrTable[which(!is.na(corrTable[,repVector[i]]) & !is.na(corrTable[,repVector[j]])),]
+
+			#check if XYtable match is bigger than 1
+			sampleIDmatch <- length(corrTable)
+
+			if (sampleIDmatch > 1) {
+				#calculate correlation
+				correlation <- cor.test(corrTable[,repVector[i]], corrTable[,repVector[j]], method = corrFunctionMethod)
+				corrEstimate <- correlation$"estimate"
+				corrMethod <- correlation$"method"
+				} else {
+				corrEstimate <- as.numeric(NA)
+				corrMethod <- "not enough samples for correlation"
+				sampleIDmatch <- 0
+				}
+
+		#assemble result
+		pearsonResult <- data.frame(parameter1 = repVector[i], parameter2 = repVector[j], n = sampleIDmatch, coefficient = corrEstimate, method = corrMethod)
+
+		if (exists("pearsonResultTable")) {
+			pearsonResultTable <- data.frame(rbind(pearsonResultTable, pearsonResult))
+			} else {
+			pearsonResultTable <- pearsonResult
+			}
+		}
+	}
+
+rOut <- pearsonResultTable
+]]>
+
+</rgg>
+########################################################################################
+# name: Correlation of multi-parametric profiles
+# author: Martin Stoeter
+# category: relations
+
+Calculates the correlation between multi-parameteric profiles.
+
+Select columns for "Group identifier" (e.g., gene symbol) and "Sample identifier" (e.g. siRNA-ID or oligo letter). Use the check boxes to define which combinations should be calculated. 
+a) all combinations of groups: e.g. oligos of gene A will be correlated with oligos of gene B
+b) all combinations of samples: e.g. oligo A will be correlated with oligo B
+Be aware that if you do all combinations the snippet could take a while! 
+
+For all pairwise combinations of the correlation of selected profile parameters will be calculated (missing values will be removed/ignored). 
+n is the number of parameters in correlation. The type of correlation can be selected.
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+# 1) select parameters for replicate correlation
+paramName = c(<panellistbox label="Parameters for profile" items="$$$NUM_ATTRIBUTES$$$" span="full"/>);
+
+# 2) select column that contains sample ID
+<hbox>
+IDgene = <combobox label="Group identifier" items="$$$STR_ATTRIBUTES$$$" />
+<checkbox label="All combinations of groups" var="allCombiGene" selected="false"/>
+</hbox>
+
+# 3) select column that contains group ID
+<hbox>
+IDoligo = <combobox label="Sample identifier" items="$$$STR_ATTRIBUTES$$$"/>
+<checkbox label="All combinations of samples" var="allCombiOligo" selected="false"/>
+</hbox>
+
+# 4) select correlation method
+corrFunctionMethod = <combobox items="pearson, kendall, spearman" label="Select correlation method"/>;
+
+</group>
+
+<![CDATA[
+
+#define group: e.g genes
+geneVector <- unique(kIn[, IDgene])
+
+# create unqique combinations (disregarding order!) to calculate the correlation on
+combVec <- t(rbind(geneVector,geneVector))
+
+#define result table before iterations
+pearsonResult <- as.data.frame(NULL)
+
+#now do correlation within groups (geneA vs geneA)
+for (comb in 1:length(combVec[,1])){
+		# extract data rows to correlate
+		kInXtable <- kIn[which(kIn[,IDgene] == combVec[comb,1]),c(IDgene, IDoligo, paramName)]
+		kInYtable <- kIn[which(kIn[,IDgene] == combVec[comb,2]),c(IDgene, IDoligo, paramName)]
+		#both for loops avoid correlation A vs A (same =1) and redundancy A vs B and B vs A (here necessary because groups are the same!) 
+		for (xOligo in 1:(length(kInXtable[,1])-1)){
+			for (yOligo in (xOligo+1):length(kInYtable[,1])){
+				#correlate all olives or only the same olives (oligoA vs oligoA, B, ...)
+				if (allCombiOligo || (kInXtable[xOligo,IDoligo] == kInYtable[yOligo,IDoligo])){	
+					corrTable <- t(as.matrix(rbind(kInXtable[xOligo,paramName], kInYtable[yOligo,paramName])))
+					#remove NA
+					corrTable <- corrTable[which(!is.na(corrTable[,1]) & !is.na(corrTable[,2])),]
+					sampleIDmatch <- length(corrTable[,1])
+					if (sampleIDmatch > 1) {
+						correlation <- cor.test(corrTable[,1], corrTable[,2], method = corrFunctionMethod)		
+						corrEstimate <- correlation$"estimate"
+						corrMethod <- correlation$"method"
+						} else {
+						corrEstimate <- as.numeric(NA)
+						corrMethod <- "not enough values for correlation"
+						sampleIDmatch <- as.numeric(NA)
+						}
+					pearsonResult <- rbind(pearsonResult, data.frame(groupID1 = combVec[comb,1], sampleID1 = kInXtable[xOligo,IDoligo], groupID2 = combVec[comb,2], sampleID1 = kInYtable[yOligo,IDoligo], n = sampleIDmatch, coefficient = corrEstimate, method = corrMethod))
+					}
+				}
+			}
+		}
+
+#now do correlation between groups (geneA vs geneB)
+if (allCombiGene){		
+combVec <- t(combn(geneVector,2))
+for (comb in 1:length(combVec[,1])){
+		# extract data rows to correlate
+		kInXtable <- kIn[which(kIn[,IDgene] == combVec[comb,1]),c(IDgene, IDoligo, paramName)]
+		kInYtable <- kIn[which(kIn[,IDgene] == combVec[comb,2]),c(IDgene, IDoligo, paramName)]
+		for (xOligo in 1:length(kInXtable)){
+			for (yOligo in 1:length(kInYtable)){
+				#correlate all olives or only the same olives (oligoA vs oligoA, B, ...)
+				if (allCombiOligo || (kInXtable[xOligo,IDoligo] == kInYtable[yOligo,IDoligo])){	
+					corrTable <- t(as.matrix(rbind(kInXtable[xOligo,paramName], kInYtable[yOligo,paramName])))
+					#remove NA
+					corrTable <- corrTable[which(!is.na(corrTable[,1]) & !is.na(corrTable[,2])),]
+					sampleIDmatch <- length(corrTable[,1])
+					if (sampleIDmatch > 1) {
+						correlation <- cor.test(corrTable[,1], corrTable[,2], method = corrFunctionMethod)		
+						corrEstimate <- correlation$"estimate"
+						corrMethod <- correlation$"method"
+						} else {
+						corrEstimate <- as.numeric(NA)
+						corrMethod <- "not enough values for correlation"
+						sampleIDmatch <- as.numeric(NA)
+						}
+					#assemble result
+					pearsonResult <- rbind(pearsonResult, data.frame(groupID1 = combVec[comb,1], sampleID1 = kInXtable[xOligo,IDoligo], groupID2 = combVec[comb,2], sampleID1 = kInYtable[yOligo,IDoligo], n = sampleIDmatch, coefficient = corrEstimate, method = corrMethod))
+					}
+				}
+			}
+		}
+}
+
+rOut <- pearsonResult
+]]>
+
+</rgg>
+########################################################################################
+# name: Correlation of replicates
+# author: Martin Stoeter
+# category: relations
+
+Calculates the correlation between replicates for all chosen parameters.
+
+The table must contain a column of replicate information. Then another column must contain the sample identifier, which must be unique within a replicate (e.g. platenumber::well, but not barcode!), AND the same between the replicates. 
+For the corresponding sample identifiers the correlation will be calculated pairwise between the replicates (A vs B, A vs C, B vs C) for the selected parameters (missing values will be removed/ignored).
+n is the number of sample identifiers per replicate in correlation. The type of correlation can be selected.
+
+Trouble shooting:
+a) "sampleID not unique" -> more than 1 sampleID (eg wells) per replicate
+b) "not enough samples for correlation" -> sampleID for a replicate = 0 (no data to correlate)
+HINT: use GroupBy[Unique concatenate with count(replicate)] on selected sampleID column, must be replicate count = 1 for each sampleID
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+# 1) select parameters for replicate correlation
+paramName = c(<panellistbox label="Parameters for correlation" items="$$$NUM_ATTRIBUTES$$$" span="full"/>);
+
+# 2) select column that contains replicate annotation
+repColName = <combobox label="Replicate column" items="$$$STR_ATTRIBUTES$$$" default-value="replicate"/>;
+
+# 3) select column that contains sample ID
+IDname = <combobox label="Sample identifier" items="$$$STR_ATTRIBUTES$$$" />;
+
+# 4) select correlation method
+corrFunctionMethod = <combobox items="pearson, kendall, spearman" label="Select correlation method"/>;
+
+</group>
+
+
+<![CDATA[
+
+#define replicates: e.g A,B,C
+repVector <- unique(kIn[, repColName])
+
+#iterate all replicates(A,B,C -> AB, AC, BC)
+for (i in 1:(length(repVector)-1)) {
+
+	#define first table (A): e.g. kInA <- kIn[(which(kIn$"replicate"=="A")),c("sampleID","replicate","AvgIntenCh1","MinDistCh1","AreaCh1","CellNumber")]
+	kInXtable <- kIn[which(kIn[,repColName] == repVector[i]),c(IDname, repColName, paramName)]
+
+	for (j in (i+1):length(repVector)) {
+
+		#define second table (B)
+		kInYtable <- kIn[which(kIn[,repColName] == repVector[j]),c(IDname, repColName, paramName)]
+
+		for (paramIteration in paramName) {
+
+		#check if sampleIDs are unique
+		if (length(unique(kInXtable[,IDname])) == length(kInXtable[,IDname]) & length(unique(kInYtable[,IDname])) == length(kInYtable[,IDname])) {
+
+			corrTable <- merge(kInXtable[,c(IDname, repColName, paramIteration)], kInYtable[,c(IDname, repColName, paramIteration)], by.x = IDname, by.y =IDname)
+			#remove NA
+			corrTable <- corrTable[which(!is.na(corrTable[,paste(paramIteration, "x", sep="."),]) & !is.na(corrTable[,paste(paramIteration, "y", sep="."),])),]
+
+			#check if XYtable match is bigger than 1
+			sampleIDmatch <- length(corrTable[,1])
+
+			if (sampleIDmatch > 1) {				
+				#calculate correlation
+				correlation <- cor.test(corrTable[,paste(paramIteration, "x", sep=".")], corrTable[,paste(paramIteration, "y", sep=".")], method = corrFunctionMethod)
+				corrEstimate <- correlation$"estimate"
+				corrMethod <- correlation$"method"
+				} else {
+				corrEstimate <- as.numeric(NA)
+				corrMethod <- "not enough samples for correlation"
+				sampleIDmatch <- 0
+				}
+			} else {
+			corrEstimate <- as.numeric(NA)
+			corrMethod <- "sampleID not unique"
+			sampleIDmatch <- as.numeric(NA)
+			}
+
+		#assemble result
+		pearsonResult <- data.frame(parameter = paramIteration, replicate1 = repVector[i], replicate2 = repVector[j], n = sampleIDmatch, coefficient = corrEstimate, method = corrMethod)
+
+		if (exists("pearsonResultTable")) {
+			pearsonResultTable <- data.frame(rbind(pearsonResultTable, pearsonResult))
+			} else {
+			pearsonResultTable <- pearsonResult
+			}
+		}
+		}
+	}
+
+rOut <- pearsonResultTable
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Create column name table from selection
+# author: Holger Brandl, Martin Stoeter
+# category: utilities
+# preview: CreateColumnNameTableFromSelection.png
+
+Creates a table with a single column that contains the selected column headers.
+- select or type name of column for column headers
+- preview shows what the snippet is doing instead of using KNIME nodes
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+<group>
+# 1) select the columns
+featSelection = match(c(<panellistbox label="Column selection" items="$$$PARNAMES$$$" visible-row-count="6" span="full"/>), names(kIn));
+
+# 2) select column name
+<textfield label="type column header" var="columnHeader" data-type="text" default-value= "column header" size="10" span="full"/>
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1 load libraries
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set values to default and check values
+if (is.na(columnHeader)) 	columnHeader <- "column header"	  #default
+
+#2.3. calulate
+rOut <- as.data.frame(c(names(kIn)[featSelection]));
+names(rOut) <- columnHeader;
+
+]]>
+
+</rgg>
+########################################################################################
+# name: Handle and filter NaN and infinite values
+# author: Martin Stoeter
+# category: utilities
+
+NaN are missing values that are created by some nodes (e.g. HCS tools - Normalization) and that are different from KNIMEs' missing values ("?", in R = "NA").
+Infinite are positive or negative invinite values that are created by some nodes (e.g. HCS tools - Normalization) by devision by zero.
+NaN can be filtered by Row Filter with patters "NaN" on number column, however this is tedious for many columns. 
+Infinite can be filtered by Row Filter using very high or low values, however this is tedious for many columns.
+This R snippet allows handling of NaN and infinite on input table.
+- select type of output:
+	1. All column names and number of found NaN and infinite (count all NaN and infinite per column)
+	2a. Only column names that contain NaN (list of NaN columns)
+	2b. Only column names that contain NaN or infinite (list of NaN and infinite columns)
+	3a. Input table without NaN columns (filter NaN columns out)
+	3b. Input table without NaN and infinite columns (filter NaN and infinite columns out)
+	4a. Input table with NaN replaced by NA (NA = KNIME understandable missing values)
+	4b. Input table with NaN and infinite replaced by NA (NA = KNIME understandable missing values)
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+#1.0 Parameter selection
+<group>
+
+# 2) select column name
+typeOfOutput = <combobox label="Select type of output" items="All column names and number of found NaN and infinite,Only column names that contain NaN,Only column names that contain NaN or infinite,Input table without NaN columns,Input table without NaN or infinite columns,Input table with NaN replaced by NA,Input table with NaN and infinite replaced by NA" />;
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1 load libraries
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set values to default and check values
+
+#2.3. calulate
+NaNresult <- list()
+
+for (i in 1:(length(kIn[1,]))) {
+	NaNresult[[i]] <- data.frame(columnName=names(kIn[i]), numberOfNaN=length(which(is.nan(kIn[,i]))), numberOfInfinite=length(which(is.infinite(kIn[,i])))) 
+		}
+
+#returns the column names with the number of NaN found
+NaNresult <- do.call("rbind",NaNresult)
+
+#return the input table without column containing NaN
+if (typeOfOutput == "Input table without NaN columns") {
+	NaNresult <- kIn[,which(!NaNresult[,2]>0)]
+	} 
+	
+#return the input table without column containing NaN or infinite
+if (typeOfOutput == "Input table without NaN or infinite columns") {
+	NaNresult <- kIn[,which((!NaNresult[,2]>0) | (!NaNresult[,3]>0))]
+	} 
+
+#returns only the column names that contain NaN values
+if (typeOfOutput == "Only column names that contain NaN") {
+	NaNresult <- NaNresult[which(NaNresult[,2]>0),]
+	}
+	
+#returns only the column names that contain NaN or infinite values
+if (typeOfOutput == "Only column names that contain NaN or infinite") {
+	NaNresult <- NaNresult[which((NaNresult[,2]>0) | (NaNresult[,3]>0)),]
+	}
+
+#replace NaN with NA and turn complete table
+if (typeOfOutput == "Input table with NaN replaced by NA") {
+	for (i in 1:(length(kIn[1,]))) {
+		if (NaNresult[i,"numberOfNaN"] > 0) {
+			kIn[which(is.nan(kIn[,i])),i] <- NA
+			}
+		}
+	NaNresult <- kIn
+	}
+	
+#replace NaN and infinite with NA and turn complete table
+if (typeOfOutput == "Input table with NaN and infinite replaced by NA") {
+	for (i in 1:(length(kIn[1,]))) {
+		if ((NaNresult[i,"numberOfNaN"] > 0) || (NaNresult[i,"numberOfInfinite"] > 0)) {
+			kIn[which((is.nan(kIn[,i])) | (is.infinite(kIn[,i]))),i] <- NA
+			}
+		}
+	NaNresult <- kIn
+	}
+
+rOut<- NaNresult
+
+]]>
+</rgg>
+########################################################################################
+# name: Reference Column Filter (2:1)
+# author: Martin Stoeter
+# category: utilities
+# preview: ReferenceColumnFilter.png
+
+Filters the unselected columns of input port 1 (columns to be filtered) using a reference column of input port 2.
+- select columns to be kept in input 1 (filter is not applied)
+- select the column in input 2 that contains column headers for reference filter
+- select way of filtering (filter in = keep what is in reference, filter out = drop what is in reference)
+
+Preview shows what the snippet is doing instead of using KNIME nodes
+
+NEEDS R snippet (2:1) !!!
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+#1.0 Parameter selection
+
+<group>
+# 1) select columns that should be kept
+keepColumns = c(<panellistbox label="Select columns that are not filtered (input 1)" items="$$$PARNAMES$$$" span="full"/>);
+
+# 2) select column that contains replicate annotation 
+refColumnName = <combobox label="Column for reference filter (input 2)" items="$$$STR_ATTRIBUTES_2$$$" />;
+
+# 3) type of filter 
+filter = <combobox label="Way to filter" items="filter in,filter out" />;
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#R code for debugging
+#refColumnName <- "parameter"
+#keepColumns <- colnames(kIn1[,1:18])
+#end R code for debugging
+
+#2.1 load libraries
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+
+#2.3. calulate
+allColumns <- colnames(kIn1)
+refColumn <- kIn2[,refColumnName]
+if (filter == "filter in") {
+	outputTable <- kIn1[,colnames(kIn1[,which((allColumns %in% keepColumns) | (allColumns %in% refColumn))])]
+	} else {
+	outputTable <- kIn1[,colnames(kIn1[,which((allColumns %in% keepColumns) | !(allColumns %in% refColumn))])]
+	}
+rOut <- outputTable
+]]>
+
+</rgg>
+########################################################################################
+# name: Reshape to long format
+# category: utilities
+
+Creates a table with a single measurement column and several id columns.
+
+######
+
+library(reshape)
+rOut <- melt(kIn)

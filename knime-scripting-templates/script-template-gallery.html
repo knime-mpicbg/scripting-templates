@@ -1,0 +1,228 @@
+<html>
+<body>
+
+<h1>Scripting Template Gallery</h1>
+
+<p>This page lists all scripting templates available for the various scripting nodes in Knime.</p>
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Preview</th>
+        <th>Description</th>
+        <th>Category</th>
+        <th>Author</th>
+        <th>Language</th>
+    </tr>
+    <tr>
+        <td width="200">estimate gaussion intersection</td>
+        <td>
+            <a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/gaussian-intersection.png"><img
+                    src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/gaussian-intersection.png"
+                    width="300" height="200"/> </a></td>
+        <td>compute the histograms of random variables, fit a gaussian and compute the intersection points.
+            (use the python figure template with the same name to produce the control plots)
+
+        </td>
+        <td>statistics</td>
+        <td>Felix Meyenhofer</td>
+        <td>Python</td>
+    </tr>
+    <tr>
+        <td width="200">Normal distribution tester</td>
+        <td></td>
+        <td>Tests each group of a numerical column for normality.
+            The null hypothesis at confidence level alpha holds if H=1 and is rejected if H=0
+
+        </td>
+        <td>statistics/univariate</td>
+        <td>Felix Meyenhofer</td>
+        <td>Matlab</td>
+    </tr>
+    <tr>
+        <td width="200">ANOVA test</td>
+        <td></td>
+        <td>Tests each group of a numerical column for normality.
+
+            performs balanced one-way ANOVA for comparing the means of two or more groups,
+            where each group represents an independent sample containing mutually independent observations.
+
+        </td>
+        <td>statistics/univariate</td>
+        <td>Felix Meyenhofer</td>
+        <td>Matlab</td>
+    </tr>
+    <tr>
+        <td width="200">Outlier removal</td>
+        <td></td>
+        <td>Calculates the outliers for each group it find in the grouping column.
+            A row is removed if it contains an outlier for any of the specified parameter.
+            The method whisker uses the "boxplot-technique" to determine outliers. The remaining data is contained in
+            [q25%-1.5*iqr...q75% + 1.5*iqr].
+            The meanStd removes all the points further than 3SD from the mean. The remaining data is contained in
+            [mean-3*SD...mean+3*SD]
+
+        </td>
+        <td>pre-processing</td>
+        <td>Felix Meyenhofer</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Power transformation and Z rank transformation</td>
+        <td></td>
+        <td>Power transformation (Box-Cox, Yeo-Johnson or basic) can be applied within a specified group of data.
+            Rank normalization (project_to_Gaussian) projects each group of values per parameter to a normal
+            distribution.
+            - select type of transformation
+            - select a group column (e.g. barcode, date, project name,...)
+            - select parameters that should be transformed
+        </td>
+        <td>utilities</td>
+        <td>?, Martin Stoeter</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Correlation (parameters)</td>
+        <td></td>
+        <td>Calculates the correlation between all chosen parameters.
+
+        </td>
+        <td>screenmining</td>
+        <td>Martin Stoeter</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Correlation (profiles)</td>
+        <td></td>
+        <td>Calculates the correlation between multi-parameteric profiles.
+
+        </td>
+        <td>screenmining</td>
+        <td>Martin Stoeter</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Correlation (replicates)</td>
+        <td></td>
+        <td>Calculates the correlation between replicates for all chosen parameters.
+
+        </td>
+        <td>screenmining</td>
+        <td>Martin Stoeter</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Mahalanobis Distance Calculator</td>
+        <td></td>
+        <td>Calculates mahalonobis distances to the mean of a control group (typically your negative controls).
+
+        </td>
+        <td>screenmining</td>
+        <td>null</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Create column name table from selection</td>
+        <td></td>
+        <td>Creates a table with a single column that contains the selected column headers.
+            - select or type name of column for column headers
+
+            (TDS internal)
+
+        </td>
+        <td>utilities</td>
+        <td>Holger Brandl, Martin Stoeter</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Factorized rank transform</td>
+        <td></td>
+        <td>Adds a new column which contains the rank of a particular item (Order Inductor) within a given group (Group
+            by).
+
+        </td>
+        <td>utils</td>
+        <td>Holger Brandl</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Reshape to long format</td>
+        <td></td>
+        <td>Creates a table with a single measurement column and several id columns.
+
+        </td>
+        <td>utils</td>
+        <td>null</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Unique values</td>
+        <td></td>
+        <td>Returns unique values for all selected columns independently. If they differ in length, missing values will
+            be added.
+
+        </td>
+        <td>utils</td>
+        <td>Antje Niederlein</td>
+        <td>R</td>
+    </tr>
+    <tr>
+        <td width="200">Connectivity Filter</td>
+        <td></td>
+        <td>Adds an addtional colum which specifies whether molecules are connected or not.
+
+            You may want to adapt the name of the string-column which contains the chemical structure.
+        </td>
+        <td>Chemoinformatics</td>
+        <td>Holger Brandl</td>
+        <td>Groovy</td>
+    </tr>
+    <tr>
+        <td width="200">Replace empty cells by missing cells</td>
+        <td></td>
+        <td># author: Holger Brandl
+
+            Replaces all cells in the selected columns with missing ones.
+        </td>
+        <td>Utilities</td>
+        <td>null</td>
+        <td>Groovy</td>
+    </tr>
+    <tr>
+        <td width="200">Replace NaN values with missing cells</td>
+        <td></td>
+        <td># author: Holger Brandl
+
+            Replaces all NaN cells in the selected columns with missing ones.
+        </td>
+        <td>Utilities</td>
+        <td>null</td>
+        <td>Groovy</td>
+    </tr>
+    <tr>
+        <td width="200">Induce order on factor</td>
+        <td></td>
+        <td># author: Holger Brandl
+
+            Allows to induce a custom order on a selected nominal attribute by selecting the factor-levels in the
+            desired order.
+            The node will create another colum with the same as the source-attribute but with an attached customizable
+            suffix.
+        </td>
+        <td>Utilities</td>
+        <td>null</td>
+        <td>Groovy</td>
+    </tr>
+    <tr>
+        <td width="200">Calculate standard errors</td>
+        <td></td>
+        <td># author: Felix Meyenhofer
+
+            Calculate standard errors
+        </td>
+        <td>Utilities</td>
+        <td>null</td>
+        <td>Groovy</td>
+    </tr>
+</table>
+</body>
+</html>

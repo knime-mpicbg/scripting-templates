@@ -1,0 +1,608 @@
+<html>
+<body>
+
+<h1>Scripting Template Gallery</h1>
+
+<p>This page lists all scripting templates available for the various scripting nodes in Knime.</p>
+<table border="1">
+<tr>
+    <th>Name</th>
+    <th>Preview</th>
+    <th>Description</th>
+    <th>Category</th>
+    <th>Author</th>
+    <th>Language</th>
+</tr>
+<tr>
+    <td width="200">Stream plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/stream-plot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/stream-plot.png" width="300"
+            height="200"/> </a></td>
+    <td>Creates a stream plot (stacked histogram) from several input parameter
+
+        Inputs:
+        1) Features of interest: choose parameters to form the stream plot (stacked histogram)
+        2) Number of bins: binning of the data
+        3) Color chooser: method to pick the colors for the different parameter
+
+    </td>
+    <td>experimental</td>
+    <td>Felix Meyenhofer (python script from Anand Patil, Steam plot method by Lee Bryon)</td>
+    <td>Python</td>
+</tr>
+<tr>
+    <td width="200">estimate gaussian intersection</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/gaussian-intersection.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/gaussian-intersection.png"
+            width="300" height="200"/> </a></td>
+    <td>compute the histograms of random variables, fit a gaussian and compute the intersection points.
+        This version can only deal with TWO groups. Make sure there are no more and no less to be found in the "Grouping
+        column".
+
+        Inputs:
+        1) Features of interest: choose parameters to form the stream plot (stacked histogram)
+        2) Number of bins: binning of the data
+        3) Color chooser: method to pick the colors for the different parameter
+
+    </td>
+    <td>univariate</td>
+    <td>Felix Meyenhofer</td>
+    <td>Python</td>
+</tr>
+<tr>
+    <td width="200">2D scatter plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/scatterplot_2d.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/scatterplot_2d.png" width="300"
+            height="200"/> </a></td>
+    <td>Make a 2D scatter plot form 2 variables.
+
+        Parameter:
+        grouping column: column assotiating each measurement to a particular group.
+        Per default this attribute is empty -> all measurments blong to the same group.
+        x values: values displayed on the x-axis
+        y values: values displayed on the y-axis
+
+    </td>
+    <td>scatter-plots</td>
+    <td>Felix Meyenhofer</td>
+    <td>Python</td>
+</tr>
+<tr>
+    <td width="200">3D scatter plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/scatterplot_3d.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/scatterplot_3d.png" width="300"
+            height="200"/> </a></td>
+    <td>Make a 3D scatter plot form 3 variables.
+
+        Parameter:
+        grouping column: column assotiating each measurement to a particular group.
+        Per default this attribute is empty -> all measurments blong to the same group.
+        x values: values displayed on the x-axis
+        y values: values displayed on the y-axis
+        z values: values displayed ...
+
+    </td>
+    <td>scatter-plots</td>
+    <td>Felix Meyenhofer</td>
+    <td>Python</td>
+</tr>
+<tr>
+    <td width="200">3D PCA scatter plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/pca_scatterplot_3d.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Python/pca_scatterplot_3d.png"
+            width="300" height="200"/> </a></td>
+    <td>Take any number of numerical features, project it into an orthogonal space using
+        principal componant analysis (PCA) and use the first three componants to create a 3D
+        scatter plot.
+
+        Parameter:
+        features of interest: The featuers included into the PCA
+        grouping column: column assotiating each measurement to a particular group.
+        Per default this attribute is empty -> all measurments blong to the same group.
+
+
+    </td>
+    <td>scatter-plots</td>
+    <td>Felix Meyenhofer</td>
+    <td>Python</td>
+</tr>
+<tr>
+    <td width="200">Barplot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/simplebarplot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/simplebarplot.png" width="300"
+            height="200"/> </a></td>
+    <td>Flexible template to create a barplot or barplot grid with optional errorbars
+
+        Parameter:
+        Bar height - One or multiple numerical variables. Each value will result in one bar
+        Error bar checkbox - Draw errorbars?
+        Error bar - Error bar values corresponding to the height values (same number of columns have to be selected)
+        To use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
+        x-axis - Label to put at the x-axis for each bar (mulitple columns can be selected to combine information)
+        2D-grid grouping parameter - Allows to split the dataset into multiple plots by this condition (mulitple columns
+        can be selected to combine information)
+        bar colour - Colour bars by condition (mulitple columns can be selected to combine information)
+        Enter an additional title
+    </td>
+    <td>basic/barplots</td>
+    <td>Antje Niederlein</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Boxplot (with configuration and flow variable option)</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/simpleboxplot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/simpleboxplot.png" width="300"
+            height="200"/> </a></td>
+    <td>A simple box plot with Options:
+        - set the y-axis limits (default: none (=automatic); min AND max values are neccessary, if you want to set
+        limits)
+        - set the magnification factor to be used for axis annotation (default: 1) or set automatically according to
+        number of x-axis factors
+        - set color of histogram or line (default: lightblue; see colors here
+        http://research.stowers-institute.org/efg/R/Color/Chart/)
+        - set outer margins in lines of text (vector of form (bottom, left, top, right) corresponding to command "oma"
+        in R)
+        - to use a flow variable check box and type in variable name using the format: FLOWVAR(variable name)
+
+    </td>
+    <td>basic/boxplots</td>
+    <td>Holger Brandl, Martin Stoeter</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Multi-parameteric parallel boxplot grid</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/multipar-boxplotgrid.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/multipar-boxplotgrid.png" width="300"
+            height="200"/> </a></td>
+    <td>A grid of parallel boxplots, one for each selected assay parameter. The number of actual parallel boxplots is
+        defined by a categorical variable (like a well-treatment)
+
+
+    </td>
+    <td>basic/boxplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Notched Boxplot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/notched-boxplot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/notched-boxplot.png" width="300"
+            height="200"/> </a></td>
+    <td>A boxplot with notches that indicate significant differences of the median between groups in case of equal
+        sample sizes. Refer to the R-documentation or further details.
+
+    </td>
+    <td>basic/boxplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Parallel Boxplot grid</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/lattice-boxplotgrid.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/lattice-boxplotgrid.png" width="300"
+            height="200"/> </a></td>
+    <td>A grid of parallel boxplots.
+
+        Inputs
+        1) A categorial variable which defines the number of parallel boxplots
+        2) Another categorical variable that defines the grouping of observations into the different grids
+        3) Your assay-parameter of interest
+
+    </td>
+    <td>basic/boxplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Factorized density grid</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/factorized_density_plot_grid.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/factorized_density_plot_grid.png"
+            width="300" height="200"/> </a></td>
+    <td>Creates a grid of density plots for selected columns and plots densities for each factor (group).
+
+        1) Select numerical variables. Each variable will result in a subplot.
+        2) Select a column that contains the factors/groups of densities to plot.
+        3) Select color palette for plot.
+        4) Select how to plot the colors (fill densities or lines).
+        5) Select if background should be white.
+        6) If color palette "manual" is used then select colors for each group (in alphabetical order of groups)
+        - see here for colors: http://research.stowers-institute.org/efg/R/Color/Chart/ColorChart.pdf
+
+    </td>
+    <td>basic/histograms</td>
+    <td>Holger Brandl, modified by Martin Stoeter</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Histogram</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/histogram-single-ggplot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/histogram-single-ggplot.png"
+            width="300" height="200"/> </a></td>
+    <td>Displays a histogram (distribution) of a numerical attribute.
+        Allows modification of bins, axis, color, and optional probability density
+
+        Options:
+        - set number of bins: (default: 15)
+        - set the x and y-axis limits (default: none (=automatic); min AND max values are neccessary, if you want to set
+        limits)
+        - y-axis is probability density (default: false (=frequency)
+        - plot density line (default: false)
+        - set color of histogram or line (default: black; see colors here
+        http://research.stowers-institute.org/efg/R/Color/Chart/)
+
+        (TDS internal)
+
+    </td>
+    <td>basic/histograms</td>
+    <td>Holger Brandl, Martin Stoeter</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Histogram grid</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/histogram-grid.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/histogram-grid.png" width="300"
+            height="200"/> </a></td>
+    <td>Creates a grid containing a number densityplots, each for a different feature dimension. Within each plot the
+        densities are factorized according to a chosen grouping factor.
+
+        1) A selection of numerical variables. Each variable will result in a subplot.
+
+    </td>
+    <td>basic/histograms</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Stacked Histogram</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/stacked-histogram.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/stacked-histogram.png" width="300"
+            height="200"/> </a></td>
+    <td>Displays a stacked histogram (distribution) of a numerical attribute.
+        Allows modification of number of bins.
+
+    </td>
+    <td>basic/histograms</td>
+    <td>Holger Brandl, modified by Antje Niederlein</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Association Plot</td>
+    <td></td>
+    <td></td>
+    <td>basic/others</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Cleveland Dot Plot</td>
+    <td></td>
+    <td></td>
+    <td>basic/others</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">2-Factor Barplot</td>
+    <td></td>
+    <td>A barplot of a single attribute which is barplotted after being grouped according to 2 different factors (like
+        barcode and treatment).
+
+    </td>
+    <td>deprecated/basic/barplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">2-Factor Barplot with Errors</td>
+    <td></td>
+    <td>A barplot of a single attribute which is barplotted after being grouped according to 2 different factors.
+
+    </td>
+    <td>deprecated/basic/barplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">3-Factor Barplot</td>
+    <td></td>
+    <td>A barplot of a single attribute which is grouped according to 3 different factors.
+        This will generate a 2d-grid with the levels of the first factor on the x- and the levels of the second factor
+        on the y-axis.
+
+    </td>
+    <td>deprecated/basic/barplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">3-Factor Barplot with Errors</td>
+    <td></td>
+    <td>A barplot of a single attribute which is grouped according to 3 different factors.
+        This will generate a 2d-grid with the levels of the first factor on the x- and the levels of the second factor
+        on the y-axis.
+
+
+    </td>
+    <td>deprecated/basic/barplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Bar Plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/simplebarplot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/simplebarplot.png" width="300"
+            height="200"/> </a></td>
+    <td>Creates a barplot. This can be used to visualize zscores, CVs, etc.
+
+        Inputs:
+        1) A numerical variable. Each observation/well/phenotype will result in one bar
+        2) A factor that is used to label each bar.
+
+    </td>
+    <td>deprecated/basic/barplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Bar Plot Grid</td>
+    <td></td>
+    <td>Creates a grid containing a number of barplots. This can be used to visualize zscores, CVs, etc.
+
+        1) A selection of numerical variables. Each variable will result in a subplot.
+
+    </td>
+    <td>deprecated/basic/barplots</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Histogram (beautified)</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/histogram-single-ggplot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/histogram-single-ggplot.png"
+            width="300" height="200"/> </a></td>
+    <td>Displays a histogram (distribution) of a numerical attribute
+
+    </td>
+    <td>deprecated/basic/histograms</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Histogram (Simple)</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/simple-histogram.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/simple-histogram.png" width="300"
+            height="200"/> </a></td>
+    <td>Displays a histogram (distribution) of a numerical attribute
+
+        Parameter:
+        variable of interest: vector from which the histgram is calculated.
+        lower bound: ... is the lower bound of the x axis, default is minimum value found in the variable of interest.
+        upper bound: ... is the upper bound of the x axis, default is maximum value found in the variable of interest.
+        number of bins: the bin centers are linearly spaced between upper and lower bound.
+
+    </td>
+    <td>deprecated/basic/histograms</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Correlogram</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/correlogram.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/correlogram.png" width="300"
+            height="200"/> </a></td>
+    <td>Produces a graphical display of a correlation matrix, called a correlogram. The cells of the matrix can be
+        shaded or colored to show the correlation value.
+
+        Source: http://addictedtor.free.fr/graphiques/RGraphGallery.php?graph=148
+
+    </td>
+    <td>relations</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Correlogram (colored ellipses)</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/ellipse-correlogram.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/ellipse-correlogram.png" width="300"
+            height="200"/> </a></td>
+    <td>Produces a graphical display of a correlation matrix, called a correlogram. The cells of the matrix can be
+        shaded or colored to show the correlation value.
+
+        Source: http://addictedtor.free.fr/graphiques/RGraphGallery.php?graph=149
+
+    </td>
+    <td>relations</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Correlogram with p-values</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/correlation-scattermatrix+pvalues.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/correlation-scattermatrix+pvalues.png"
+            width="300" height="200"/> </a></td>
+    <td>Visualization of a Correlation Matrix. On top the (absolute) value of the correlation plus the result of the
+        cor.test as stars. On botttom, the bivariate scatterplots, with a fitted line.
+
+        Source: http://addictedtor.free.fr/graphiques/RGraphGallery.php?graph=137
+
+    </td>
+    <td>relations</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">density-scatter-matrix</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/density-scatter-matrix.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/density-scatter-matrix.png" width="300"
+            height="200"/> </a></td>
+    <td>Displays a scatter matrix where the color code reflect the density of points.
+        The densities are log2-scaled.
+
+        Parameter:
+        Grouping column: cathegorical column that associates the observation to a group.
+        Feature space: a set of variables (columns) where each feature is plotted in a
+        scatter plot against all other features.
+
+    </td>
+    <td>relations</td>
+    <td>Felix Meyenhofer</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Grouped scatter-matrix</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/grouped-scatter-matrix.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/grouped-scatter-matrix.png" width="300"
+            height="200"/> </a></td>
+    <td>Diplays a scatter matrix where all the groups found in the grouping column get their own color.
+
+        Parameter:
+        1) Grouping column: select a categorical column that contains the factors/groups.
+        2) Feature space: select numerical variables where each variable is plotted in a scatter plot against all other
+        variables.
+        3) Title: enter a title
+        4) Layout:
+        - Alpha value: define the alpha value of the points. The more data the lower you can set this value.
+        - Select color palette for plot.
+        - Select if background should be white.
+        - If color palette "manual" is used then select colors for each group (in alphabetical order of groups)
+        - see here for colors: http://research.stowers-institute.org/efg/R/Color/Chart/ColorChart.pdf
+    </td>
+    <td>relations</td>
+    <td>Felix Meyenhofer, modified by Martin Stoeter</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Group means parallel-plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/group_means_parallel_plot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/group_means_parallel_plot.png"
+            width="300" height="200"/> </a></td>
+    <td>A parallel plot (aka profile plot) of means of different groups with errors bars. If robust statistics is
+        checked the median and mad will be used instead of mean and sd.
+
+        Inputs
+        1) a grouping variable
+        2) a selection of assay parameters
+
+    </td>
+    <td>screening/profiles</td>
+    <td>Holger Brandl, Antje Niederlein, Martin Stoeter</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">parallel plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/parallel-plot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/parallel-plot.png" width="300"
+            height="200"/> </a></td>
+    <td>A parallel plot of a selection of assay parameters of interest. Additionally the mean of the data set is shown
+        including error-bars.
+        (TDS internal)
+
+        Inputs:
+        1) A collection of assay parameters
+
+    </td>
+    <td>screening/profiles</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">Parallel plot grid by factor</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/parallel-plot-grid-by-factors.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/parallel-plot-grid-by-factors.png"
+            width="300" height="200"/> </a></td>
+    <td>A grid of parallel plots where each plot displays a parameter profile for all data points belonging to the same
+        group. Additionally the mean of the data set is shown including error-bars. If robust statistics is checked the
+        median and mad will be used instead of mean and sd.
+
+        Inputs:
+        1) A categorical variable which superimposes a grouping on your dataset
+        1) A collection of assay parameters
+
+    </td>
+    <td>screening/profiles</td>
+    <td>Holger Brandl, Antje Niederlein, Martin Stoeter</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">QQ-Plot grid</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/qq-plot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/qq-plot.png" width="300" height="200"/>
+    </a></td>
+    <td>Creates a trellis of qq-plots (with respect to normal distribution) which allow to visually determine which
+        parameters follow a normal distribution
+
+    </td>
+    <td>screening/qc</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">screen scatter plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/screenscatter.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/screenscatter.png" width="300"
+            height="200"/> </a></td>
+    <td>This plot is also known as trend- or sequence-plot (cf "High-throughput screening in drug discovery, Hueser,
+        2006, Wiley")
+
+        A scatter plot which displays all wells of the screen. Given a colleciton of readouts
+        this will create grid of subplots with on scatter-plot for each attribute
+
+        (TDS internal)
+
+    </td>
+    <td>screening/qc</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">screen scatter plot grid</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/screenscattergrid.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/R/screenscattergrid.png" width="300"
+            height="200"/> </a></td>
+    <td>This script will create a grid of screen-scatter plots (which are also known as trend- or sequence-plots (cf.
+        "High-throughput screening in drug discovery, Hueser, 2006, Wiley"))
+
+        Input parameters:
+        1) The treatments of interest: Only wells with one of these treatments will show up (differently colored) in the
+        plot
+        2) The assay-parameters of interest: The script will create one subplot in the grid per assay parameter
+
+        (TDS internal)
+
+    </td>
+    <td>screening/qc</td>
+    <td>Holger Brandl</td>
+    <td>R</td>
+</tr>
+<tr>
+    <td width="200">3D histogram</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Matlab/3D-histogram.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Matlab/3D-histogram.png" width="300"
+            height="200"/> </a></td>
+    <td>Generates a 3D histogram from two columns.
+
+    </td>
+    <td>statistics/multivariate</td>
+    <td>Felix Meyenhofer</td>
+    <td>Matlab</td>
+</tr>
+<tr>
+    <td width="200">Paralell Plot</td>
+    <td><a href="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Matlab/parallelcoords-plot.png"><img
+            src="http://idisk-srv1.mpi-cbg.de/knime/scripting-templates_public/Matlab/parallelcoords-plot.png"
+            width="300" height="200"/> </a></td>
+    <td>Generates a paralell plot.
+
+        1) Cathegorical attibute
+        2) Parameter defining the multivariate space
+        3) Standartization (on -> z-score, PCA -> principal componant scores, PACstd, standardized principal componants)
+        4) Qantile plots only the 1-alpha quantiles and the median
+
+    </td>
+    <td>statistics/multivariate</td>
+    <td>Felix Meyenhofer</td>
+    <td>Matlab</td>
+</tr>
+</table>
+</body>
+</html>
