@@ -291,17 +291,16 @@ library(MASS)
 #2.3. calulate
 nc = negCtrls[,featSelection];
 ncCov = cov(na.omit(array(nc)));
-ncMean = mean(nc, na.rm=TRUE);
+ncMean = colMeans(nc, na.rm=TRUE);
 
 #check the determinant of the covariance matrix to prevent error message if determinant is too small
-if(det(ncCov) < .Machine$double.eps) {
-	#if too small take inverse matrix
-	ncCov <- ginv(ncCov)
-	mahaInverted <- TRUE
-	} else {
-	mahaInverted <- FALSE
+if(useInverted == "auto") {
+	if(det(ncCov) < .Machine$double.eps) {
+		#if too small take inverse matrix
+		useInverted = TRUE
 	}
-
+	else useInverted = FALSE
+}
 if(useInverted == "true") {
 	#if too small take inverse matrix
 	ncCov <- ginv(ncCov)
