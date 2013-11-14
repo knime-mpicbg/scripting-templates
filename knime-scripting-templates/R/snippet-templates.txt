@@ -289,31 +289,32 @@ library(MASS)
 #2.2.2 manage RGG to R: set values to default and check values
 
 #2.3. calulate
-nc = negCtrls[,featSelection];
-ncCov = cov(na.omit(array(nc)));
-ncMean = colMeans(nc, na.rm=TRUE);
+nc <- negCtrls[,featSelection]
+ncCov <- cov(na.omit(array(nc)))
+ncMean <- colMeans(nc, na.rm=TRUE)
+outInverted <- useInverted
 
 #check the determinant of the covariance matrix to prevent error message if determinant is too small
 if(useInverted == "auto") {
 	if(det(ncCov) < .Machine$double.eps) {
 		#if too small take inverse matrix
-		useInverted = TRUE
+		useInverted <- "true"
 	}
-	else useInverted = FALSE
+	else useInverted <- "false"
 }
 if(useInverted == "true") {
 	#if too small take inverse matrix
 	ncCov <- ginv(ncCov)
 	mahaInverted <- TRUE
-	} 
+} 
 if(useInverted == "false") {
-	ncCov = cov(na.omit(array(nc)))
+	ncCov <- cov(na.omit(array(nc)))
 	mahaInverted <- FALSE
-	}
+}
 
 # append the distance as additional column
 kIn$mahadist <- mahalanobis(array(kIn[featSelection]), ncMean, ncCov, inverted = mahaInverted);
-kIn$mahadistMode <- useInverted
+kIn$mahadistMode <- outInverted
 
 rOut <- kIn;
 
