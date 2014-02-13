@@ -1,3 +1,60 @@
+########################################################################################
+# name: Get gene info from NCBI
+# author: Martin Stoeter
+# category: bioinformatics
+# preview: 
+
+Gets the gene name, symbol, NewlocusID, CurrentRecord, LastUpdate, locusID, and species from NCBI data base
+
+Output: table from NCBI
+
+NOTE: requires R-library NCBI2R
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+
+<group>
+# 1) select the column for gene IDs
+
+geneIDcolumn = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Gene ID"/>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1 load libraries
+library(NCBI2R)
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set values to default and check values
+##geneIDs <- kIn[which(!is.na(kIn[,geneIDcolumn])),geneIDcolumn]
+geneIDs <- as.numeric(levels(factor(kIn[,geneIDcolumn])))   ##removes NA, groups same geneIDs, converts to number (here, still could be a double!)
+
+#2.3. calulate
+
+ncbiTable <- GetGeneNames(geneIDs)
+rOut <- ncbiTable
+
+]]>
+
+</rgg>
 #######################################################################################
 # name: Calculate percent responders (2:1, for ArrayScan cell data)
 # author: Martin Stoeter
