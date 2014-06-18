@@ -1071,6 +1071,7 @@ rOut <- pearsonResultTable
 Creates a table with a single column that contains the selected column headers.
 - select or type name of column for column headers
 - preview shows what the snippet is doing instead of using KNIME nodes
+- use check box to create two more columns with additional tags (for looping barplot)
 
 ######
 
@@ -1091,10 +1092,18 @@ Creates a table with a single column that contains the selected column headers.
 #1.0 Parameter selection
 <group>
 # 1) select the columns
-featSelection = match(c(<panellistbox label="Column selection" items="$$$PARNAMES$$$" visible-row-count="6" span="full"/>), names(kIn));
+columnHeaders = c(<panellistbox label="Column selection" items="$$$PARNAMES$$$" visible-row-count="6" span="full"/>)
 
 # 2) select column name
-<textfield label="type column header" var="columnHeader" data-type="text" default-value= "column header" size="10" span="full"/>
+<textfield label="name of column headers" var="columnHeaderName" data-type="text" default-value= "parameter name" size="10" span="full"/>
+
+# 3) make columns for barplot looping
+<gaprow height="2"/>
+<separator label="more options: barplot looping columns / adding tags to column headers" span="full"/>
+<checkbox label="make barplot looping columns?" var="makeTagColumns" selected="false"/>
+<vector label="tags for the two columns" var="tagVector" size="2" default-value=" (Mean), (Standard deviation)" vector-type="character"/>
+<vector label="column names of the two columns" var="tagNameVector" size="2" default-value="mean,sd" vector-type="character"/>
+
 </group>
 
 <![CDATA[
@@ -1106,12 +1115,16 @@ featSelection = match(c(<panellistbox label="Column selection" items="$$$PARNAME
 #2.2.1 manage RGG to R: define as numbers
 
 #2.2.2 manage RGG to R: set values to default and check values
-if (is.na(columnHeader)) 	columnHeader <- "column header"	  #default
+if (is.na(columnHeaderName)) columnHeaderName <- "column header"	  #default
 
-#2.3. calulate
-rOut <- as.data.frame(c(names(kIn)[featSelection]));
-names(rOut) <- columnHeader;
-
+#2.3. calculate
+if (makeTagColumns) {
+	rOut <- data.frame(columnHeaders, paste(columnHeaders, tagVector[1], sep=""), paste(columnHeaders, tagVector[2], sep=""))
+	names(rOut) <- c(columnHeaderName, tagNameVector)
+	} else {
+	rOut <- data.frame(columnHeaders)
+	names(rOut) <- c(columnHeaderName)
+	}
 ]]>
 
 </rgg>
@@ -1322,7 +1335,7 @@ f) system information (Sys.info())
 #1.0 Parameter selection
 <group>
 # 1.1 select type of transformation
-getInfo = <combobox items="installed_packages,libraries,base_packages,R_version,other_packages,system_info" label="Power transformation"/>
+getInfo = <combobox items="installed_packages,libraries,base_packages,R_version,other_packages,system_info" label="Select info"/>
 
 </group>
 
@@ -1331,13 +1344,6 @@ getInfo = <combobox items="installed_packages,libraries,base_packages,R_version,
 #2.0 R code
 rOut <- switch(getInfo,
 	installed_packages = as.data.frame(installed.packages()), libraries = as.data.frame(library()[2]), base_packages = as.data.frame(sessionInfo()["basePkgs"]), R_version = as.data.frame(sessionInfo()[1]), other_packages = as.data.frame(names(sessionInfo()["otherPkgs"][[1]])), system_info = as.data.frame(Sys.info()))
-
-#rOut <- as.data.frame(installed.packages())
-#rOut <- as.data.frame(library()[2])
-#rOut <- as.data.frame(sessionInfo()["basePkgs"])
-#rOut <- as.data.frame(sessionInfo()[1])
-#rOut <- as.data.frame(names(sessionInfo()["otherPkgs"][[1]]))
-#rOut <- as.data.frame(Sys.info())
 
 ]]>
 </rgg>
@@ -1352,3 +1358,110 @@ Creates a table with a single measurement column and several id columns.
 
 library(reshape)
 rOut <- melt(kIn)
+########################################################################################
+# name: Convert numbers to defined text/string
+# author: Antje Niederlein, Martin Stoeter
+# category: utilities
+# preview: 
+
+Converts selected column to a specified number format
+- select column to convert or define flow variable using the format: FLOWVAR(variable name)
+- define digits before and after digit point
+- if minus is checked and negative values are present, an additional digit will be added to make positive and negative values the same length (for sorting good!)
+- if automatic is checked, then number of digits before and after will be calculated from the data 
+- example: [3,2,minus=true]: 5.5 -> 0005.50, -012.125 -> -012.13; [2,3,minus=false] -5.0 -> -05.000, 1234.5678 -> 1234.5678
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+<group>
+
+# 1) select the columns
+<hbox>
+columnHeader = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Selection column" />
+<checkbox label="use flow variable" var="useFlowVar" selected="false" />
+<textfield label="flow variable:" var="flowVariableName" data-type="text" default-value= "" size="10" />
+</hbox>
+
+# 2) select the format
+<hbox>
+<vector label="number of digits before/after decimal point" var="digitVector" size="2" default-value="3,2" vector-type="character"/>
+<checkbox label="handle minus as digit" var="minusDigits" selected="false"/>
+<checkbox label="automatic number of digits" var="autoNumberDigits" selected="false"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+
+#2.1 load libraries
+
+#2.2.1 manage RGG to R: define as numbers
+digitVector <- as.numeric(digitVector)
+if (useFlowVar && !is.na(flowVariableName)) {
+    	columnHeader <- flowVariableName
+	}
+
+#2.2.2 manage RGG to R: set values to default and check values
+
+#2.3. calculate
+numVec <- kIn[,columnHeader]
+
+sortableNumberString <- function(x, minus = FALSE, leadingWidth = 1, decimalWidth = 2) {
+  decimal <- FALSE
+  if(decimalWidth > 0) decimal <- TRUE
+  
+  width <- leadingWidth + decimalWidth
+  if(decimal) width <- width + 1
+  if(minus) width <- width + 1
+  
+  outChar <- ""
+  if(decimal) {
+    if(minus) outChar <- formatC(x, format = "f", digits = decimalWidth, width = width, flag = "00")
+    else outChar <- formatC(x, format = "f", digits = decimalWidth, width = width, flag = "0")
+  }
+  else {
+    if(minus) outChar <- formatC(x, format = "d", width = width, flag = "00")
+    else outChar <- formatC(x, format = "d", width = width, flag = "0")
+  }
+  outChar
+}
+
+lWidth = 0
+dWidth = 0
+minus <- FALSE
+
+if(minusDigits && min(numVec) < 0) minus <- TRUE
+if(autoNumberDigits) {
+	lWidth <- nchar(as.character(floor(max(abs(numVec)))))
+	splitDec <- strsplit(as.character(numVec),".", fixed = TRUE)
+	decPart <- sapply(splitDec[sapply(splitDec, length) > 1], "[[", 2)
+	dWidth <- max(nchar(decPart))
+	} else {
+	lWidth = digitVector[1]
+	dWidth = digitVector[2]
+	}
+
+charVec <- sapply(numVec, sortableNumberString, minus, lWidth, dWidth)
+kIn[,columnHeader] <- charVec   
+#sort(charVec)
+rOut <- kIn
+
+]]>
+
+</rgg>
