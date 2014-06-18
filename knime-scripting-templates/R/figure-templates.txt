@@ -2983,3 +2983,181 @@ for(factor in factors){
 
 ]]>
 </rgg>
+########################################################################################
+# name: Factorized histogram/density plot grid, KNIME colors 
+# author: Holger Brandl, modified by Martin Stoeter
+# category: basic/histograms
+# preview: factorized_density_plot_grid.png
+
+Creates a grid of density plots for selected columns and plots densities for each factor (group).
+
+1) Select numerical variables. Each variable will result in a subplot. Multiple parameters are plotted as grid of subplots. 
+ - To use a flow variable check box and type in variable name using the format: FLOWVAR(variable name) (doesn't work like this for grid of subplots)
+2) Select a column that contains the factors/groups of densities to plot.
+
+Options for visualization:
+a) how to plot the colors (fill densities or lines).
+b) color palette the is used (KNIME colors: if colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories)
+c) Select if background should be white.
+d) optional title and whether parameter name should be plotted in title 
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+#1.0 Parameter selection
+
+<group>
+
+# a) Define your numerical attribute of interest
+params = c(<panellistbox label="Numerical attributes" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+<hbox>
+<checkbox  label="use flow variable" var="useFlowVar" selected="false"/>
+<textfield label="flow variable:" var="flowVariable" data-type="text" default-value="" size="10"/>
+</hbox>
+
+<gaprow height="1"/>
+
+# b) Define the grouping factor
+factorName = c(<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="treatment" label="Factor"/>)
+
+<gaprow height="1"/>
+
+# c) Options for visualization
+<separator label="more layout options" span="full"/>
+<gaprow height="1"/>
+
+
+# d) Define the colour of fill or line
+<hbox>
+<checkbox label="Plot lines instead of fill densities" var="plotLineColour" selected="false"/>
+<checkbox label="Plot histogram" var="plotHistogram" selected="false"/>
+</hbox>
+
+# c) Define the colour of fill or line
+<hbox>
+<checkbox label="White background?" var="setBkgWhite" selected="false"/>
+colorPalette = <combobox items="standard,clarity,Set1,Set2,Set3,Set4,KNIME colors" label="Color palette:"/>
+
+legendPosition = <combobox items="right,left,bottom,top,none" label="Legend position:"/>
+
+# e) Define the colour of fill or line
+
+</hbox>
+
+# e) set title
+<hbox>
+<textfield label="Title of plot:" var="title" data-type="text" default-value= "" size="1"/>
+<checkbox label="Join parameter name with title?" var="useJoinParameterToTitle" selected="false"/>
+</hbox>
+
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+alphaValue = 0.4 
+numberOfBins <- 30
+
+#2.1.1 load libaries
+library(ggplot2)
+library(grid)
+
+#2.1.2 Define the data
+#Define the (factor)
+factorIndex <- which(names(kIn) %in% factorName)
+factors <- levels(factor(kIn[, factorName]))
+if (useFlowVar) params <- flowVariable
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(title)) title <- NULL
+#check if color model is joined to data table
+if (colorPalette == "KNIME colors") {
+	if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) colorPalette <- "standard"
+	} 
+
+#2.3. calulate
+if (colorPalette == "KNIME colors") {
+	#generate color table from KNIME colors
+	colorTable <- lapply(factors, FUN = function(x) {
+		subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)[1,]
+		})
+	names(colorTable) <- factors
+	colorTable <- do.call("rbind", colorTable)
+	factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, names = NULL, max =  255) 
+	} else {
+	factorColors <- colors()[c(185,121,150,100,48,490,98, round(runif(50,min=1, max = 600)))] #default definition of colors	
+	}
+
+#reshape table and column names to make it work with ggplot(aes_string(...))
+params <- which(names(kIn) %in% params)
+plotData <- kIn
+plotData[,factorIndex] <- as.character(plotData[, factorIndex])  #make factor column String in case it is integer!
+origNames <- names(kIn)
+
+#new ggplot compatible column names
+names(plotData) <- paste("p", as.character(1:length(names(plotData))), sep ='')
+factorName <- names(plotData)[factorIndex]
+
+#2.4.1 layout plot
+numGridRows = ifelse(length(params) > 1, 2, 1)
+numGridCols = ceiling(length(params) / numGridRows)
+
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(numGridRows, numGridCols)))
+vplayout<-function(x,y) viewport(layout.pos.row = x, layout.pos.col=y)
+
+xAxisRange <- extendrange(plotData[,params[1]], r = range(plotData[,params[1]], na.rm = TRUE, finite = TRUE), f=0.0)
+
+#2.4.2 plot data
+# iterate over all parameters and create plots for all of them
+lapply(params, FUN = function (param) {
+	m <- ggplot(plotData, aes_string(x = names(plotData)[param], color = names(plotData)[factorIndex], fill = names(plotData)[factorIndex]))
+	#set background on/off
+	if (setBkgWhite) m <- m + theme_bw()  
+		
+	if (plotHistogram){
+		m <- m + geom_bar(position=position_dodge(), binwidth = (xAxisRange[2] - xAxisRange[1])/numberOfBins, color = NA)  
+		}
+	if (plotLineColour) {	#plot colored lines	
+		m <- m + geom_density(fill = NA, alpha = alphaValue)
+		} else {	# or plot colored densities
+		m <- m + geom_density(alpha = alphaValue) 
+		}
+
+	#set colors
+	switch(which(colorPalette == c('standard','clarity','KNIME colors','Set1','Set2','Set3','Set4')), {
+		}, { #standard
+		if(length(factors) < 9) m <- m + scale_fill_brewer("clarity")}, { #clarity
+		m <- m + scale_fill_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)}, { #Knime colors
+		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
+		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
+		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
+		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set4")}    #Set4
+		)
+
+	#set the title to the unmodified attribute-name
+	if (useJoinParameterToTitle) title <- paste(title, origNames[param])
+	m <- m + xlab(origNames[param]) + labs(fill = origNames[factorIndex], color = origNames[factorIndex]) + opts(title = title) + theme(legend.position = legendPosition)	
+	plotNum <- which(params == param)
+	curRow <- ceiling(plotNum/numGridCols)
+	curCol <- ceiling(plotNum - numGridCols * (curRow-1))
+
+	print(m, vp=vplayout(curRow, curCol))
+})
+
+]]>
+</rgg>
