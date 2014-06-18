@@ -175,7 +175,7 @@ Enter an additional title
 </rgg>
 ########################################################################################
 # name: Barplot with plot options
-# author: Antje Niederlein, modified Martin Stšter
+# author: Antje Niederlein, modified Martin Stoeter
 # category: basic/barplots
 # preview: simplebarplot.png
 
@@ -335,7 +335,6 @@ Layout Options:
 	if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
 	if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
 
-
 	#2.3. calulate
 	# create rowID column if needed
 	if("-ROW ID-" %in% xFactorCol) kIn[,"-ROW ID-"] <- rownames(kIn)
@@ -353,13 +352,21 @@ Layout Options:
 		colourCol <- paste(colourBy, collapse = " + ")
 		kIn[,colourCol] <- apply(kIn[,colourBy], 1, paste, collapse = " + ")
 	}
-	if (is.na(legendTitle)) legendTitle <- colourCol		#default if no title is given
 
 	# extract necessary data and reshape it
 	meanData <- kIn[,c(barHeight,xFactorCol, facetCol, colourCol)]
 
 	meanDataLong <- melt(meanData, measure.vars = barHeight, variable_name = "- PARAMETERS -")
 	names(meanDataLong)[which(names(meanDataLong) == "value")] <- "height"
+
+
+	#check if values/data is there, to prevent R error message
+	if(length(which(!is.na(meanDataLong$height))) == 0){
+		meanDataLong$height[1] <- 0
+		plotErrorMessage <- TRUE
+		} else {
+		plotErrorMessage <-FALSE
+	}
 
 	# add errorbar data
 	if(plot.Errorbars) {
@@ -374,6 +381,8 @@ Layout Options:
 	if(facetFlag) facetCol <- "- PARAMETERS -"
 	if(colourFlag) colourCol <- "- PARAMETERS -"
 
+	if(is.na(legendTitle)) legendTitle <- colourCol		#default if no title is given
+
 	if(!is.null(facetBy)) { facetTitle <- facetCol; meanDataLong$template.facet.column <- meanDataLong[,facetCol]; facetCol <- "template.facet.column" }
 
 	#2.4.1 plot
@@ -386,15 +395,6 @@ Layout Options:
 		} else {
 		p <- p + geom_bar(stat = "identity", position = my.dodge, colour = "black", fill = "grey")
 		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high), position = my.dodge, width = 0.35) 
-	}
-
-	p <- p + scale_x_discrete(name = xFactorCol)
-	if(!is.null(colourCol)) {  #legend title and rotation
-		if(rotateLegend) {
-			p <- p + scale_fill_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position="bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
-			} else {
-			p <- p + scale_fill_discrete(name = legendTitle)
-		}
 	}
 
 	if(!is.null(facetBy)) {
@@ -418,17 +418,26 @@ Layout Options:
 	p <- p + opts(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
 
 	#axis label options
+	p <- p + scale_x_discrete(name = xFactorCol)
 	p <- p + opts(axis.title.x = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
 	p <- p + opts(axis.text.x = theme_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = theme_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
 	p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 
 	#legend
+	if(!is.null(colourCol)) {  #legend title and rotation
+		if(rotateLegend) {
+			p <- p + scale_fill_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position="bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+			} else {
+			p <- p + scale_fill_discrete(name = legendTitle)
+		}
+	}
 	p <- p + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
 	if (useLegendCoordinate) {
 		p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
 		} else {
 		p <- p + theme(legend.position = legendPosition) 
 	}
+	if(plotErrorMessage) p <- p + opts(title = "ERROR: NO DATA!!!")
 	print(p)
 
     ]]>
@@ -447,15 +456,13 @@ A simple box plot with Options:
 - to use a flow variable check box and type in variable name using the format: FLOWVAR(variable name)
 
 ######
-
 <rgg>
-
 
 <!--1. Title and short description -->
 
 <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <gaprow height="1"/>
 
 <!-- 2. Configuration-->
@@ -525,7 +532,12 @@ par(oma=margins)
 
 #4.2 plot data
 
-boxplot(numAttribute ~ factor, main = plotTitle, col = color, ylim = yScale, ylab = numAttributeName, cex.axis = axisAnnotationScale, las = ifelse(useVerticalLabels, 2, 1));
+if(length(kIn[which(!is.na(numAttribute)),1]) > 0) {#check if data is there	
+	boxplot(numAttribute ~ factor, main =plotTitle, col = color, ylim = yScale, ylab = numAttributeName, cex.axis = axisAnnotationScale, las = ifelse(useVerticalLabels, 2, 1));
+	} else {
+	plot(0,0, main = plotTitle, col = color, ylab = numAttributeName, las = ifelse(useVerticalLabels, 2, 1))	
+	text(0,0,"no data", col = "black")
+	}
 
 ]]>
 
@@ -729,7 +741,6 @@ print(m, newpage=FALSE, pretty=FALSE)
 
 ]]>
 </rgg>
-
 ########################################################################################
 # name: Factorized density grid, KNIME colors
 # author: Holger Brandl, modified by Martin Stoeter
@@ -789,7 +800,7 @@ factorName = c(<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="treatment" 
 <checkbox label="Plot lines instead of fill densities" var="plotLineColour" selected="false"/>
 
 # c) Define the colour of fill or line
-colorPalette = <combobox items="Set1,Set2,Set3,Set4,clarity,standard,KNIME colors" label="Color palette:"/>
+colorPalette = <combobox items="standard,clarity,Set1,Set2,Set3,Set4,KNIME colors" label="Color palette:"/>
 
 # e) Define the colour of fill or line
 <checkbox label="White background?" var="setBkgWhite" selected="false"/>
@@ -842,6 +853,7 @@ if (colorPalette == "KNIME colors") {
 #reshape table and column names to make it work with ggplot(aes_string(...))
 params <- which(names(kIn) %in% params)
 plotData <- kIn
+plotData[,factorIndex] <- as.character(plotData[, factorIndex])  #make factor column String in case it is integer!
 origNames <- names(kIn)
 
 #new ggplot compatible column names
@@ -866,26 +878,26 @@ lapply(params, FUN = function (param) {
 		#plot colored lines
 		m <- ggplot(plotData, aes_string(x = names(plotData)[param], colour = names(plotData)[factorIndex])) + geom_density()
 		switch(which(colorPalette == c('standard','clarity','KNIME colors','Set1','Set2','Set3','Set4')), {
-		}, { #standard
-		if(length(factors) < 9) m <- m + scale_colour_brewer("clarity")}, { #clarity
-		m <- m + scale_colour_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)}, { #Knime colors
-		if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
-		if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
-		if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
-		if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set4")}    #Set4
-		)
+			}, { #standard
+			if(length(factors) < 9) m <- m + scale_colour_brewer("clarity")}, { #clarity
+			m <- m + scale_colour_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)}, { #Knime colors
+			if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
+			if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
+			if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
+			if(length(factors) < 9) m <- m + scale_colour_brewer(name = origNames[factorIndex], palette = "Set4")}    #Set4
+			)
 		} else {
 		#plot colored densities
 		m <- ggplot(plotData, aes_string(x= names(plotData)[param], fill= names(plotData)[factorIndex])) +  geom_density(alpha= 0.4)
 		switch(which(colorPalette == c('standard','clarity','KNIME colors','Set1','Set2','Set3','Set4')), {
-		}, { #standard
-		if(length(factors) < 9) m <- m + scale_fill_brewer("clarity")}, { #clarity
-		m <- m + scale_fill_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)}, { #Knime colors
-		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
-		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
-		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
-		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set4")}    #Set4
-		)
+			}, { #standard
+			if(length(factors) < 9) m <- m + scale_fill_brewer("clarity")}, { #clarity
+			m <- m + scale_fill_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)}, { #Knime colors
+			if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
+			if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
+			if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
+			if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set4")}    #Set4
+			)
 		}
 
 	#set the title to the unmodified attribute-name
@@ -2547,6 +2559,255 @@ print(p)
 
 </rgg>
 ########################################################################################
+# name: Group means parallel-plot with layout options
+# author: Holger Brandl, Antje Niederlein, Martin Stoeter              
+# category: screening/profiles
+# preview: group_means_parallel_plot.png
+BETA VERSION: NEED A LOT OF TESTS
+
+A parallel plot (aka profile plot) of means of different groups with errors bars. If robust statistics is checked the median and mad will be used instead of mean and sd. The y-axis limits are calculated from the input data, optional you can set the limits manually or calculate them from the plot data using min and max plotted valued (auto scale). Horizontal lines can be plotted optionally. 
+
+Inputs
+1) a grouping variable
+2) a selection of assay parameters
+3) option: use robust statistics
+
+Layout Options: 
+ - select background/theme and set general font size in plot (default = 14)
+ - set size and alpha value (transparency) of lines and error bars (default = [0.5,0.1] and [0.5,0.5])
+ - give plot title and title factor (default = 1.2)
+ - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
+ - y-axis title, axis title size factor (default = 1.0)
+ - adjust y-axis scale (enter min + max)
+ - give legend title, adjust position (fixed position outside diagram or free(range:0-1): [0.1,0.9] = top-left) and legend title/text size factor(default = 0.8)   
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+# 1. Parameter selection
+#R debugging: delete all variables except kIn
+#rm(list=ls(all=TRUE)[which(ls(all=TRUE) != "kIn")])
+
+<group>
+
+# a) define your grouping variable
+catVar = <combobox items="$$$STR_ATTRIBUTES$$$" label="Categorical variable of interest"/>
+
+# b) define your parameters of interest
+parameters =  c(<panellistbox label="Assay parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+# c) use robust statistics?
+<checkbox label="robust statistics" var="robust" selected="false"/>
+
+#diagram options
+<gaprow height="1"/>
+<separator label="Layout Options General Plot" span="full"/>
+<hbox>
+pointLineSize = as.numeric(c(<vector label="Size [lines/error]:" size="2" default-value="0.5,0.1"/>))
+alphaValue = as.numeric(c(<vector label="Alpha [lines/error]:" size="2" default-value="0.5,0.5"/>))
+</hbox>
+
+<hbox>
+hLines = as.numeric(c(<vector label="Add horizontal lines at" size="2" vector-type="character"/>))
+</hbox>
+
+<hbox>
+plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
+plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+</hbox>
+
+<separator label="Layout Options Title" span="full"/>
+<hbox>
+<textfield label="plot title:" var="plotTitle" data-type="text" default-value= "" size="5"/>
+plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default-value="1.2"/>))
+</hbox>
+
+<separator label="Layout Options Axes" span="full"/>	
+<hbox>
+xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "90,45,0"/>))
+axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
+</hbox>
+	
+<hbox>
+<textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
+axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
+</hbox>
+
+<hbox>
+yAxisScale = as.numeric(c(<vector label="y-axis scale [min,max]:" size="2" default-value=","/>))
+<checkbox label="Auto scale y-axis (min to max)" var="yAxisAutoScale" selected="false"/>
+</hbox>
+
+<separator label="Layout Options Legend" span="full"/>
+<hbox>
+legendPosition = <combobox label = "legend position:" items = "right,top,botton,left,none"/>
+useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
+legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
+</hbox>
+
+<hbox>
+legendTitle = <textfield label="legend title:" data-type="text" default-value="" size="3"/>
+legendTextSizeFactor = as.numeric(c(<vector label="text size [title,text]:" size="2" default-value="0.8,0.8"/>))
+rotateLegend = <checkbox label="rotate 90deg." selected="f"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2. r-code
+
+#2.1 load libaries
+library(ggplot2)
+library(reshape)
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(pointLineSize[1]) | (pointLineSize[1] < 0) | (pointLineSize[1] > 40)) pointLineSize[1] <- 0.5
+if (is.na(pointLineSize[2]) | (pointLineSize[2] < 0) | (pointLineSize[2] > 10)) pointLineSize[2] <- 0.1
+if (is.na(alphaValue[1]) | (alphaValue[1] < 0) | (alphaValue[1] > 1)) pointLineSize[1] <- 0.5
+if (is.na(alphaValue[2]) | (alphaValue[2] < 0) | (alphaValue[2] > 1)) pointLineSize[2] <- 0.5
+if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
+if (is.na(plotTextSize[1]) | (plotTextSize[1] < 0) | (plotTextSize[1] > 40)) plotTextSize[1] <- 14
+if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
+if (is.na(yAxisLabel))	yAxisLabel <- NULL
+if (is.na(axisTextSizeFactor[1]) | (axisTextSizeFactor[1] < 0) | (axisTextSizeFactor[1] > 5)) axisTextSizeFactor[1] <- 0.8
+if (is.na(axisTextSizeFactor[2]) | (axisTextSizeFactor[2] < 0) | (axisTextSizeFactor[2] > 5)) axisTextSizeFactor[2] <- 0.8
+if (is.na(axisTitleSizeFactor[1]) | (axisTitleSizeFactor[1] < 0) | (axisTitleSizeFactor[1] > 5)) axisTitleSizeFactor[1] <- 1
+if (is.na(axisTitleSizeFactor[2]) | (axisTitleSizeFactor[2] < 0) | (axisTitleSizeFactor[2] > 5)) axisTitleSizeFactor[2] <- 1
+if (is.na(yAxisScale[1]) | is.na(yAxisScale[2]))	yAxisScale <- NULL
+if (is.na(legendTitle)) legendTitle <- catVar	#default if no title is given
+if (is.na(legendCoordinate[1]) | is.na(legendCoordinate[2]) | (legendCoordinate[1] < 0) | (legendCoordinate[1] > 1) | (legendCoordinate[2] < 0) | (legendCoordinate[2] > 1)) useLegendCoordinate <- FALSE
+if (is.na(legendTextSizeFactor[1]) | (legendTextSizeFactor[1] < 0) | (legendTextSizeFactor[1] > 5)) legendTextSizeFactor[1] <- 0.8
+if (is.na(legendTextSizeFactor[2]) | (legendTextSizeFactor[2] < 0) | (legendTextSizeFactor[2] > 5)) legendTextSizeFactor[2] <- 0.8
+if (xAngle == 0 ) xAxisAjust <- c(0.5,1.0) #xAxisAjust = c(hjust,vjust)
+if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
+if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
+
+#2.3. calulate
+#define functions/methods to calculate central values and error bars
+if (robust == FALSE) {
+	#none robust statistics
+	parameterLabel = "Parameters (aggregation: mean & sd)"
+	centralValue <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	return(x.mean)
+		}
+	errorUpper <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	x.sd <- sd(x, na.rm = TRUE)
+        	return(x.mean + x.sd)
+		}
+	errorLower <- function(x){
+        	x.mean <- mean(x, na.rm = TRUE)
+        	x.sd <- sd(x, na.rm = TRUE)
+        	return(x.mean - x.sd)
+		}
+	} else {
+	#robust statistics
+	parameterLabel = "Parameters (aggregation: median & mad)"
+	centralValue <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	return(x.median)
+		}
+	errorUpper <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	x.mad <- mad(x, na.rm = TRUE)
+        	return(x.median + x.mad)
+		}
+	errorLower <- function(x){
+        	x.median <- median(x, na.rm = TRUE)
+        	x.mad <- mad(x, na.rm = TRUE)
+        	return(x.median - x.mad)
+		}
+	}
+
+classesOfInterest <- levels(factor(kIn[,catVar]))
+
+# create a subset ony containing entries with classes of interest and parameters of interest
+subData <- subset(kIn, get(catVar) %in% classesOfInterest)
+subData <- subData[, c(catVar,parameters)]
+# set rowID as extra column for reshaping
+#subData$id <- rownames(subData)
+
+#calculate auto y-axis scale
+if (yAxisAutoScale) {
+	minMax <- list()
+	for (i in 1:length(classesOfInterest)) {
+		minMax[[i]] <- c(min(apply(subset(subData, subData[,catVar] == classesOfInterest[i], select = parameters), 2, errorLower)), max(apply(subset(subData, subData[,catVar] == classesOfInterest[i], select = parameters), 2, errorUpper)))
+		}
+	minMax <- do.call("rbind", minMax)
+	yAxisScale <- c(min(minMax), max(minMax))
+	#increase the plot area
+	yAxisScale <- c(yAxisScale[1] - range(yAxisScale[1], yAxisScale[2]) / 20, yAxisScale[2] + range(yAxisScale[1], yAxisScale[2]) / 20)
+	}
+
+# reshape data for ggplot
+plotData <- melt(subData, id = catVar)
+
+#2.4.1 plot data
+p <- ggplot(plotData, aes(x = variable, y = value, colour = get(catVar), group = get(catVar)))
+
+#2.4.2 layout plot
+#general
+if(plotTheme == "grey"){
+	p <- p + theme_grey(base_size=plotTextSize[1])
+	} else {
+	p <- p + theme_bw(base_size=plotTextSize[1])
+p <- p + geom_line(aes(colour = factor(get(catVar)), group = get(catVar)), size = pointLineSize[1], alpha = alphaValue[1])}
+p <- p + coord_cartesian(ylim = yAxisScale)
+
+#error bars and horizontal lines
+p <- p + stat_summary(fun.y = centralValue, geom = "line") 
+p <- p + stat_summary(fun.ymax = errorUpper, fun.ymin = errorLower, geom = "errorbar", width = pointLineSize[2], alpha = alphaValue[2])
+if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
+if (!is.na(hLines[2])) p <- p + geom_hline(yintercept = hLines[2])
+
+#title options
+p <- p + opts(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
+
+#axis label options
+#p <- p + scale_x_discrete(name = xFactorCol)
+p <- p + labs(x = parameterLabel, y = yAxisLabel, colour = catVar)
+p <- p + opts(axis.title.x = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
+p <- p + opts(axis.text.x = theme_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = theme_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
+
+#colorPaletteVector <- c("red", "blue", "darkgreen", "orange")
+#p <- p + scale_colour_manual(values = colorPaletteVector)
+
+#legend
+if(rotateLegend) {
+p <- p + scale_color_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position="bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+	} else {
+	p <- p + scale_color_discrete(name = legendTitle)
+	}
+p <- p + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+if (useLegendCoordinate) {
+	p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
+	} else {
+	p <- p + theme(legend.position = legendPosition) 
+	}
+
+print(p)
+
+]]>
+
+</rgg>
+########################################################################################
 # name: Parallel plot grid by factor
 # author: Holger Brandl, Antje Niederlein, Martin Stoeter
 # category: screening/profiles
@@ -2984,7 +3245,7 @@ for(factor in factors){
 ]]>
 </rgg>
 ########################################################################################
-# name: Factorized histogram/density plot grid, KNIME colors 
+# name: Factorized histogram/density plot grid, KNIME colors
 # author: Holger Brandl, modified by Martin Stoeter
 # category: basic/histograms
 # preview: factorized_density_plot_grid.png
@@ -2996,8 +3257,9 @@ Creates a grid of density plots for selected columns and plots densities for eac
 2) Select a column that contains the factors/groups of densities to plot.
 
 Options for visualization:
-a) how to plot the colors (fill densities or lines).
-b) color palette the is used (KNIME colors: if colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories)
+a) how to plot the data (filled densities, line densities and/or histogram).
+b) adjust transparency for filled and line thickness for line densities, adjust number of bins
+c) color palette that is used (KNIME colors: if colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories)
 c) Select if background should be white.
 d) optional title and whether parameter name should be plotted in title 
 ######
@@ -3037,22 +3299,25 @@ factorName = c(<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="treatment" 
 <separator label="more layout options" span="full"/>
 <gaprow height="1"/>
 
-
 # d) Define the colour of fill or line
 <hbox>
-<checkbox label="Plot lines instead of fill densities" var="plotLineColour" selected="false"/>
+<checkbox label="Plot filled densities" var="plotFillDensity" selected="true"/>
+<checkbox label="Plot lines densities" var="plotLineDensity" selected="false"/>
 <checkbox label="Plot histogram" var="plotHistogram" selected="false"/>
 </hbox>
 
-# c) Define the colour of fill or line
+# e) Define the transparency, line and bins
+<hbox>
+<textfield label="Alpha value (fill color):" var="alphaValue" data-type="numeric" default-value= "0.4" size="1"/>
+<textfield label="Line thickness (line size):" var="lineSize" data-type="numeric" default-value= "0.5" size="1"/>
+<textfield label="Number of bins (histogram):" var="numberOfBins" data-type="numeric" default-value= "30" size="1"/>
+</hbox>
+
+# f) Define the bkg, colour and legend
 <hbox>
 <checkbox label="White background?" var="setBkgWhite" selected="false"/>
-colorPalette = <combobox items="standard,clarity,Set1,Set2,Set3,Set4,KNIME colors" label="Color palette:"/>
-
+colorPalette = <combobox items="standard,Set1,Set2,Set3,Set4,clarity,KNIME colors" label="Color palette:"/>
 legendPosition = <combobox items="right,left,bottom,top,none" label="Legend position:"/>
-
-# e) Define the colour of fill or line
-
 </hbox>
 
 # e) set title
@@ -3061,14 +3326,11 @@ legendPosition = <combobox items="right,left,bottom,top,none" label="Legend posi
 <checkbox label="Join parameter name with title?" var="useJoinParameterToTitle" selected="false"/>
 </hbox>
 
-
 </group>
 
 <![CDATA[
 
 #2.0 R code
-alphaValue = 0.4 
-numberOfBins <- 30
 
 #2.1.1 load libaries
 library(ggplot2)
@@ -3120,7 +3382,7 @@ grid.newpage()
 pushViewport(viewport(layout=grid.layout(numGridRows, numGridCols)))
 vplayout<-function(x,y) viewport(layout.pos.row = x, layout.pos.col=y)
 
-xAxisRange <- extendrange(plotData[,params[1]], r = range(plotData[,params[1]], na.rm = TRUE, finite = TRUE), f=0.0)
+if (!plotLineDensity && !plotFillDensity && !plotHistogram) plotFillDensity <-TRUE #default if nothing is checked
 
 #2.4.2 plot data
 # iterate over all parameters and create plots for all of them
@@ -3129,24 +3391,28 @@ lapply(params, FUN = function (param) {
 	#set background on/off
 	if (setBkgWhite) m <- m + theme_bw()  
 		
-	if (plotHistogram){
-		m <- m + geom_bar(position=position_dodge(), binwidth = (xAxisRange[2] - xAxisRange[1])/numberOfBins, color = NA)  
+	if (plotHistogram){   #plot histogram 
+		xAxisRange <- extendrange(plotData[,param], r = range(plotData[,param], na.rm = TRUE, finite = TRUE), f=0.0)#s[1]
+		widthOfBins = (xAxisRange[2] - xAxisRange[1])/numberOfBins
+		if (is.na(widthOfBins) || is.infinite(widthOfBins) || (widthOfBins <= 0)) widthOfBins <- NULL
+		m <- m + geom_bar(position=position_dodge(), binwidth = widthOfBins, color = NA)  
 		}
-	if (plotLineColour) {	#plot colored lines	
-		m <- m + geom_density(fill = NA, alpha = alphaValue)
-		} else {	# or plot colored densities
+	if (plotLineDensity) {	#plot colored lines	
+		m <- m + geom_density(fill = NA, size = lineSize, alpha = alphaValue)
+		} 
+	if (plotFillDensity) {	# or plot colored densities
 		m <- m + geom_density(alpha = alphaValue) 
 		}
 
 	#set colors
-	switch(which(colorPalette == c('standard','clarity','KNIME colors','Set1','Set2','Set3','Set4')), {
+	switch(which(colorPalette == c('standard','Set1','Set2','Set3','Set4','clarity','KNIME colors')), {
 		}, { #standard
-		if(length(factors) < 9) m <- m + scale_fill_brewer("clarity")}, { #clarity
-		m <- m + scale_fill_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)}, { #Knime colors
-		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
-		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
-		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
-		if(length(factors) < 9) m <- m + scale_fill_brewer(name = origNames[factorIndex], palette = "Set4")}    #Set4
+		if(length(factors) < 9) m <- m + scale_color_brewer(name = origNames[factorIndex], palette = "Set1") + scale_fill_brewer(name = origNames[factorIndex], palette = "Set1")}, { #Set1
+		if(length(factors) < 9) m <- m + scale_color_brewer(name = origNames[factorIndex], palette = "Set2") + scale_fill_brewer(name = origNames[factorIndex], palette = "Set2")}, { #Set2
+		if(length(factors) < 9) m <- m + scale_color_brewer(name = origNames[factorIndex], palette = "Set3") + scale_fill_brewer(name = origNames[factorIndex], palette = "Set3")}, { #Set3
+		if(length(factors) < 9) m <- m + scale_color_brewer(name = origNames[factorIndex], palette = "Set4") + scale_fill_brewer(name = origNames[factorIndex], palette = "Set4")}, { #Set4
+		if(length(factors) < 9) m <- m + scale_color_brewer("clarity") + scale_fill_brewer("clarity")}, { #clarity
+		m <- m + scale_color_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors) + scale_fill_manual(name = origNames[factorIndex], breaks = factors, labels = factors, values = factorColors)} #Knime colors
 		)
 
 	#set the title to the unmodified attribute-name
@@ -3160,4 +3426,570 @@ lapply(params, FUN = function (param) {
 })
 
 ]]>
+</rgg>
+########################################################################################
+# name: Scatter Plot Grid Replicates / XY - Plot
+# author: Martin Stoeter
+# category: relations
+# preview: xy-plot_replicates.png
+
+This scatter plot or XY-plot can be used to plot correlating data (e.g. experimental repeats). The table must contain a column with replicate information. Then another column must contain the sample identifier, which must be unique within a replicate (e.g. platenumber::well, but not barcode!), AND the same between the replicates. For the corresponding sample identifiers the data point will be plotted on x- and y-axis (e.g. for replicates A and B, if more than two replicated are present only the first two are considered).
+For multiple selected parameters plots will appear as grid plot. To use a flow variable check box and type in variable name using the format: FLOWVAR(variable name) (doesn't work like this for grid of plots)
+Data point will be plotted in different colors and shapes according to the categorial value. Missing values and sample identifiers with unequal categorial values will be removed/ignored.
+
+Layout options:
+- set title or use parameter name in title 
+- adjust y-axis: default = min-max +/- 5%; optional use of quantiles = (lower quantile * lower scale factor) until (upper quantile * upper scale factor);
+	extended range factor: e.g. 0.05 extends y-axis by +/- 5% 
+- set legend position and size (scaling factor)
+- linear regression and Pearson Correlation Coefficient can be plotted
+- the bulk data term in column categorial values is plotted in grey circles (usually annotated as "library" in categorial column) and all other categories are plotted in different colors and shapes. If colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories. 
+- use the scale factors to adjust a) point sizes of bulk and b) other data points 
+
+Hint: use "Nominal row filter" node to select the categories to plot (former treatment column).
+
+Trouble shooting:
+a) "sampleID not unique" -> more than 1 sampleID (eg wells) per replicate
+b) "not enough samples for correlation" -> sampleID for a replicate = 0 (no data to correlate)
+HINT: use GroupBy[Unique concatenate with count(replicate)] on selected sampleID column, must be replicate count = 1 for each sampleID
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+# 1. Parameter selection
+<group>
+
+<hbox>
+# 2) select column that contains replicate annotation
+<combobox var = "repColName" label = "Repetition" items = "$$$STR_ATTRIBUTES$$$"/>
+# 3) select column that contains sample ID
+<combobox var = "IDname" label = "Sample identifier" items = "$$$STR_ATTRIBUTES$$$"/>
+</hbox>
+
+# b) Define which parameter you would like to visualize
+params =  c(<panellistbox label="Parameters" items="$$$NUM_ATTRIBUTES$$$" span="3"/>)
+<hbox>
+<checkbox  label="use flow variable" var="useFlowVar" selected="false"/>
+<textfield label="flow variable:" var="flowVariable" data-type="text" default-value= "" size="10"/>
+</hbox>
+
+<hbox>
+# a) Define column with categorial values
+<combobox var = "catVar" label = "Categorial values" items = "-DONT USE CATEGORIES-,-USE SELECTED TREATMENTS-,$$$STR_ATTRIBUTES$$$"/>
+treatments = c(<listbox label="Treatments of interest" items="$$$DOMAIN('treatment')$$$" span="full" visible-row-count="5"/>);
+</hbox>
+
+# c) Options for visualization
+<gaprow height="1"/>
+<separator label="Layout Options Title" span="full"/>
+<hbox>
+<textfield label="Title of plot:" var="title" data-type="text" default-value= "XY plot: " size="1"/>
+<checkbox label="Join parameter name with title?" var="useJoinParameterToTitle" selected="true"/>
+</hbox>
+
+<gaprow height="1"/>
+<separator label="Layout Options Axis Scales" span="full"/>
+<label text="                                                                                                      x/y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]" aligment="center" span="full"/>
+<hbox>
+<checkbox label="Default x-Axis?" var="useDefaultxAxisScale" selected="true"/>
+<vector label="Scale factors [x]:" var="xAxisScaleFactors" size="5" default-value="0.005,0.995,1,1,0" vector-type="character"/>
+</hbox>
+<hbox>
+<checkbox label="Default y-Axis?" var="useDefaultyAxisScale" selected="true"/>
+<vector label="Scale factors [y]:" var="yAxisScaleFactors" size="5" default-value="0.005,0.995,1,1,0" vector-type="character"/>
+</hbox>
+
+<gaprow height="1"/>
+<separator label="Layout Options Legend" span="full"/>
+<hbox>
+legendPosition = <combobox label = "Legend position:" items = "bottomright,topleft,bottomleft,topright,none"/>
+legendSize = <vector label="Legend Size:" size="1" default-value="1" vector-type="character"/>
+</hbox>
+
+<gaprow height="1"/>
+<separator label="Layout Options Regression/Colors/Data Points" span="full"/>
+<hbox>
+<checkbox label="Plot regression?" var="useRegression" selected="true"/>
+<checkbox label="Plot Pearson corr. coeff.?" var="usePearson" selected="true"/>
+<checkbox label="Use KNIME colors palette?" var="useKNIMEcolors" selected="false"/>
+</hbox>
+<hbox>
+<textfield label="Bulk screen data term:" var="bulkDataTerm" data-type="text" default-value= "library" size="1"/>
+<vector label="Point Size [bulk points, category points]:" var="scaleFactors" size="2" default-value="1,1" vector-type="character"/>
+<vector label="Text factor [Pearson text]:" var="pearsonTextFactor" size="1" default-value="0.7" vector-type="character"/>
+</hbox>
+
+
+
+</group>
+
+<![CDATA[
+#2.0 R code
+
+#2.1.1 load libaries
+library(grDevices)
+library(grid)
+
+#2.1.2 Define the data
+if (catVar == "-USE SELECTED TREATMENTS-") {
+	useTreatmentSelection <- TRUE
+	catVar <- "treatment"
+	} else {
+	useTreatmentSelection <- FALSE
+	}
+if (catVar == "-DONT USE CATEGORIES-") {
+	kIn$tempCatVar <- "noCatVar"
+	scaleFactors[1] <-"noCatVar"
+	legendPosition <- "none"
+	catVar <- "tempCatVar"
+	}	
+
+if (useKNIMEcolors) {
+	#generate color table from KNIME colors
+	colorTable <- lapply(unique(kIn[,catVar]), FUN = function(x) {
+		subdata <- subset(kIn, kIn[,catVar] == x, select = c(R, G, B, A, RGBA), drop = FALSE)[1,]
+		})
+	names(colorTable) <- unique(kIn[,catVar])
+	colorTable <- do.call("rbind", colorTable)
+	#if treatments are selected in GUI then color table should contain only selected treatments 
+	if (useTreatmentSelection) colorTable <- colorTable[which(rownames(colorTable) %in% treatments),]
+	factors <- rownames(colorTable)
+	} else {
+	#if treatments are selected in GUI then use selected treatments as factors 
+	if (useTreatmentSelection) {
+		factors <- levels(factor(treatments))
+		} else {
+		factors <- levels(factor(kIn[,catVar]))
+		}
+	}
+
+#make the bulk data / library the first in the list 
+if(bulkDataTerm %in% factors){
+	if (useKNIMEcolors) {
+		colorTable <- rbind(colorTable[which(rownames(colorTable) == bulkDataTerm),],colorTable[-which(rownames(colorTable) == bulkDataTerm),])
+		factors <- rownames(colorTable)
+		} else {
+		factors <- c(bulkDataTerm, factors[- which(bulkDataTerm == factors)])
+		}
+	}
+
+#2.2.1 manage RGG to R: define as numbers
+legendSize <- as.numeric(legendSize)
+scaleFactors <- as.numeric(scaleFactors)
+xAxisScaleFactors <- as.numeric(xAxisScaleFactors)
+yAxisScaleFactors <- as.numeric(yAxisScaleFactors)
+pearsonTextFactor <- as.numeric(pearsonTextFactor)
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(scaleFactors[1]) | scaleFactors[1] <= 0) 	scaleFactors[1] <- 1		#default
+if (is.na(scaleFactors[2]) | scaleFactors[2] <= 0) 	scaleFactors[2] <- 1		#default
+if (is.na(legendSize) | legendSize <= 0) 	legendSize <- 1		#default
+if (legendPosition == "none"){
+	plotLegend <- FALSE
+	legendPosition <- "bottomright"
+	} else {
+	plotLegend <- TRUE
+	}
+
+if (is.na(xAxisScaleFactors[1]) | (xAxisScaleFactors[1] < 0) | (xAxisScaleFactors[1] >= 1)) xAxisScaleFactors[1] <- 0
+if (is.na(xAxisScaleFactors[2]) | (xAxisScaleFactors[2] <= 0) | (xAxisScaleFactors[2] > 1)) xAxisScaleFactors[2] <- 1
+if (is.na(xAxisScaleFactors[3])) xAxisScaleFactors[3] <- 1
+if (is.na(xAxisScaleFactors[4])) xAxisScaleFactors[4] <- 1
+if (is.na(xAxisScaleFactors[5]) | (useDefaultxAxisScale)) xAxisScaleFactors[5] <- 0.05
+if (is.na(yAxisScaleFactors[1]) | (yAxisScaleFactors[1] < 0) | (yAxisScaleFactors[1] >= 1)) yAxisScaleFactors[1] <- 0
+if (is.na(yAxisScaleFactors[2]) | (yAxisScaleFactors[2] <= 0) | (yAxisScaleFactors[2] > 1)) yAxisScaleFactors[2] <- 1
+if (is.na(yAxisScaleFactors[3])) yAxisScaleFactors[3] <- 1
+if (is.na(yAxisScaleFactors[4])) yAxisScaleFactors[4] <- 1
+if (is.na(yAxisScaleFactors[5]) | (useDefaultyAxisScale)) yAxisScaleFactors[5] <- 0.05
+if (is.na(pearsonTextFactor) | (pearsonTextFactor <= 0) | (pearsonTextFactor > 10)) pearsonTextFactor <- 0.7
+
+#define replicates and check: e.g A,B
+repVector <- unique(kIn[, repColName])
+if(length(repVector) < 2) repVector <- c(repVector[1], repVector[1])
+
+#2.3. calulate
+if (useFlowVar) params <- flowVariable
+
+#2.4.1 layout plot
+if (useKNIMEcolors) {
+	factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, names = NULL, max =  255) #uses KMINE colors (Color Manager -> Extract Colors -> Join color table)
+	} else {
+	factorColors <- colors()[c(185,121,150,100,48,490,98, round(runif(50,min=1, max = 600)))] #default definition of colors	
+	}
+factorSymbols = c(1,rep(19,4),rep(17,4),rep(15,4),rep(18,4),rep(22,50)); #definition of symbols see help pch
+numGridRows = ifelse(length(params) > 1, 2, 1);
+par(mfrow = c(numGridRows, ceiling(length(params) / numGridRows)))
+
+# iterate over all parameters and create plots for all of them
+lapply(params, FUN = function (param) {
+	if (useJoinParameterToTitle) title <- paste(title, names(kIn[param]))
+	#param <- params[1]#define first (X) and second (Y) table/replicate to be merged/plotted
+	kInXtable <- kIn[which(kIn[,repColName] == repVector[1]),c(IDname, repColName, catVar, param)]
+	kInYtable <- kIn[which(kIn[,repColName] == repVector[2]),c(IDname, repColName, catVar, param)]
+	#check if sampleIDs are unique
+	if (length(unique(kInXtable[,IDname])) == length(kInXtable[,IDname]) & length(unique(kInYtable[,IDname])) == length(kInYtable[,IDname])) {
+		corrTable <- merge(kInXtable[,c(IDname, repColName, catVar, param)], kInYtable[,c(IDname, repColName, catVar, param)], by.x = IDname, by.y =IDname)
+		names(corrTable) <- c(IDname,"repX","catVarX","X","repY","catVarY","Y")
+		#check consitency of table after merge
+		corrTable <- corrTable[which(!is.na(corrTable$X) & !is.na(corrTable$Y)),]
+		corrTable <- corrTable[which(corrTable$catVarX == corrTable$catVarY),]
+		#check if XYtable match is bigger than 1
+		sampleIDmatch <- length(corrTable[,1])
+		if (sampleIDmatch > 1) {		
+			#set x-axis scale
+			if (useDefaultxAxisScale) {
+				xAxisScale <- extendrange(kInXtable[,param], f = xAxisScaleFactors[5])
+				} else {
+				xAxisScale <- c(quantile(kInXtable[,param], na.rm = TRUE, names = FALSE, xAxisScaleFactors[1]), quantile(kInXtable[, param], na.rm = TRUE, names = FALSE, xAxisScaleFactors[2])) * c(xAxisScaleFactors[3], xAxisScaleFactors[4])
+			#check if data is there/xAxisScales are numbers (otherwise plot fails) then do subplot without data (no points are plotted)
+				if ((is.na(xAxisScale)[1] == TRUE) || (is.na(xAxisScale)[2] == TRUE) || (is.infinite(xAxisScale)[1] == TRUE) || (is.infinite(xAxisScale)[2] == TRUE)) {
+					xAxisScale <- extendrange(kInXtable[,param], f = xAxisScaleFactors[5])
+					} else {
+					xAxisScale <- extendrange(r = xAxisScale, f = xAxisScaleFactors[5])
+					}
+				}
+			#set y-axis scale
+			if (useDefaultyAxisScale) {
+				yAxisScale <- extendrange(kInYtable[,param], f = yAxisScaleFactors[5])
+				} else {
+				yAxisScale <- c(quantile(kInYtable[,param], na.rm = TRUE, names = FALSE, yAxisScaleFactors[1]), quantile(kInYtable[, param], na.rm = TRUE, names = FALSE, yAxisScaleFactors[2])) * c(yAxisScaleFactors[3], yAxisScaleFactors[4])
+			#check if data is there/yAxisScales are numbers (otherwise plot fails) then do subplot without data (no points are plotted)
+				if ((is.na(yAxisScale)[1] == TRUE) || (is.na(yAxisScale)[2] == TRUE) || (is.infinite(yAxisScale)[1] == TRUE) || (is.infinite(yAxisScale)[2] == TRUE)) {
+					yAxisScale <- extendrange(kInYtable[,param], f = yAxisScaleFactors[5])
+					} else {
+					yAxisScale <- extendrange(r = yAxisScale, f = yAxisScaleFactors[5])
+					}
+				}
+#2.4.2 plot data
+			# iterate over categories
+			for(factor in factors){
+				index = which(factors == factor)
+				if(index == 1){      #is it bulk data?
+					xAxisTitle <- paste(param," ( ",corrTable$repX[1]," )",sep="")
+					yAxisTitle <- paste(param," ( ",corrTable$repY[1]," )",sep="")
+					plot(corrTable$X[which(corrTable$catVarX == factor)],corrTable$Y[which(corrTable$catVarX == factor)], xlim = xAxisScale, ylim = yAxisScale, main = title, xlab = xAxisTitle, ylab = yAxisTitle, col = factorColors[index], pch = factorSymbols[index], cex = scaleFactors[1])
+					} else {
+					points(corrTable$X[which(corrTable$catVarX == factor)],corrTable$Y[which(corrTable$catVarX == factor)], col = factorColors[index], pch = factorSymbols[index], bg = factorColors[index], cex = scaleFactors[2])
+					}
+				}
+			# add the legend
+			legend(legendPosition, pch= factorSymbols[1:length(factors)], factors, col = factorColors, pt.bg = factorColors, cex = legendSize, plot = plotLegend)
+			# adds regression lines
+			if(useRegression){
+				regression <- lm(corrTable$Y ~ corrTable$X)
+				abline(regression)
+				}
+			if(usePearson){
+				correlation <- cor.test(corrTable$X,corrTable$Y, method = "pearson")
+				corrEstimate <- correlation$"estimate"
+				mtext(paste("Pearson correlation = ",round(corrEstimate, digits = 3),", n = ",sampleIDmatch), adj = 0, line = 0, cex = pearsonTextFactor)
+				}
+			} else { #error empty table
+			plot(0,0)	
+			mtext("not enough samples for correlation", adj = 0, line = 0.5, cex = 1.5)		
+			}
+		} else { #error table merge didnt fit (check sample IDs)
+		plot(0,0)	
+		mtext("sampleID not unique", adj = 0, line = 0.5, cex = 1.5)
+		}
+	})
+]]>
+</rgg>
+########################################################################################
+# name: Lineplot with plot options
+# author: Martin Stoeter, modified from Antje Niederleins' Barplot 
+# category: basic/lineplots
+# preview: LinePlot.png
+BETA VERSION: NEED A LOT OF TESTS
+Flexible template to create a line plot or line plot grid with optional errorbars
+HINT: use GroupBy node to aggregated the data to e.g mean and sd columns 
+
+Parameter:
+Bar height - One or multiple numerical variables. Each value will result in one bar
+Error bar checkbox - Draw errorbars?
+Error bar - Error bar values corresponding to the height values (same number of columns have to be selected)
+To use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
+x-axis - Label to put at the x-axis for each bar (mulitple columns can be selected to combine information)
+2D-grid grouping parameter - Allows to split the dataset into multiple plots by this condition (mulitple columns can be selected to combine information)
+bar colour - Colour bars by condition (mulitple columns can be selected to combine information)
+Layout Options: 
+ - select background/theme and set general font size in plot (default = 14)
+ - plot points or lines or both
+ - set size and alpha value (transparency) of points, lines and error bars (default = [2,0.5,0.1] and [1,0.5,0.5])
+ - give plot title and title factor (default = 1.2)
+ - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
+ - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
+ - adjust y-axis scale (check fixed and enter min + max; free for 2D grid)
+ - give legend title, adjust position (fixed position outside diagram or free(range:0-1): [0.1,0.9] = top-left) and legend title/text size factor(default = 0.8)   
+######
+
+<rgg>
+
+    <!--1. Title and short description -->
+    <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+    <separator label="Description" span="full"/>
+    <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+    <gaprow height="1"/>
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    #1.0 Parameter selection
+	#R debugging: delete all variables except kIn
+	#rm(list=ls(all=TRUE)[which(ls(all=TRUE) != "kIn")])
+	<group>
+
+	# Define your numerical parameters represented by bar height
+	barHeight = c(<panellistbox label="select columns with values for bar height" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+	plot.Errorbars = <checkbox label="draw errorbars (select column with errorbar values)" selected="t"/>
+	# Define your numerical parameters for error bars
+	barError = c(<panellistbox label="cErrorBars" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+	<gaprow height="2"/>
+
+	<hbox>  #define use of flow variables
+	<checkbox label="use flow variable" var="useFlowVar" selected="false" />
+	<textfield label="bar height flow variable:" var="flowVariableBarHeight" data-type="text" default-value= "" size="10" />
+	<textfield label="bar error flow variable:" var="flowVariableBarError" data-type="text" default-value= "" size="10" />
+	</hbox>
+
+	<hbox>  #define x-axis, grid and color group
+	xFactor = c(<listbox label="x-axis" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	facetBy = c(<listbox label="2D grid grouping parameters" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	colourBy = c(<listbox label="coloured by" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	</hbox>
+	
+ 	#diagram options
+	<separator label="Layout Options General Plot" span="full"/>
+	<hbox>
+	plotPointsLines = <combobox label = "Points and/or lines:" items = "points_and_lines,points_only,lines_only"/>
+	pointLineSize = as.numeric(c(<vector label="Size [points/lines/error]:" size="3" default-value="2,0.5,0.1"/>))
+	alphaValue = as.numeric(c(<vector label="Alpha [points/lines/error]:" size="3" default-value="1,0.5,0.5"/>))
+	</hbox>
+	<hbox>
+	plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
+	plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+	</hbox>
+
+	<separator label="Layout Options Title" span="full"/>
+	<hbox>
+	<textfield label="plot title:" var="plotTitle" data-type="text" default-value= "" size="5"/>
+	plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default-value="1.2"/>))
+	</hbox>
+
+	<separator label="Layout Options Axes" span="full"/>	
+	<hbox>
+	xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "0,45,90"/>))
+	axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
+	</hbox>
+	
+	<hbox>
+	<textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
+	useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="f"/>
+	axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
+	</hbox>
+
+	<hbox>
+	useManualYaxisScale = <checkbox label="use fixed y-axis scale" selected="f"/>
+	yAxisScale = as.numeric(c(<vector label="y-axis scale [min,max]:" size="2" default-value=","/>))
+	free.scales = <checkbox label="use free y-scales (for 2D grid)" selected="t"/>
+	</hbox>
+
+	<separator label="Layout Options Legend" span="full"/>
+	<hbox>
+	legendPosition = <combobox label = "legend position:" items = "right,top,botton,left,none"/>
+	useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
+	legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
+	</hbox>
+	
+	<hbox>
+	legendTitle = <textfield label="legend title:" data-type="text" default-value="" size="3"/>
+	legendTextSizeFactor = as.numeric(c(<vector label="text size [title,text]:" size="2" default-value="0.8,0.8"/>))
+	rotateLegend = <checkbox label="rotate 90deg." selected="f"/>
+	</hbox>
+
+	</group>
+
+	<![CDATA[
+	#2.0 R code	
+
+	#2.1 load libaries
+	library(ggplot2)
+	library(reshape)
+	library(grid)
+
+	#2.2.1 manage RGG to R: define as numbers / check input parameters
+	# check flow variables
+	if (useFlowVar && !is.na(flowVariableBarHeight)) {
+    	barHeight <- flowVariableBarHeight
+	}
+	if(plot.Errorbars && useFlowVar && !is.na(flowVariableBarError)) {
+		barError <- flowVariableBarError
+	}
+	# no bar height columns selected
+	if(is.null(barHeight)) stop("Error: Template initialization fails - no columns for bar height selected")
+	# errorbars checked but no column selected
+	if(plot.Errorbars & is.null(barError)) plot.Errorbars <- FALSE	# simply don't plot any errorbars
+	if(plot.Errorbars & length(barHeight) != length(barError)) stop("Error: Template initialization fails - number of bar height columns not equal to number of error bar columns")
+	# no xFactor selected
+	if("-NO SELECTION-" %in% xFactor) xFactor <- NULL
+	if("-NO SELECTION-" %in% facetBy) facetBy <- NULL
+	if("-NO SELECTION-" %in% colourBy) colourBy <- NULL
+
+	xFactorFlag <- facetFlag <- colourFlag <- FALSE
+	if(is.null(xFactor)) xFactor <- "-ROW ID-"
+	if(!is.null(xFactor) && "-USE COLUMN SELECTION-" %in% xFactor) { xFactorCol <- NULL; xFactorFlag <- TRUE } else xFactorCol <- xFactor
+	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) { facetCol <- NULL; facetFlag <- TRUE } else facetCol <- facetBy
+	if(!is.null(colourBy) && "-USE COLUMN SELECTION-" %in% colourBy) { colourCol <- NULL; colourFlag <- TRUE } else colourCol <- colourBy
+
+	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
+	
+	#2.2.2 manage RGG to R: set scales to default and check scales
+	if (is.na(pointLineSize[1]) | (pointLineSize[1] < 0) | (pointLineSize[1] > 40)) pointLineSize[1] <- 2
+	if (is.na(pointLineSize[2]) | (pointLineSize[2] < 0) | (pointLineSize[2] > 40)) pointLineSize[2] <- 0.5
+	if (is.na(pointLineSize[3]) | (pointLineSize[3] < 0) | (pointLineSize[3] > 10)) pointLineSize[3] <- 0.1
+	if (is.na(alphaValue[1]) | (alphaValue[1] < 0) | (alphaValue[1] > 1)) pointLineSize[1] <- 1
+	if (is.na(alphaValue[2]) | (alphaValue[2] < 0) | (alphaValue[2] > 1)) pointLineSize[2] <- 0.5
+	if (is.na(alphaValue[3]) | (alphaValue[3] < 0) | (alphaValue[3] > 1)) pointLineSize[3] <- 0.5
+	if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
+	if (is.na(plotTextSize[1]) | (plotTextSize[1] < 0) | (plotTextSize[1] > 40)) plotTextSize[1] <- 14
+	if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
+	if (is.na(yAxisLabel))	yAxisLabel <- NULL
+	if (is.na(xAngle))	xAngle <- 0
+	if (is.na(axisTextSizeFactor[1]) | (axisTextSizeFactor[1] < 0) | (axisTextSizeFactor[1] > 5)) axisTextSizeFactor[1] <- 0.8
+	if (is.na(axisTextSizeFactor[2]) | (axisTextSizeFactor[2] < 0) | (axisTextSizeFactor[2] > 5)) axisTextSizeFactor[2] <- 0.8
+	if (is.na(axisTitleSizeFactor[1]) | (axisTitleSizeFactor[1] < 0) | (axisTitleSizeFactor[1] > 5)) axisTitleSizeFactor[1] <- 1
+	if (is.na(axisTitleSizeFactor[2]) | (axisTitleSizeFactor[2] < 0) | (axisTitleSizeFactor[2] > 5)) axisTitleSizeFactor[2] <- 1
+	if (is.na(yAxisScale[1]) | is.na(yAxisScale[2]))	yAxisScale <- NULL
+	if (useParameternameAsAxisLabel) yAxisLabel <- barHeight
+	if (is.na(legendCoordinate[1]) | is.na(legendCoordinate[2]) | (legendCoordinate[1] < 0) | (legendCoordinate[1] > 1) | (legendCoordinate[2] < 0) | (legendCoordinate[2] > 1)) useLegendCoordinate <- FALSE
+	if (is.na(legendTextSizeFactor[1]) | (legendTextSizeFactor[1] < 0) | (legendTextSizeFactor[1] > 5)) legendTextSizeFactor[1] <- 0.8
+	if (is.na(legendTextSizeFactor[2]) | (legendTextSizeFactor[2] < 0) | (legendTextSizeFactor[2] > 5)) legendTextSizeFactor[2] <- 0.8
+	if (xAngle == 0 ) xAxisAjust <- c(0.5,1.0) #xAxisAjust = c(hjust,vjust)
+	if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
+	if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
+
+	#2.3. calulate
+	# create rowID column if needed
+	if("-ROW ID-" %in% xFactorCol) kIn[,"-ROW ID-"] <- rownames(kIn)
+
+	# combine columns if necessary
+	if(length(xFactor) > 1) {
+		xFactorCol <- paste(xFactor, collapse = " + ")
+		kIn[,xFactorCol] <- apply(kIn[,xFactor], 1, paste, collapse = " + ")
+	}
+	if(length(facetBy) > 1) {
+		facetCol <- paste(facetBy, collapse = " + ")
+		kIn[,facetCol] <- apply(kIn[,facetBy], 1, paste, collapse = " + ")
+	}
+	if(length(colourBy) > 1) {
+		colourCol <- paste(colourBy, collapse = " + ")
+		kIn[,colourCol] <- apply(kIn[,colourBy], 1, paste, collapse = " + ")
+	}
+	
+	# extract necessary data and reshape it
+	meanData <- kIn[,c(barHeight,xFactorCol, facetCol, colourCol)]
+
+	meanDataLong <- melt(meanData, measure.vars = barHeight, variable_name = "- PARAMETERS -")
+	names(meanDataLong)[which(names(meanDataLong) == "value")] <- "height"
+
+	# add errorbar data
+	if(plot.Errorbars) {
+		sdData <- kIn[,c(barError,xFactorCol, facetCol, colourCol)]
+		sdDataLong <- melt(sdData, measure.vars = barError)
+		meanDataLong$error <- sdDataLong$value
+		meanDataLong$low <- with(meanDataLong, height - error)
+		meanDataLong$high <- with(meanDataLong, height + error)
+	}
+
+	if(xFactorFlag) xFactorCol <- "- PARAMETERS -"
+	if(facetFlag) facetCol <- "- PARAMETERS -"
+	if(colourFlag) colourCol <- "- PARAMETERS -"
+
+	if (is.null(colourCol)) {   #set grouping column for line plot
+			groupData <- "- PARAMETERS -"
+			} else {
+			groupData <- colourCol
+			}
+
+	if (is.na(legendTitle)) legendTitle <- colourCol		#default if no title is given
+
+	if(!is.null(facetBy)) { facetTitle <- facetCol; meanDataLong$template.facet.column <- meanDataLong[,facetCol]; facetCol <- "template.facet.column" }
+
+	#2.4.1 plot
+	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height, group = colourCol))
+
+	my.dodge <- position_dodge(width=0.9)
+	if(!is.null(colourBy)) {
+		if(plotPointsLines == "points_and_lines" || plotPointsLines == "points_only") {
+			p <- p + geom_point(aes(colour = factor(get(colourCol))), position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])}
+		if(plotPointsLines == "points_and_lines" || plotPointsLines == "lines_only") {
+			p <- p + geom_line(aes(colour = factor(get(colourCol)), group = get(groupData)), size = pointLineSize[2], alpha = alphaValue[2])}
+		if(plot.Errorbars) {
+			p <- p + geom_errorbar(aes(colour = factor(get(colourCol)), ymin = low, ymax = high, group = get(colourCol)), width = pointLineSize[3], alpha = alphaValue[3])}
+		} else { 
+		if(plotPointsLines == "points_and_lines" || plotPointsLines == "points_only") {
+			p <- p + geom_point(colour = "black", position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])}
+		if(plotPointsLines == "points_and_lines" || plotPointsLines == "lines_only") {
+			p <- p + geom_line(aes(group = get(groupData)), colour = "black", size = pointLineSize[2], alpha = alphaValue[2])}
+		if(plot.Errorbars) {
+			p <- p + geom_errorbar(aes(ymin = low, ymax = high), colour = "black", width = pointLineSize[3], alpha = alphaValue[3])}
+	}
+
+	if(!is.null(facetBy)) {
+		p <- p + facet_wrap(~ template.facet.column, scales=free.scales)
+		fTitle <- paste("Grid factor: ",facetTitle,sep = "")
+		if(!is.null(plotTitle)) plotTitle <- paste(plotTitle,fTitle,sep = " / ") else plotTitle <- fTitle
+		p <- p + opts(title = plotTitle)
+		} else {
+		if(!is.null(plotTitle)) p <- p + opts(title = plotTitle)
+	}
+	
+	#2.4.1 layout plot
+	#general
+	if(plotTheme == "grey"){
+		p <- p + theme_grey(base_size=plotTextSize[1])
+		} else {
+		p <- p + theme_bw(base_size=plotTextSize[1])
+	}
+
+	#title options
+	p <- p + opts(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
+
+	#axis label options
+	p <- p + scale_x_discrete(name = xFactorCol)
+	p <- p + opts(axis.title.x = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
+	p <- p + opts(axis.text.x = theme_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = theme_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+	p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
+
+	#legend
+	if(!is.null(colourCol)) {  #legend title and rotation
+		if(rotateLegend) {
+			p <- p + scale_color_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position="bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+			} else {
+			p <- p + scale_color_discrete(name = legendTitle)
+		}
+	}
+	p <- p + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	if (useLegendCoordinate) {
+		p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
+		} else {
+		p <- p + theme(legend.position = legendPosition) 
+	}
+	print(p)
+
+    ]]>
 </rgg>
