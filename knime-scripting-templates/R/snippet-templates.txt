@@ -36,8 +36,6 @@ geneIDcolumn = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Gene ID"/>
 
 <![CDATA[
 
-#2.0 R code
-
 #2.1 load libraries
 library(NCBI2R)
 
@@ -48,8 +46,13 @@ library(NCBI2R)
 geneIDs <- as.numeric(levels(factor(kIn[,geneIDcolumn])))   ##removes NA, groups same geneIDs, converts to number (here, still could be a double!)
 
 #2.3. calulate
+batchSize <- 10  # with larger batchs as query time-out ans errors were experienced 
+geneIDbatch <- split(geneIDs,1:ceiling(length(geneIDs)/10))  # make list of batch vectors for NCBI query
+ncbiTable <- NULL
+for (i in 1:length(geneIDbatch)) { #do per batch
+	ncbiTable <- rbind(ncbiTable, GetGeneNames(geneIDbatch[[i]]))
+	}
 
-ncbiTable <- GetGeneNames(geneIDs)
 rOut <- ncbiTable
 
 ]]>
