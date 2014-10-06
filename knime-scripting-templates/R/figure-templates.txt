@@ -117,11 +117,6 @@ Enter an additional title
 		colourCol <- paste(colourBy, collapse = " + ")
 		kIn[,colourCol] <- apply(kIn[,colourBy], 1, paste, collapse = " + ")
 	}
-	
-	#convert to discrete format
-	if(!is.null(colourBy)) kIn[,colourCol] <- factor(kIn[,colourCol])
-	if(!is.null(facetBy)) kIn[,facetCol] <- factor(kIn[,facetCol])
-	kIn[,xFactorCol] <- factor(kIn[,xFactorCol])
 
 	# extract necessary data and reshape it
 	meanData <- kIn[,c(barHeight,xFactorCol, facetCol, colourCol)]
@@ -142,7 +137,14 @@ Enter an additional title
 	if(facetFlag) facetCol <- "- PARAMETERS -"
 	if(colourFlag) colourCol <- "- PARAMETERS -"
 
-	if(!is.null(facetBy)) { facetTitle <- facetCol; meanDataLong$template.facet.column <- meanDataLong[,facetCol]; facetCol <- "template.facet.column" }
+	#convert to discrete format
+	if(!is.null(facetBy)) { 
+		facetTitle <- facetCol
+		meanDataLong$template.facet.column <- factor(meanDataLong[,facetCol])
+		facetCol <- "template.facet.column" 
+	}
+	if(!is.null(colourBy)) meanDataLong[,colourCol] <- factor(meanDataLong[,colourCol])
+	meanDataLong[,xFactorCol] <- factor(meanDataLong[,xFactorCol])
 
 
 	# plot data
@@ -389,7 +391,14 @@ Layout Options:
 	
 	if(is.na(legendTitle)) legendTitle <- colourCol		#default if no title is given
 
-	if(!is.null(facetBy)) { facetTitle <- facetCol; meanDataLong$template.facet.column <- meanDataLong[,facetCol]; facetCol <- "template.facet.column" }
+	#convert to discrete format
+	if(!is.null(facetBy)) { 
+		facetTitle <- facetCol
+		meanDataLong$template.facet.column <- factor(meanDataLong[,facetCol])
+		facetCol <- "template.facet.column" 
+	}
+	if(!is.null(colourBy)) meanDataLong[,colourCol] <- factor(meanDataLong[,colourCol])
+	meanDataLong[,xFactorCol] <- factor(meanDataLong[,xFactorCol])
 
 	#2.4.1 plot
 	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height))
@@ -407,9 +416,9 @@ Layout Options:
 		p <- p + facet_wrap(~ template.facet.column, scales=free.scales)
 		fTitle <- paste("Grid factor: ",facetTitle,sep = "")
 		if(!is.null(plotTitle)) plotTitle <- paste(plotTitle,fTitle,sep = " / ") else plotTitle <- fTitle
-		p <- p + opts(title = plotTitle)
+		p <- p + ggtitle(plotTitle)
 		} else {
-		if(!is.null(plotTitle)) p <- p + opts(title = plotTitle)
+		if(!is.null(plotTitle)) p <- p + ggtitle(plotTitle)
 	}
 	
 	#2.4.1 layout plot
@@ -421,12 +430,12 @@ Layout Options:
 	}
 
 	#title options
-	p <- p + opts(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
+	p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
 
 	#axis label options
 	p <- p + scale_x_discrete(name = xFactorCol)
-	p <- p + opts(axis.title.x = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
-	p <- p + opts(axis.text.x = theme_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = theme_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
+	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
 	p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 
 	#legend
@@ -443,7 +452,7 @@ Layout Options:
 		} else {
 		p <- p + theme(legend.position = legendPosition) 
 	}
-	if(plotErrorMessage) p <- p + opts(title = "ERROR: NO DATA!!!")
+	if(plotErrorMessage) p <- p + ggtitle("ERROR: NO DATA!!!")
 	print(p)
 
     ]]>
