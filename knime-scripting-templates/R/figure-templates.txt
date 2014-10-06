@@ -386,6 +386,7 @@ Layout Options:
 	if(facetFlag) facetCol <- "- PARAMETERS -"
 	if(colourFlag) colourCol <- "- PARAMETERS -"
 
+	
 	if(is.na(legendTitle)) legendTitle <- colourCol		#default if no title is given
 
 	if(!is.null(facetBy)) { facetTitle <- facetCol; meanDataLong$template.facet.column <- meanDataLong[,facetCol]; facetCol <- "template.facet.column" }
