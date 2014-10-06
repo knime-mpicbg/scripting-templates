@@ -160,12 +160,12 @@ Enter an additional title
 		
 		fTitle <- paste("Grid factor: ",facetTitle,sep = "")
 		if(!is.null(plotTitle)) plotTitle <- paste(plotTitle,fTitle,sep = " / ") else plotTitle <- fTitle
-		p <- p + opts(title = plotTitle)
+		p <- p + ggtitle(plotTitle)
 	} else {
-		if(!is.null(plotTitle)) p <- p + opts(title = plotTitle)
+		if(!is.null(plotTitle)) p <- p + ggtitle(plotTitle)
 	}
 
-	p <- p + theme_grey(base_size=14) + opts(axis.text.x = theme_text(angle = 90, hjust = 1))
+	p <- p + theme_grey(base_size=14) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 	print(p)
 	# -------------------------------------------------------------
