@@ -917,7 +917,7 @@ lapply(params, FUN = function (param) {
 
 	#set the title to the unmodified attribute-name
 	if (useJoinParameterToTitle) title <- paste(title, origNames[param])
-	m <- m + xlab(origNames[param]) + labs(fill = origNames[factorIndex]) + opts(title = title)
+	m <- m + xlab(origNames[param]) + labs(fill = origNames[factorIndex]) + ggtitle(title)
    	
 	plotNum <- which(params == param)
 	curRow <- ceiling(plotNum/numGridCols)
@@ -1151,7 +1151,7 @@ Allows modification of number of bins.
     dataRange <- range(newdata$readout, na.rm = TRUE)
     extend <- dataRange[2]-dataRange[1]
 
-    m <- ggplot(newdata, aes(x=readout, y = ..density.., fill=groupby)) +  opts(title = plotTitle) + geom_histogram(binwidth = extend/bw) + xlab(numAttributeName)
+    m <- ggplot(newdata, aes(x=readout, y = ..density.., fill=groupby)) +  ggtitle(plotTitle) + geom_histogram(binwidth = extend/bw) + xlab(numAttributeName)
 
     print(m)
 
@@ -1281,7 +1281,7 @@ names(kIn)[factorIndex] <- "treatmentRinternalColumnName"
 
 	m <- ggplot(kIn, aes(x = paramRinternalColumnName)) + stat_density(aes(ymax = ..density..,  ymin = -..density..), fill = "grey50", colour = "grey20", geom = "ribbon", position = "identity") 
 	m <- m + scale_x_continuous(limits = yAxisScale)
-	m <- m + opts(axis.text.x  = theme_text(angle=90, hjust=1.2, size=8))
+	m <- m + theme(axis.text.x  = element_text(angle=90, hjust=1.2, size=8))
 	m <- m + facet_grid(. ~ treatmentRinternalColumnName) + coord_flip() + opts(panel.grid.minor=theme_blank())
 
 	if (useJoinParameterToTitle) title <- paste(title, origNames[paramIndex])
@@ -3432,7 +3432,7 @@ lapply(params, FUN = function (param) {
 
 	#set the title to the unmodified attribute-name
 	if (useJoinParameterToTitle) title <- paste(title, origNames[param])
-	m <- m + xlab(origNames[param]) + labs(fill = origNames[factorIndex], color = origNames[factorIndex]) + opts(title = title) + theme(legend.position = legendPosition)	
+	m <- m + xlab(origNames[param]) + labs(fill = origNames[factorIndex], color = origNames[factorIndex]) + ggtitle(title) + theme(legend.position = legendPosition)	
 	plotNum <- which(params == param)
 	curRow <- ceiling(plotNum/numGridCols)
 	curCol <- ceiling(plotNum - numGridCols * (curRow-1))
