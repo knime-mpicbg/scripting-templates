@@ -1,4 +1,57 @@
 ########################################################################################
+# name: Cumulative Density Function (cdf)
+# author: Marc Bickle, Antje Janosch
+# category: basic/distribution
+# preview: 
+This plot is useful for plotting the cumulative density function of up to 9 populations and verify whether and how they differ
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="cumulative density function (cdf)" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">This plot is useful for plotting the cumulative density function of up to 5 populations and verify whether and how they differ
+This plot is useful for plotting the cumulative density function of up to 5 populations and verify whether and how they differ</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+# Parameter selection
+<group>
+
+# a) Define column with categorical values
+Group = <combobox label="Group" items="$$$STR_ATTRIBUTES$$$" />;
+
+
+# b) Define which parameter you would like to visualize
+params =  c(<panellistbox label="Parameters" items="$$$NUM_ATTRIBUTES$$$" span="3"/>)
+
+</group>
+
+<![CDATA[
+
+# R code
+
+library(ggplot2)
+library(reshape)
+
+data <- melt(kIn, id.vars = Group, measure.vars = params)
+
+p <- ggplot(data, aes_string(x = "value", colour = Group)) + stat_ecdf() + facet_wrap( ~ variable, scales = "free") + scale_colour_brewer(palette="Set1")
+p <- p + theme_bw(base_size = 16)
+print(p)
+
+
+]]>
+</rgg>
+
+########################################################################################
 # name: Barplot
 # author: Antje Niederlein
 # category: basic/barplots
