@@ -1,4 +1,70 @@
 ########################################################################################
+# name: KS-test OR unpaired Wilcoxon rank test (nonparametric tests)
+# author: Marc Bickle, Antje Janosch
+# category: statistical hypothesis tests
+
+Calculates the likelihood that two non-normal populations are drawn from the same distribution.
+Choose your readouts of interest and the column providing group information. The test will be performed for each readout and each combination of possible values of the group column.
+Choose whether you want to do a 
+Kolmogorov-Smirnov test or a unpaired Wilcoxon rank test (Mann-Whitney U test).
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="Nonparametric tests of the equality of continuous probability distributions" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">Calculates the likelihood that two non-normal populations are drawn from the same distribution.
+Choose your readouts of interest and the column providing group information. The test will be performed for each readout and each combination of possible values of the group column.
+Choose whether you want to do a 
+Kolmogorov-Smirnov test or a unpaired Wilcoxon rank test (Mann-Whitney U test).</labelarea>
+
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# Parameter selection
+<group>
+test = <combobox label="Test" items="kolmogorov-smirnof, wilcoxon rank" />;
+
+selReadouts = c(<panellistbox label="Parameters to normalize" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+group = <combobox label="Group" items="$$$STR_ATTRIBUTES$$$" />;
+
+</group>
+
+<![CDATA[
+# R code
+
+final<-NULL
+
+# calculate
+groupValues <- unique(kIn[,group])
+combinations <- expand.grid(selReadouts, groupValues, groupValues)
+names(combinations) <- c("readout", "group1", "group2")
+combinations <- combinations[combinations$group1 != combinations$group2,]
+
+ret <- apply(combinations, 1, function(groups) {
+	group1 <- groups["group1"]
+	group2 <- groups["group2"]
+	readout <- groups["readout"]
+	data1 <- kIn[kIn[,group] == group1,readout]
+	data2 <- kIn[kIn[,group] == group2,readout]
+	if(test == "kolmogorov-smirnof") testResult <- ks.test(data1, data2)
+	if(test == "wilcoxon rank") testResult <- wilcox.test(data1,data2, paired = FALSE)
+	data.frame(parameter = readout, group1 = group1, group2 = group2, distance = testResult$statistic, p_value = testResult$p.value, n1 = length(data1), n2 = length(data2), test = test)
+})
+
+rOut <- data.frame(do.call("rbind", ret))
+
+]]>
+</rgg>
+
+
+########################################################################################
 # name: Get gene info from NCBI
 # author: Martin Stoeter
 # category: bioinformatics
