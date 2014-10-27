@@ -1,4 +1,62 @@
 ########################################################################################
+# name: Levene's test of equal variance
+# author: Marc Bickle
+# category: statistical hypothesis tests
+
+Performs the Levene's test of homoscedasticity for two groups of a population. 
+1) define the parameters to be tested
+2) define the population column with the groups
+3) choose how to compute the center of each population. Median is more robust.
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="Levene's test for equal variance (homoscedasticity)" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">Performs Levene's test of equal variance.</labelarea>
+
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# Parameter selection
+
+<group>
+selReadouts = c(<panellistbox label="Parameters to normalize" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+Group = <combobox label="Group" items="$$$STR_ATTRIBUTES$$$" />;
+
+Centering = <combobox label="Centering" items="mean, median" span="full"/>;
+
+</group>
+
+<![CDATA[
+
+library(car)
+
+final<-NULL
+
+# calculate
+kIn[,Group]<-factor(kIn[,Group])
+
+for(j in 1:length(selReadouts)){
+	test_result <- leveneTest(kIn[,selReadouts[j]] ~ kIn[,Group], data = kIn, center = Centering)
+	paramName <- data.frame(selReadouts[j])
+	names(paramName) <- "Parameter"
+	data<-cbind(test_result[1,], paramName)
+	final<-rbind(final,data)
+	}
+
+rOut <- final;
+
+]]>
+</rgg>
+
+########################################################################################
 # name: KS-test OR unpaired Wilcoxon rank test (nonparametric tests)
 # author: Marc Bickle, Antje Janosch
 # category: statistical hypothesis tests
