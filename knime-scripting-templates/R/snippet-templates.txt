@@ -1,4 +1,73 @@
 ########################################################################################
+# name: Robust linear scaling (Percentile normalization)
+# author: Marc Bickle
+# category: normalization
+
+Normalizes using a projection of the cell based data between 0 and 1 based on the 1st percentile and the 99th percentile [1]
+
+[1] http://www.ncbi.nlm.nih.gov/books/NBK126174/#hcsimage.4_Normalization_of_HCS_data
+
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# Parameter selection
+<group>
+selReadouts = c(<panellistbox label="Parameters to normalize" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+Group = <combobox label="Group" items="$$$STR_ATTRIBUTES$$$" />;
+
+Treatment = <combobox label="Treatment" items="$$$STR_ATTRIBUTES$$$" />;
+
+<vector label="Negative control" var="negCtrls" size = "1" default-value="DMSO" vector-type="character"/>
+
+
+</group>
+
+<![CDATA[
+
+# calulate
+platelist<-unique(kIn[,Group])
+
+Norm <- function(y) ((y-controlLow)/controlHigh)
+final<-NULL
+
+reference <- "DMSO"
+if(!reference %in% kIn[,Treatment]) stop("Please change script to a valid reference string")
+
+for(i in 1:length(platelist)){
+	data<-kIn[which(kIn[,Group] == platelist[i]),]
+	controlPop<-data[which(data[,Treatment] == negCtrls),]
+	for(j in 1:length(selReadouts)){
+		controlLow <- as.numeric(quantile(controlPop[,selReadouts[j]], probs= 0.01, type = 4))
+		controlHigh <- as.numeric(quantile(controlPop[,selReadouts[j]], probs= 0.99, type = 4))
+		res<-apply(as.array(data[,selReadouts[j]]), 1, Norm)
+		resframe<-data.frame(res)
+		names(resframe)<-paste(selReadouts[j], "norm", sep ="_")
+		data<-cbind(data, resframe)
+	}
+	final<-rbind(final,data)
+}
+
+rOut <- final;
+
+]]>
+</rgg>
+
+
+########################################################################################
 # name: Levene's test of equal variance
 # author: Marc Bickle
 # category: statistical hypothesis tests
