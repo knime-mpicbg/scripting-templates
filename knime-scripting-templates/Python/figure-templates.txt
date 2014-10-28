@@ -14,9 +14,9 @@ python script from Chris DeBoever, http://nbviewer.ipython.org/github/ucsd-scien
 
 <!--1. Title and short description -->
 
-<h3 text="Venn Diagram" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">Generate a Venn diagram.</labelarea>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 
@@ -96,9 +96,9 @@ Inputs:
 
 <!--1. Title and short description -->
 
-<h3 text="Steam graph" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">Generate a steam graph</labelarea>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 
@@ -248,9 +248,9 @@ Inputs:
 
 <!--1. Title and short description -->
 
-<h3 text="Steam graph" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">Generate a steam graph</labelarea>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 
@@ -395,9 +395,9 @@ y values: values displayed on the y-axis
 
 <!--1. Title and short description -->
 
-<h3 text="Steam graph" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">Generate a steam graph</labelarea>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 
@@ -497,9 +497,9 @@ z values: values displayed ...
 
 <!--1. Title and short description -->
 
-<h3 text="Steam graph" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">Generate a steam graph</labelarea>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 
@@ -602,9 +602,9 @@ grouping column: column assotiating each measurement to a particular group.
 
 <!--1. Title and short description -->
 
-<h3 text="Steam graph" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">Generate a steam graph</labelarea>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 
