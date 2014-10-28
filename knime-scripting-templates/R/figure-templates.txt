@@ -11,10 +11,9 @@ This plot is useful for plotting the cumulative density function of up to 9 popu
 
 <!--1. Title and short description -->
 
-<h3 text="cumulative density function (cdf)" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">This plot is useful for plotting the cumulative density function of up to 5 populations and verify whether and how they differ
-This plot is useful for plotting the cumulative density function of up to 5 populations and verify whether and how they differ</labelarea>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 <!-- 2. Configuration-->
@@ -530,7 +529,7 @@ A simple box plot with Options:
 
 <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 <!-- 2. Configuration-->
