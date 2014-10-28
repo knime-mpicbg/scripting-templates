@@ -1,3 +1,98 @@
+########################################################################################
+# name: Compute the intersection of lists
+# author: Marc Bickle
+# category: relations
+# preview: 
+
+Computes the intersection of lists (for a Venn diagram use the corresponding Python plot). Accepts 2 or 3 columns of data and returns all possible intersections and the unique values.
+
+
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+<group>
+
+# b) Define what values to use
+features = [<panellistbox label="Features of interest" items="$$$ALL_ATTRIBUTES$$$" visible-row-count="5" span="full"/>]
+
+
+</group>
+
+<!-- 3. Script-->
+
+<![CDATA[
+
+
+
+import pandas as pd
+import numpy as np
+   
+
+kIn = pd.DataFrame(kIn.values(), index = kIn.keys()).T
+DF = kIn[features]
+
+
+
+if len(features) == 2:
+	set1 = DF[features[0]].dropna()
+	set2 = DF[features[1]].dropna()
+	commonset = "common set between " + features[0] + " and " + features[1]
+	uniqueset1 = "unique set of " + features[0]
+	uniqueset2 = "unique set of " + features[1]
+	common1_2 = list(set(set1)&set(set2))
+	unique1 = [x for x in set(set1) if x not in common1_2]
+	unique2 = [x for x in set(set2) if x not in common1_2]
+	result = {commonset: common1_2,
+          uniqueset1: unique1,
+          uniqueset2: unique2}
+elif len(features) == 3:
+	set1 = DF[features[0]].dropna()
+	set2 = DF[features[1]].dropna()
+	set3 = DF[features[2]].dropna()
+	commonset = "common set between " + features[0] + ", " + features[1] + " and " + features[2]
+	commonset1set2 = "common set between " + features[0] + " and " + features[1]
+	commonset1set3 = "common set between " + features[0] + " and " + features[2]
+	commonset2set3 = "common set between " + features[1] + " and " + features[2]
+	uniqueset1 = "unique set of " + features[0]
+	uniqueset2 = "unique set of " + features[1]
+	uniqueset3 = "unique set of " + features[2]
+	common1_2_3 =list(set(set1)&set(set2)&set(set3))
+	common1_2 = [x for x in list(set(set1)&set(set2)) if x not in common1_2_3]
+	common1_3 = [x for x in list(set(set1)&set(set3)) if x not in common1_2_3]
+	common2_3 = [x for x in list(set(set2)&set(set3)) if x not in common1_2_3]
+	unique1 = [x for x in set(set1) if x not in common1_2_3 + common1_2 + common1_3 + common2_3]
+	unique2 = [x for x in set(set2) if x not in common1_2_3 + common1_2 + common1_3 + common2_3]
+	unique3 = [x for x in set(set3) if x not in common1_2_3 + common1_2 + common1_3 + common2_3]
+	result = {commonset: common1_2_3,
+          commonset1set2: common1_2,
+          commonset1set3: common1_3,
+          commonset2set3: common2_3,
+          uniqueset1: unique1,
+          uniqueset2: unique2,
+          uniqueset3: unique3}
+else:
+	raise Exception("More than 3 categories in the data")
+pyOut = pd.DataFrame(result.values(), result.keys()).T
+
+
+]]>
+
+</rgg>
+
+########################################################################################
 # name: estimate gaussion intersection
 # author: Felix Meyenhofer
 # category: statistics
@@ -12,11 +107,9 @@ compute the histograms of random variables, fit a gaussian and compute the inter
 
 <!--1. Title and short description -->
 
-<h3 text="estimate gaussion intersection" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
-<labelarea span="full">compute the histograms of random variables, fit a gaussian and compute the intersection points.
-
-</labelarea>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
 
 
