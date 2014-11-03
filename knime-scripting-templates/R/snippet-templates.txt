@@ -172,7 +172,15 @@ final<-NULL
 groupValues <- unique(kIn[,group])
 combinations <- expand.grid(selReadouts, groupValues, groupValues)
 names(combinations) <- c("readout", "group1", "group2")
+
+# remove groups compared to itself (A vs A)
 combinations <- combinations[combinations$group1 != combinations$group2,]
+
+# remove duplicates (A vs B and B vs A)
+sortedGroups <- t(apply(combinations[,c("group1","group2")], 1, sort))
+combinations$g1 <- as.vector(sortedGroups[,1])
+combinations$g2 <- as.vector(sortedGroups[,2])
+combinations <- combinations[!duplicated(combinations[,c("readout", "g1", "g2")]),]
 
 ret <- apply(combinations, 1, function(groups) {
 	group1 <- groups["group1"]
