@@ -1,7 +1,7 @@
 ########################################################################################
 # name: Cumulative Density Function (cdf)
 # author: Marc Bickle, Antje Janosch
-# category: basic/distribution
+# category: basic/cdf
 # preview: 
 This plot is useful for plotting the cumulative density function of up to 9 populations and verify whether and how they differ
 
@@ -37,14 +37,19 @@ params =  c(<panellistbox label="Parameters" items="$$$NUM_ATTRIBUTES$$$" span="
 
 # R code
 
+
 library(ggplot2)
 library(reshape)
 
-data <- melt(kIn, id.vars = Group, measure.vars = params)
+paramIdx <- which(names(kIn) %in% params)
+groupIdx <- which(names(kIn) == Group)
 
-p <- ggplot(data, aes_string(x = "value", colour = Group)) + stat_ecdf() + facet_wrap( ~ variable, scales = "free") + scale_colour_brewer(palette="Set1")
-p <- p + theme_bw(base_size = 16)
+data <- melt(kIn, id.vars = groupIdx, measure.vars = paramIdx)
+
+p <- ggplot(data, aes(x = value, colour = get(Group))) + stat_ecdf() + facet_wrap( ~ variable, scales = "free") + scale_colour_brewer(palette="Set1")
+p <- p + theme_bw(base_size = 16) + labs(y = "Probability", color = Group)
 print(p)
+
 
 
 ]]>
