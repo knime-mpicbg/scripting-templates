@@ -44,7 +44,7 @@ platelist<-unique(kIn[,Group])
 Norm <- function(y) ((y-controlLow)/controlHigh)
 final<-NULL
 
-reference <- "DMSO"
+reference <- negCtrls
 if(!reference %in% kIn[,Treatment]) stop("Please change script to a valid reference string")
 
 for(i in 1:length(platelist)){
