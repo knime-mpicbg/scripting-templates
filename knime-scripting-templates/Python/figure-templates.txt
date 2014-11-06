@@ -47,13 +47,10 @@ from matplotlib_venn import venn2, venn2_unweighted, venn3, venn3_unweighted
 kIn = pd.DataFrame(kIn.values(), index = kIn.keys()).T
 DF = kIn[features]
 
-set1 = DF[features[0]]
-set1 = set(set1[~np.isnan(set1)])
-set2 = DF[features[1]]
-set2 = set(set2[~np.isnan(set2)])
+set1 = set(DF[features[0]].dropna())
+set2 = set(DF[features[1]].dropna())
 if len(features) == 3:
-	set3 = DF[features[2]]
-	set3 = set(set3[~np.isnan(set3)])
+	set3 = set(DF[features[2]].dropna())
 
 plt.figure(figsize=(4,4))
 
