@@ -2746,7 +2746,7 @@ for(factor in factors){
 		}
 
 	if(index == 1){      #is it bulk data?
-		plot(which(kIn[,catVar] == factor), kIn[which(kIn[,catVar] == factor), param], ylim = yAxisScale, main = title, xlab = "well index", ylab = names(kIn[param]), col = factorColors[index], pch = factorSymbols[index], xlim = c(1,max(as.numeric(rownames(kIn)))), cex = scaleFactors[1])
+		plot(which(kIn[,catVar] == factor), kIn[which(kIn[,catVar] == factor), param], ylim = yAxisScale, main = title, xlab = "well index", ylab = names(kIn[param]), col = factorColors[index], pch = factorSymbols[index], xlim = c(1,nrow(kIn)), cex = scaleFactors[1])
 		} else {
 		points(which(kIn[,catVar] == factor), kIn[which(kIn[,catVar] == factor), param], col = factorColors[index], pch = factorSymbols[index], bg = factorColors[index], cex = scaleFactors[2])
 		}
