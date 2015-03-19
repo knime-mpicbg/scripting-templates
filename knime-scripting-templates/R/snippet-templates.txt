@@ -1,4 +1,71 @@
 ########################################################################################
+# name: Calculate vector combinations
+# author: Martin Stoeter
+# category: calculators
+
+Calculates all combinations of unique values of selected column. Useful for generating a table for iteration of XY-plot (e.g. A,B,C will be A vs B, A vs C, B vs C)
+- unique_combinations: see above
+- all_combinations: also A vs A, B vs B, C vs C
+- combiSize: A, B, C, D; combiSize = 3 will be ABC, ABD, ACD, BCD (maximum of combiSize = 4 for all_combinations)
+- pairwise_with_second_column: all combinations of unique values of two columns (e.g. A, B, C and D, E, F will be A vs D, A vs E, ..., C vs F)
+######
+<rgg>
+
+<!--1. Title and short description -->
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+<group>
+# 1) select the column for combination
+<hbox>
+combiColumn = <combobox items="$$$ALL_ATTRIBUTES$$$" label="Column for combinations:" default-value=""/>
+combiSize = <textfield label="Fold combination:" data-type="text" default-value="2" size="10"/>
+</hbox>
+
+# 2) select type of combination
+<hbox>
+combiType = <combobox label="Type of combination" items="unique_combinations,all_combinations,pairwise_with_second_column"/>
+combiColumn2 = <combobox items="-NOT SELECTED-,$$$ALL_ATTRIBUTES$$$" label="Second column for pairwise combinations:" default-value=""/>
+</hbox>
+</group>
+
+<![CDATA[
+
+#2.0 R code
+#2.1 load libraries
+#2.2.1 manage RGG to R: define as numbers
+combiSize <- as.numeric(combiSize)
+#2.2.2 manage RGG to R: set values to default and check values
+if (is.na(combiSize) || (combiSize < 1)) combiSize <- 1
+if ((combiType == "unique_combinations") && (combiSize > length(unique(kIn[, combiColumn])))) combiSize <- length(unique(kIn[, combiColumn])) #prevent too many combinations
+
+#2.3. calulate
+if ((combiType == "unique_combinations")) {
+	rOut <- as.data.frame(t(combn(unique(kIn[, combiColumn]), combiSize)))
+	names(rOut) <- paste(combiColumn, names(rOut), sep="_")
+	}
+if ((combiType == "all_combinations")) {
+	if (combiSize == 1) rOut <- expand.grid(unique(kIn[, combiColumn]))
+	if (combiSize == 2) rOut <- expand.grid(unique(kIn[, combiColumn]), unique(kIn[, combiColumn]))
+	if (combiSize == 3) rOut <- expand.grid(unique(kIn[, combiColumn]), unique(kIn[, combiColumn]), unique(kIn[, combiColumn]))
+	if (combiSize >= 4) rOut <- expand.grid(unique(kIn[, combiColumn]), unique(kIn[, combiColumn]), unique(kIn[, combiColumn]), unique(kIn[, combiColumn]))
+	names(rOut) <- paste(combiColumn, names(rOut), sep="_")
+	}
+if ((combiType == "pairwise_with_second_column")) {
+	rOut <- expand.grid(unique(kIn[, combiColumn]), unique(kIn[, combiColumn2]))
+	names(rOut) <- c(combiColumn, combiColumn2)
+	}
+
+]]>
+</rgg>
+########################################################################################
 # name: Robust linear scaling (Percentile normalization)
 # author: Marc Bickle
 # category: normalization
