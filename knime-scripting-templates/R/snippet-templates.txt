@@ -274,6 +274,17 @@ rOut <- data.frame(do.call("rbind", ret))
 
 Gets the gene name, symbol, NewlocusID, CurrentRecord, LastUpdate, locusID, and species from NCBI data base
 
+- define column with gene IDs (all unique gene IDs will be queried)
+- define batch size for query (larger queries often give time-out error)
+
+Info from 'NCBI2R' package:
+	Warning:
+	These functions use NCBI's eutils, and come with the same user requirements - if performing many queries,
+	you must run the scripts during certain hours when the NCBI servers are not in high demand. 
+	Please see the package website for more details: http://NCBI2R.wordpress.com
+	Violation of the terms described there, and the terms on the eutils website may result in losing access 
+	to NCBI for your group. 
+
 Output: table from NCBI
 
 NOTE: requires R-library NCBI2R
@@ -300,6 +311,11 @@ NOTE: requires R-library NCBI2R
 
 geneIDcolumn = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Gene ID"/>
 
+
+# 2) define batch size
+batchSize = <textfield label="Batch size:" data-type="text" default-value= "10" size="10"/>
+
+
 </group>
 
 <![CDATA[
@@ -308,6 +324,8 @@ geneIDcolumn = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Gene ID"/>
 library(NCBI2R)
 
 #2.2.1 manage RGG to R: define as numbers
+batchSize <- as.numeric(batchSize)
+if(is.na(batchSize) || (batchSize < 1)) batchSize <- 10  #default
 
 #2.2.2 manage RGG to R: set values to default and check values
 ##geneIDs <- kIn[which(!is.na(kIn[,geneIDcolumn])),geneIDcolumn]
