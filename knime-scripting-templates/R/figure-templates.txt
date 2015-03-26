@@ -1340,10 +1340,10 @@ names(kIn)[factorIndex] <- "treatmentRinternalColumnName"
 	m <- ggplot(kIn, aes(x = paramRinternalColumnName)) + stat_density(aes(ymax = ..density..,  ymin = -..density..), fill = "grey50", colour = "grey20", geom = "ribbon", position = "identity") 
 	m <- m + scale_x_continuous(limits = yAxisScale)
 	m <- m + theme(axis.text.x  = element_text(angle=90, hjust=1.2, size=8))
-	m <- m + facet_grid(. ~ treatmentRinternalColumnName) + coord_flip() + opts(panel.grid.minor=theme_blank())
+	m <- m + facet_grid(. ~ treatmentRinternalColumnName) + coord_flip() + theme(panel.grid.minor=element_blank())
 
 	if (useJoinParameterToTitle) title <- paste(title, origNames[paramIndex])
-	m <- m + xlab(origNames[paramIndex]) + labs(fill = origNames[factorIndex]) + opts(title = title)	
+	m <- m + xlab(origNames[paramIndex]) + labs(fill = origNames[factorIndex]) + ggtitle(title)	
 
 	print(m)
 
