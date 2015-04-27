@@ -1890,8 +1890,8 @@ dat <- ddply(dat, c('X', 'Y'), function(d) {
 theme <- theme(panel.background = theme_rect(fill = "gray95"),
                       panel.grid.minor = theme_blank(),
                       legend.background = theme_rect(fill = "gray85"),
-                      axis.title.x = theme_text(colour = NA),
-                      axis.title.y = theme_text(colour = NA))
+                      axis.title.x = element_text(colour = NA),
+                      axis.title.y = element_text(colour = NA))
 
 #2.4.2 plot data
 p <- ggplot(dat, aes(x = x, y = y, colour = group)) + geom_point(alpha=alphaValue) + facet_grid(Y ~ X, scales='free') + theme
@@ -2063,7 +2063,7 @@ p <- p + coord_cartesian(ylim = yAxisScale)
 p <- p + stat_summary(fun.y = centralValue, geom = "line") 
 p <- p + stat_summary(fun.ymax = errorUpper, fun.ymin = errorLower, geom = "errorbar", width=0.25)
 p <- p + labs(x = parameterLabel, y = yLabel, colour = catVar)
-p <- p + theme(axis.text.x = theme_text(hjust = 1, angle = 90))
+p <- p + theme(axis.text.x = element_text(hjust = 1, angle = 90))
 #colorPaletteVector <- c("red", "blue", "darkgreen", "orange")
 #p <- p + scale_colour_manual(values = colorPaletteVector)
 if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
@@ -2298,8 +2298,8 @@ p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[
 #axis label options
 #p <- p + scale_x_discrete(name = xFactorCol)
 p <- p + labs(x = parameterLabel, y = yAxisLabel, colour = catVar)
-p <- p + theme(axis.title.x = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
-p <- p + theme(axis.text.x = theme_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = theme_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
+p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
 p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 
 #colorPaletteVector <- c("red", "blue", "darkgreen", "orange")
@@ -2477,7 +2477,7 @@ p <- p + stat_summary(fun.ymax = errorUpper, fun.ymin = errorLower, geom = "erro
 if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
 if (!is.na(hLines[2])) p <- p + geom_hline(yintercept = hLines[2])
 p <- p + labs(x = parameterLabel, y = yLabel)
-p <- p + theme(axis.text.x = theme_text(hjust = 1, angle = 90))
+p <- p + theme(axis.text.x = element_text(hjust = 1, angle = 90))
 p <- p + ggtitle(mainTitle) 
 p <- p + facet_wrap(~ catVar)
 print(p)
@@ -3484,8 +3484,8 @@ Layout Options:
 
 	#axis label options
 	p <- p + scale_x_discrete(name = xFactorCol)
-	p <- p + theme(axis.title.x = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = theme_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
-	p <- p + theme(axis.text.x = theme_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = theme_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
+	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
 	p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 
 	#legend
