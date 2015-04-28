@@ -3240,6 +3240,7 @@ Layout Options:
  - select background/theme and set general font size in plot (default = 14)
  - plot points or lines or both
  - set size and alpha value (transparency) of points, lines and error bars (default = [2,0.5,0.1] and [1,0.5,0.5])
+ - optional the rows and columns can be defined for the 2D grid
  - give plot title and title factor (default = 1.2)
  - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
  - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
@@ -3295,6 +3296,8 @@ Layout Options:
 	<hbox>
 	plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
 	plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+	twoDgridRow = c(<vector label="2D grid [row]:" size="1" default-value="-AUTO-"/>)
+	twoDgridColumn = c(<vector label="2D grid [column]:" size="1" default-value="-AUTO-"/>)
 	</hbox>
 
 	<separator label="Layout Options Title" span="full"/>
@@ -3369,6 +3372,11 @@ Layout Options:
 	if(!is.null(colourBy) && "-USE COLUMN SELECTION-" %in% colourBy) { colourCol <- NULL; colourFlag <- TRUE } else colourCol <- colourBy
 
 	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
+	# 2D grid options (define rows and columns)
+	if(is.na(as.numeric(twoDgridRow))) {twoDgridRow <- NULL  #e.g. is equal to "-AUTO-"
+		} else twoDgridRow <- round(as.numeric(twoDgridRow))
+	if(is.na(as.numeric(twoDgridColumn))) {twoDgridColumn <- NULL  #e.g. is equal to "-AUTO-"
+		} else twoDgridColumn <- round(as.numeric(twoDgridColumn))
 	
 	#2.2.2 manage RGG to R: set scales to default and check scales
 	if (is.na(pointLineSize[1]) | (pointLineSize[1] < 0) | (pointLineSize[1] > 40)) pointLineSize[1] <- 2
@@ -3463,7 +3471,7 @@ Layout Options:
 	}
 
 	if(!is.null(facetBy)) {
-		p <- p + facet_wrap(~ template.facet.column, scales=free.scales)
+		p <- p + facet_wrap(~ template.facet.column, nrow = twoDgridRow, ncol = twoDgridColumn, scales=free.scales)
 		fTitle <- paste("Grid factor: ",facetTitle,sep = "")
 		if(!is.null(plotTitle)) plotTitle <- paste(plotTitle,fTitle,sep = " / ") else plotTitle <- fTitle
 		p <- p + ggtitle(plotTitle)
