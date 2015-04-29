@@ -3224,7 +3224,6 @@ lapply(params, FUN = function (param) {
 # author: Martin Stoeter, modified from Antje Niederleins' Barplot 
 # category: basic/lineplots
 # preview: LinePlot.png
-BETA VERSION: NEED A LOT OF TESTS
 Flexible template to create a line plot or line plot grid with optional errorbars
 HINT: use GroupBy node to aggregated the data to e.g mean and sd columns 
 
@@ -3234,12 +3233,13 @@ Error bar checkbox - Draw errorbars?
 Error bar - Error bar values corresponding to the height values (same number of columns have to be selected)
 To use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
 x-axis - Label to put at the x-axis for each bar (mulitple columns can be selected to combine information)
-2D-grid grouping parameter - Allows to split the dataset into multiple plots by this condition (mulitple columns can be selected to combine information)
+2D-grid grouping parameter - Allows to split the dataset into multiple plots by this condition (multiple columns can be selected to combine information)
 bar colour - Colour bars by condition (mulitple columns can be selected to combine information)
 Layout Options: 
  - select background/theme and set general font size in plot (default = 14)
  - plot points or lines or both
  - set size and alpha value (transparency) of points, lines and error bars (default = [2,0.5,0.1] and [1,0.5,0.5])
+ - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_%28ggplot2%29/#rcolorbrewer-palette-chart )
  - optional the rows and columns can be defined for the 2D grid
  - give plot title and title factor (default = 1.2)
  - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
