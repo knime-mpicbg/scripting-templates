@@ -3284,6 +3284,7 @@ Layout Options:
 	xFactor = c(<listbox label="x-axis" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
 	facetBy = c(<listbox label="2D grid grouping parameters" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
 	colourBy = c(<listbox label="coloured by" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	<combobox var="colorPalette" items="ggplot default,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,KNIME colors" label="Color palette:"/>
 	</hbox>
 	
  	#diagram options
@@ -3371,6 +3372,43 @@ Layout Options:
 	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) { facetCol <- NULL; facetFlag <- TRUE } else facetCol <- facetBy
 	if(!is.null(colourBy) && "-USE COLUMN SELECTION-" %in% colourBy) { colourCol <- NULL; colourFlag <- TRUE } else colourCol <- colourBy
 
+	useKNIMEColors <- FALSE
+	if(colorPalette == "KNIME colors") useKNIMEColors <- FALSE #set this to TRUE once KNIME colors is tested
+
+	# for brewer palettes check possible values
+	nFactors <- length(colourCol)
+	library(RColorBrewer)
+	brewerTable <- do.call("cbind", brewer.pal.info)
+	rownames(brewerTable) <- rownames(brewer.pal.info)
+	if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
+		if (brewerTable[which(rownames(brewerTable) == colorPalette),"maxcolors"] < nFactors) colorPalette <- "ggplot default"
+	} else {
+		warningMessage <- paste("Color set '", colorPalette, "' cannot be used for ", nFactors, " different values. Color palette is reset to ggplot default", sep = "")
+		warning(warningMessage)
+		colorPalette <- "ggplot default"
+	}
+
+	if (useKNIMEColors) {
+		# check if color model is joined to data table
+		if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) {
+			colorPalette <- "standard"
+			warning("KNIME colors not available in input table, standard palette is used instead")
+			# if yes, generate color table from KNIME colors
+		} else { 
+			# check whether colors belong to grouping factor  
+			colorTable <- lapply(factors, FUN = function(x) {
+				subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)
+				if(length(unique(subdata$RGBA)) > 1) stop("KNIME color model does not fit to selected factor column")
+				subdata[1,]
+				})
+			# create color vector
+			names(colorTable) <- factors
+			colorTable <- do.call("rbind", colorTable)
+			factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, max =  255) 
+			names(factorColors) <- factors
+		}
+	}
+	
 	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
 	# 2D grid options (define rows and columns)
 	if(is.na(as.numeric(twoDgridRow))) {twoDgridRow <- NULL  #e.g. is equal to "-AUTO-"
@@ -3510,6 +3548,21 @@ Layout Options:
 		} else {
 		p <- p + theme(legend.position = legendPosition) 
 	}
+	
+	# color settings	
+	if(useKNIMEColors) {
+		p <- p + scale_color_manual(name = colourCol, labels = factors, values = factorColors)
+		p <- p + scale_fill_manual(name = colourCol, labels = factors, values = factorColors)
+	} else {
+		if(colorPalette == "ggplot default") {
+			p <- p + scale_color_discrete(name = colourCol)
+			p <- p + scale_fill_discrete(name = colourCol)
+		} else {
+			p <- p + scale_color_brewer(name = colourCol, palette = colorPalette) 
+			p <- p + scale_fill_brewer(name = colourCol, palette = colorPalette)
+		}
+	}
+	
 	print(p)
 
     ]]>
