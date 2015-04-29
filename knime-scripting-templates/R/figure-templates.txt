@@ -3239,7 +3239,7 @@ Layout Options:
  - select background/theme and set general font size in plot (default = 14)
  - plot points or lines or both
  - set size and alpha value (transparency) of points, lines and error bars (default = [2,0.5,0.1] and [1,0.5,0.5])
- - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_%28ggplot2%29/#rcolorbrewer-palette-chart )
+ - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot)/#rcolorbrewer-palette-chart )
  - optional the rows and columns can be defined for the 2D grid
  - give plot title and title factor (default = 1.2)
  - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
