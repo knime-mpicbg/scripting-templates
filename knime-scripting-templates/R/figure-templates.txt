@@ -257,6 +257,8 @@ x-axis - Label to put at the x-axis for each bar (mulitple columns can be select
 bar colour - Colour bars by condition (mulitple columns can be selected to combine information)
 Layout Options: 
  - select background/theme and set general font size in plot (default = 14)
+ - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#rcolorbrewer-palette-chart )
+ - optional the rows and columns can be defined for the 2D grid
  - give plot title and title factor (default = 1.2)
  - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
  - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
@@ -299,6 +301,7 @@ Layout Options:
 	xFactor = c(<listbox label="x-axis" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
 	facetBy = c(<listbox label="2D grid grouping parameters" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
 	colourBy = c(<listbox label="coloured by" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
+	<combobox var="colorPalette" items="ggplot default,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,KNIME colors" label="Color palette:"/>
 	</hbox>
 	
  	#diagram options
@@ -306,6 +309,8 @@ Layout Options:
 	<hbox>
 	plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
 	plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+	twoDgridRow = c(<vector label="2D grid [row]:" size="1" default-value="-AUTO-"/>)
+	twoDgridColumn = c(<vector label="2D grid [column]:" size="1" default-value="-AUTO-"/>)
 	</hbox>
 
 	<separator label="Layout Options Title" span="full"/>
@@ -354,6 +359,7 @@ Layout Options:
 	library(ggplot2)
 	library(reshape)
 	library(grid)
+	library(RColorBrewer)
 
 	#2.2.1 manage RGG to R: define as numbers / check input parameters
 	# check flow variables
@@ -379,7 +385,49 @@ Layout Options:
 	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) { facetCol <- NULL; facetFlag <- TRUE } else facetCol <- facetBy
 	if(!is.null(colourBy) && "-USE COLUMN SELECTION-" %in% colourBy) { colourCol <- NULL; colourFlag <- TRUE } else colourCol <- colourBy
 
+	useKNIMEColors <- FALSE
+	if(colorPalette == "KNIME colors") useKNIMEColors <- FALSE #set this to TRUE once KNIME colors is tested
+
+	# for brewer palettes check possible values
+	nFactors <- length(colourCol)
+	library(RColorBrewer)
+	brewerTable <- do.call("cbind", brewer.pal.info)
+	rownames(brewerTable) <- rownames(brewer.pal.info)
+	if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
+		if (brewerTable[which(rownames(brewerTable) == colorPalette),"maxcolors"] < nFactors) colorPalette <- "ggplot default"
+	} else {
+		warningMessage <- paste("Color set '", colorPalette, "' cannot be used for ", nFactors, " different values. Color palette is reset to ggplot default", sep = "")
+		warning(warningMessage)
+		colorPalette <- "ggplot default"
+	}
+
+	if (useKNIMEColors) {
+		# check if color model is joined to data table
+		if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) {
+			colorPalette <- "standard"
+			warning("KNIME colors not available in input table, standard palette is used instead")
+			# if yes, generate color table from KNIME colors
+		} else { 
+			# check whether colors belong to grouping factor  
+			colorTable <- lapply(factors, FUN = function(x) {
+				subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)
+				if(length(unique(subdata$RGBA)) > 1) stop("KNIME color model does not fit to selected factor column")
+				subdata[1,]
+				})
+			# create color vector
+			names(colorTable) <- factors
+			colorTable <- do.call("rbind", colorTable)
+			factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, max =  255) 
+			names(factorColors) <- factors
+		}
+	}
+	
 	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
+	# 2D grid options (define rows and columns)
+	if(is.na(as.numeric(twoDgridRow))) {twoDgridRow <- NULL  #e.g. is equal to "-AUTO-"
+		} else twoDgridRow <- round(as.numeric(twoDgridRow))
+	if(is.na(as.numeric(twoDgridColumn))) {twoDgridColumn <- NULL  #e.g. is equal to "-AUTO-"
+		} else twoDgridColumn <- round(as.numeric(twoDgridColumn))
 	
 	#2.2.2 manage RGG to R: set scales to default and check scales
 	if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
@@ -471,7 +519,7 @@ Layout Options:
 	}
 
 	if(!is.null(facetBy)) {
-		p <- p + facet_wrap(~ template.facet.column, scales=free.scales)
+		p <- p + facet_wrap(~ template.facet.column, nrow = twoDgridRow, ncol = twoDgridColumn, scales=free.scales)
 		fTitle <- paste("Grid factor: ",facetTitle,sep = "")
 		if(!is.null(plotTitle)) plotTitle <- paste(plotTitle,fTitle,sep = " / ") else plotTitle <- fTitle
 		p <- p + ggtitle(plotTitle)
@@ -510,7 +558,23 @@ Layout Options:
 		} else {
 		p <- p + theme(legend.position = legendPosition) 
 	}
+	
+	# color settings	
+	if(useKNIMEColors) {
+		p <- p + scale_color_manual(name = colourCol, labels = factors, values = factorColors)
+		p <- p + scale_fill_manual(name = colourCol, labels = factors, values = factorColors)
+	} else {
+		if(colorPalette == "ggplot default") {
+			p <- p + scale_color_discrete(name = colourCol)
+			p <- p + scale_fill_discrete(name = colourCol)
+		} else {
+			p <- p + scale_color_brewer(name = colourCol, palette = colorPalette) 
+			p <- p + scale_fill_brewer(name = colourCol, palette = colorPalette)
+		}
+	}
+
 	if(plotErrorMessage) p <- p + ggtitle("ERROR: NO DATA!!!")
+	
 	print(p)
 
     ]]>
@@ -3347,6 +3411,7 @@ Layout Options:
 	library(ggplot2)
 	library(reshape)
 	library(grid)
+	library(RColorBrewer)
 
 	#2.2.1 manage RGG to R: define as numbers / check input parameters
 	# check flow variables
@@ -3377,7 +3442,6 @@ Layout Options:
 
 	# for brewer palettes check possible values
 	nFactors <- length(colourCol)
-	library(RColorBrewer)
 	brewerTable <- do.call("cbind", brewer.pal.info)
 	rownames(brewerTable) <- rownames(brewer.pal.info)
 	if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
