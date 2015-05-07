@@ -204,10 +204,11 @@ Enter an additional title
 	if(!is.null(colourBy)) meanDataLong[,colourCol] <- factor(meanDataLong[,colourCol])
 	meanDataLong[,xFactorCol] <- factor(meanDataLong[,xFactorCol])
 
+	meanDataLong[,"ggplot_groupid"] <- 1 : nrow(meanDataLong)
 
 	# plot data
 	# -------------------------------------------------------------
-	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height))
+	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height, group = ggplot_groupid))
 
 	my.dodge <- position_dodge(width=0.9)
 	if(!is.null(colourBy)) {
@@ -505,9 +506,11 @@ Layout Options:
 	}
 	if(!is.null(colourBy)) meanDataLong[,colourCol] <- factor(meanDataLong[,colourCol])
 	meanDataLong[,xFactorCol] <- factor(meanDataLong[,xFactorCol])
+	
+	meanDataLong[,"ggplot_groupid"] <- 1 : nrow(meanDataLong)
 
 	#2.4.1 plot
-	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height))
+	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height, group = ggplot_groupid))
 
 	my.dodge <- position_dodge(width=0.9)
 	if(!is.null(colourBy)) {
