@@ -302,7 +302,7 @@ Layout Options:
 	xFactor = c(<listbox label="x-axis" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
 	facetBy = c(<listbox label="2D grid grouping parameters" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
 	colourBy = c(<listbox label="coloured by" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
-	<combobox var="colorPalette" items="ggplot default,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,KNIME colors" label="Color palette:"/>
+	<combobox var="colorPalette" items="ggplot default,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd,KNIME colors" label="Color palette:"/>
 	</hbox>
 	
  	#diagram options
@@ -2146,9 +2146,11 @@ print(p)
 # author: Holger Brandl, Antje Niederlein, Martin Stoeter              
 # category: screening/profiles
 # preview: group_means_parallel_plot.png
-BETA VERSION: NEED A LOT OF TESTS
 
-A parallel plot (aka profile plot) of means of different groups with errors bars. If robust statistics is checked the median and mad will be used instead of mean and sd. The y-axis limits are calculated from the input data, optional you can set the limits manually or calculate them from the plot data using min and max plotted valued (auto scale). Horizontal lines can be plotted optionally. 
+A parallel plot (aka profile plot) of means of different groups with or without errors bars. 
+If robust statistics is checked the median and mad will be used instead of mean and sd. 
+The y-axis limits are calculated from the input data, optional you can set the limits manually or calculate them from the plot data using min and max plotted valued (auto scale).
+Horizontal lines can be plotted optionally. 
 
 Inputs
 1) a grouping variable
@@ -2156,6 +2158,7 @@ Inputs
 3) option: use robust statistics
 
 Layout Options: 
+ - check to use robust statistics and to plot error bars 
  - select background/theme and set general font size in plot (default = 14)
  - set size and alpha value (transparency) of lines and error bars (default = [0.5,0.1] and [0.5,0.5])
  - give plot title and title factor (default = 1.2)
@@ -2180,8 +2183,6 @@ Layout Options:
 <gaprow height="1"/>
 
 # 1. Parameter selection
-#R debugging: delete all variables except kIn
-#rm(list=ls(all=TRUE)[which(ls(all=TRUE) != "kIn")])
 
 <group>
 
@@ -2192,7 +2193,11 @@ catVar = <combobox items="$$$STR_ATTRIBUTES$$$" label="Categorical variable of i
 parameters =  c(<panellistbox label="Assay parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
 
 # c) use robust statistics?
+<hbox>
 <checkbox label="robust statistics" var="robust" selected="false"/>
+<checkbox label="plot error bars" var="plotErrorBars" selected="true"/>
+<combobox var="colorPalette" items="ggplot default,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd,KNIME colors" label="Color palette:"/>
+</hbox>
 
 #diagram options
 <gaprow height="1"/>
@@ -2255,6 +2260,7 @@ rotateLegend = <checkbox label="rotate 90deg." selected="f"/>
 #2.1 load libaries
 library(ggplot2)
 library(reshape)
+library(RColorBrewer)
 
 #2.2.1 manage RGG to R: define as numbers
 
@@ -2279,6 +2285,43 @@ if (is.na(legendTextSizeFactor[2]) | (legendTextSizeFactor[2] < 0) | (legendText
 if (xAngle == 0 ) xAxisAjust <- c(0.5,1.0) #xAxisAjust = c(hjust,vjust)
 if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
 if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
+
+useKNIMEColors <- FALSE
+if(colorPalette == "KNIME colors") useKNIMEColors <- FALSE #set this to TRUE once KNIME colors is tested
+
+# for brewer palettes check possible values
+colourCol <- catVar
+nFactors <- length(colourCol)
+brewerTable <- do.call("cbind", brewer.pal.info)
+rownames(brewerTable) <- rownames(brewer.pal.info)
+if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
+	if (brewerTable[which(rownames(brewerTable) == colorPalette),"maxcolors"] < nFactors) colorPalette <- "ggplot default"
+} else {
+	warningMessage <- paste("Color set '", colorPalette, "' cannot be used for ", nFactors, " different values. Color palette is reset to ggplot default", sep = "")
+	warning(warningMessage)
+	colorPalette <- "ggplot default"
+}
+
+if (useKNIMEColors) {
+	# check if color model is joined to data table
+	if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) {
+		colorPalette <- "standard"
+		warning("KNIME colors not available in input table, standard palette is used instead")
+		# if yes, generate color table from KNIME colors
+	} else { 
+		# check whether colors belong to grouping factor  
+		colorTable <- lapply(factors, FUN = function(x) {
+			subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)
+			if(length(unique(subdata$RGBA)) > 1) stop("KNIME color model does not fit to selected factor column")
+			subdata[1,]
+			})
+		# create color vector
+		names(colorTable) <- factors
+		colorTable <- do.call("rbind", colorTable)
+		factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, max =  255) 
+		names(factorColors) <- factors
+	}
+}
 
 #2.3. calulate
 #define functions/methods to calculate central values and error bars
@@ -2350,16 +2393,17 @@ if(plotTheme == "grey"){
 	p <- p + theme_grey(base_size=plotTextSize[1])
 	} else {
 	p <- p + theme_bw(base_size=plotTextSize[1])
-p <- p + geom_line(aes(colour = factor(get(catVar)), group = get(catVar)), size = pointLineSize[1], alpha = alphaValue[1])}
+	}
 p <- p + coord_cartesian(ylim = yAxisScale)
 
 #error bars and horizontal lines
-p <- p + stat_summary(fun.y = centralValue, geom = "line") 
-p <- p + stat_summary(fun.ymax = errorUpper, fun.ymin = errorLower, geom = "errorbar", width = pointLineSize[2], alpha = alphaValue[2])
+p <- p + stat_summary(fun.y = centralValue, geom = "line", size = pointLineSize[1], alpha = alphaValue[1]) 
+if(plotErrorBars == TRUE) p <- p + stat_summary(fun.ymax = errorUpper, fun.ymin = errorLower, geom = "errorbar", width = pointLineSize[2], alpha = alphaValue[2])
 if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
 if (!is.na(hLines[2])) p <- p + geom_hline(yintercept = hLines[2])
 
 #title options
+p <- p + ggtitle(plotTitle) 
 p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
 
 #axis label options
@@ -2368,9 +2412,6 @@ p <- p + labs(x = parameterLabel, y = yAxisLabel, colour = catVar)
 p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
 p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
 p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
-
-#colorPaletteVector <- c("red", "blue", "darkgreen", "orange")
-#p <- p + scale_colour_manual(values = colorPaletteVector)
 
 #legend
 if(rotateLegend) {
@@ -2384,7 +2425,22 @@ if (useLegendCoordinate) {
 	} else {
 	p <- p + theme(legend.position = legendPosition) 
 	}
-
+	
+# color settings	
+colorPaletteVector <- c("red", "blue", "darkgreen", "orange")
+#p <- p + scale_colour_manual(values = colorPaletteVector)
+if(useKNIMEColors) {
+	p <- p + scale_color_manual(name = catVar, labels = factors, values = factorColors)
+	p <- p + scale_fill_manual(name = catVar, labels = factors, values = factorColors)
+	} else {
+	if(colorPalette == "ggplot default") {
+		p <- p + scale_color_discrete(name = catVar)
+		p <- p + scale_fill_discrete(name = catVar)
+		} else {
+		p <- p + scale_color_brewer(name = catVar, palette = colorPalette) 
+		p <- p + scale_fill_brewer(name = catVar, palette = colorPalette)
+		}
+	}
 print(p)
 
 ]]>
@@ -3351,7 +3407,7 @@ Layout Options:
 	xFactor = c(<listbox label="x-axis" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
 	facetBy = c(<listbox label="2D grid grouping parameters" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
 	colourBy = c(<listbox label="coloured by" items="-NO SELECTION-,-USE COLUMN SELECTION-,$$$STR_ATTRIBUTES$$$"/>)
-	<combobox var="colorPalette" items="ggplot default,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,KNIME colors" label="Color palette:"/>
+	<combobox var="colorPalette" items="ggplot default,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd,KNIME colors" label="Color palette:"/>
 	</hbox>
 	
  	#diagram options
@@ -3630,6 +3686,274 @@ Layout Options:
 		}
 	}
 	
+	print(p)
+
+    ]]>
+</rgg>
+########################################################################################
+# name: Heatmap / Plate Heatmap Plotter
+# author: Martin Stoeter
+# category: screening/heatmap
+# preview: Heatmap.png
+Plots heatmaps e.g. as 2D matrix with color code as variable.
+Can be used to plot plate heatmap if plateRow and plateColumn is chosen as 2D matrix. 
+
+Parameter:
+Define x-/y-axis columns to set up the 2D matrix of the heatmap
+ - spaces between axis ticks / labels can ge specified, -Auto- calculates that automatically, invert sets the direction of the column
+Define variable column that is plotted as as color in heatmap
+ - to use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
+ - define color for minimum values and for maximum value to use continuous color space
+ - or select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#rcolorbrewer-palette-chart )
+Layout Options: 
+ - select background/theme and set general font size in plot (default = 14)
+ - set size and alpha value (transparency) of points, lines and error bars (default = [2,0.5,0.1] and [1,0.5,0.5])
+ - give plot title and title factor (default = 1.2)
+ - x-axis text: angle, text size factor for x-/y-axis (default = 0.8) 
+ - give legend title, adjust position (fixed position outside diagram or free(range:0-1): [0.1,0.9] = top-left) and legend title/text size factor(default = 0.8) 
+HINT: usage as Plate Heatmap Plotter:
+ - use plateRow as y-axis and check invert
+ - use plateColunm as x-axis
+ - use variables for color or use flowvariable option to plot many heatmaps 
+######
+
+<rgg>
+
+    <!--1. Title and short description -->
+    <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+    <separator label="Description" span="full"/>
+    <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+    <gaprow height="1"/>
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    #1.0 Parameter selection
+	#R debugging: delete all variables except kIn
+	#rm(list=ls(all=TRUE)[which(ls(all=TRUE) != "kIn")])
+	<group>
+	
+	# define 2D matrix as grid for heatmap
+	<separator label="Define 2D matrix for heatmap" span="full"/>
+	<hbox>
+	xValue = <combobox items="$$$NUM_ATTRIBUTES$$$" label="x-axis:"/>
+	yValue = <combobox items="$$$NUM_ATTRIBUTES$$$" label="y-axis:"/>
+	</hbox>	
+	<gaprow height="2"/>
+	<hbox>
+	numberxAxisTickLabels = c(<vector label="range of tick labels on x-axis:" size="1" default-value="-AUTO-"/>)
+	numberyAxisTickLabels = c(<vector label="range of tick labels on y-axis:" size="1" default-value="-AUTO-"/>)
+	invertxAxisDirection = <checkbox label="invert x-axis direction" selected="f"/>	
+	invertyAxisDirection = <checkbox label="invert y-axis direction" selected="f"/>	
+	</hbox>
+		
+	# Define variable to be plotted as color
+	<separator label=" Variable column that is plottes as color" span="full"/>
+	<hbox> 
+	parameter = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Variable as color:"/>
+	#define use of flow variables
+	<checkbox label="use flow variable" var="useFlowVar" selected="false" />
+	<textfield label="color flow variable:" var="flowVariableParameter" data-type="text" default-value= "" size="10" />
+	</hbox>
+	
+	<hbox>
+	<textfield label="color for minimum:" var="minColor" data-type="text" default-value= "yellow" size="10" />
+	<textfield label="color for maximum:" var="maxColor" data-type="text" default-value= "red" size="10" />
+	<combobox var="colorPalette" items="default min-max,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd" label="Color palette:"/>
+	</hbox>
+ 	
+	#diagram options
+	<separator label="Layout Options General Plot" span="full"/>
+	<hbox>
+	plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
+	plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+	</hbox>
+	
+	<separator label="Layout Options Title" span="full"/>
+	<hbox>
+	<textfield label="plot title:" var="plotTitle" data-type="text" default-value= "" size="5"/>
+	plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default-value="1.2"/>))
+	</hbox>
+
+	<separator label="Layout Options Axes" span="full"/>	
+	<hbox>
+	xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "0,45,90"/>))
+	axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
+	</hbox>
+	
+	<hbox>
+	axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
+	</hbox>
+
+	<separator label="Layout Options Legend" span="full"/>
+	<hbox>
+	legendPosition = <combobox label = "legend position:" items = "right,top,botton,left,none"/>
+	useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
+	legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
+	</hbox>
+	
+	<hbox>
+	legendTitle = <textfield label="legend title:" data-type="text" default-value="" size="3"/>
+	legendTextSizeFactor = as.numeric(c(<vector label="text size [title,text]:" size="2" default-value="0.8,0.8"/>))
+	rotateLegend = <checkbox label="rotate 90deg." selected="f"/>
+	</hbox>
+
+	</group>
+
+	<![CDATA[
+	#2.0 R code	
+
+	#2.1 load libaries
+	library(ggplot2)
+	library(RColorBrewer)
+
+	#2.2.1 manage RGG to R: define as numbers / check input parameters
+	# check flow variables
+	if (useFlowVar && !is.na(flowVariableParameter)) {
+		if(flowVariableParameter %in% names(kIn)) parameter <- flowVariableParameter
+	}
+	
+	# for brewer palettes check possible values
+	if (colorPalette != "default min-max") {
+		brewerTable <- do.call("cbind", brewer.pal.info)
+		rownames(brewerTable) <- rownames(brewer.pal.info)
+		if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
+			maxNumberColors <- brewerTable[which(rownames(brewerTable) == colorPalette),"maxcolors"]
+		} 
+	}
+	
+	useKNIMEColors <- FALSE
+	if(colorPalette == "KNIME colors") useKNIMEColors <- FALSE #set this to TRUE once KNIME colors is tested
+
+	if (useKNIMEColors) {
+		# check if color model is joined to data table
+		if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) {
+			colorPalette <- "standard"
+			warning("KNIME colors not available in input table, standard palette is used instead")
+			# if yes, generate color table from KNIME colors
+		} else { 
+			# check whether colors belong to grouping factor  
+			colorTable <- lapply(factors, FUN = function(x) {
+				subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)
+				if(length(unique(subdata$RGBA)) > 1) stop("KNIME color model does not fit to selected factor column")
+				subdata[1,]
+				})
+			# create color vector
+			names(colorTable) <- factors
+			colorTable <- do.call("rbind", colorTable)
+			factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, max =  255) 
+			names(factorColors) <- factors
+		}
+	}
+	
+	#2.2.2 manage RGG to R: set scales to default and check scales
+	if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
+	if (is.na(plotTextSize[1]) | (plotTextSize[1] < 0) | (plotTextSize[1] > 40)) plotTextSize[1] <- 14
+	if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
+	if (is.na(as.numeric(numberxAxisTickLabels))) {
+		numberxAxisTickLabels <- 0  #e.g. is equal to "-AUTO-"
+		} else {
+		numberxAxisTickLabels <- as.numeric(numberxAxisTickLabels)
+		}
+	if (is.na(as.numeric(numberyAxisTickLabels))) {
+		numberyAxisTickLabels <- 0  #e.g. is equal to "-AUTO-"
+		} else {
+		numberyAxisTickLabels <- as.numeric(numberyAxisTickLabels)
+		}
+	if (is.na(axisTextSizeFactor[1]) | (axisTextSizeFactor[1] < 0) | (axisTextSizeFactor[1] > 5)) axisTextSizeFactor[1] <- 0.8
+	if (is.na(axisTextSizeFactor[2]) | (axisTextSizeFactor[2] < 0) | (axisTextSizeFactor[2] > 5)) axisTextSizeFactor[2] <- 0.8
+	if (is.na(axisTitleSizeFactor[1]) | (axisTitleSizeFactor[1] < 0) | (axisTitleSizeFactor[1] > 5)) axisTitleSizeFactor[1] <- 1
+	if (is.na(axisTitleSizeFactor[2]) | (axisTitleSizeFactor[2] < 0) | (axisTitleSizeFactor[2] > 5)) axisTitleSizeFactor[2] <- 1
+	if (is.na(legendCoordinate[1]) | is.na(legendCoordinate[2]) | (legendCoordinate[1] < 0) | (legendCoordinate[1] > 1) | (legendCoordinate[2] < 0) | (legendCoordinate[2] > 1)) useLegendCoordinate <- FALSE
+	if (is.na(legendTextSizeFactor[1]) | (legendTextSizeFactor[1] < 0) | (legendTextSizeFactor[1] > 5)) legendTextSizeFactor[1] <- 0.8
+	if (is.na(legendTextSizeFactor[2]) | (legendTextSizeFactor[2] < 0) | (legendTextSizeFactor[2] > 5)) legendTextSizeFactor[2] <- 0.8
+	if (xAngle == 0 ) xAxisAjust <- c(0.5,1.0) #xAxisAjust = c(hjust,vjust)
+	if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
+	if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
+	
+	#2.3. calulate
+	# create rowID column if needed
+	parameterCols <- c(xValue ,yValue , parameter)
+	x <- kIn[,xValue]
+	y <- kIn[,yValue]
+	z <- kIn[,parameter]
+	
+	#make axis label ticks / breaks for labelling the axes
+	xLevels <- nlevels(factor(x))
+	yLevels <- nlevels(factor(y))
+	if (numberxAxisTickLabels == 0) {
+		xBreacks <- seq(min(x), max(x), length.out = xLevels)
+		} else {
+		xBreacks <- seq(min(x), max(x), by = numberxAxisTickLabels)
+		}
+	if (numberyAxisTickLabels == 0) {
+		yBreacks <- seq(min(y), max(y), length.out = yLevels)
+		} else {
+		yBreacks <- seq(min(y), max(y), by = numberyAxisTickLabels)
+		}
+	if (invertxAxisDirection) xBreacks <- rev(xBreacks)
+	if (invertyAxisDirection) yBreacks <- rev(yBreacks)
+	
+	plotData <- data.frame(x,y,z)
+	
+	# define the color value ranges for color palette from ColorBrewer
+	if (colorPalette != "default min-max") plotData$col <- cut(plotData$z,breaks = seq(from = min(plotData$z), to = max(plotData$z)+0.000000001, length.out = maxNumberColors), right = FALSE)
+
+	#2.4.1 plot
+	#ggplot(plotData, aes(x=x, y=y)) + geom_tile(aes(fill=z)) + scale_fill_gradient(low="black", high="white")
+	p <- ggplot(plotData, aes(x=x, y=y)) 
+	if (colorPalette == "default min-max") {
+		p <- p + geom_raster(aes(fill=z)) + scale_fill_gradient(low = minColor, high = maxColor, name = "values") 
+		} else {
+		p <- p + geom_raster(aes(fill=col)) + scale_fill_brewer(palette = colorPalette)
+		}
+
+	#2.4.1 layout plot
+	#general
+	if(plotTheme == "grey"){
+		p <- p + theme_grey(base_size=plotTextSize[1])
+		} else {
+		p <- p + theme_bw(base_size=plotTextSize[1])
+	}
+
+	#title options
+	p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
+	if(is.null(plotTitle)) {
+		p <- p + ggtitle(parameter)
+		} else {
+		p <- p + ggtitle(plotTitle)
+		}
+	
+	#axis label options
+	if (invertxAxisDirection) {
+		p <- p + scale_x_reverse(xValue, breaks=xBreacks)
+		} else {
+		p <- p + scale_x_continuous(xValue, breaks=xBreacks)
+		}
+	if (invertyAxisDirection) {
+		p <- p + scale_y_reverse(yValue, breaks=yBreacks) + ggtitle(parameter)
+		} else {
+		p <- p + scale_y_continuous(yValue, breaks=yBreacks) + ggtitle(parameter)
+		}
+	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
+	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+
+	#legend
+	if(rotateLegend) {
+		p <- p + scale_color_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position="bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+		} else {
+		p <- p + scale_color_discrete(name = legendTitle)
+	}
+
+	p <- p + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	if (useLegendCoordinate) {
+		p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
+		} else {
+		p <- p + theme(legend.position = legendPosition) 
+	}
 	print(p)
 
     ]]>
