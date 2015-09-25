@@ -213,10 +213,10 @@ Enter an additional title
 	my.dodge <- position_dodge(width=0.9)
 	if(!is.null(colourBy)) {
 		p <- p + geom_bar(aes(fill = get(colourCol)), stat = "identity", position = my.dodge, colour = "black")
-		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high, group = get(colourCol)), position = my.dodge, width = 0.35)
-		} else {
+	} else {
 		p <- p + geom_bar(stat = "identity", position = my.dodge, colour = "black", fill = "grey")
-		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high), position = my.dodge, width = 0.35) }
+	}
+	if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high), position = my.dodge, width = 0.35)
 
 	p <- p + scale_x_discrete(name = xFactorCol)
 
@@ -515,11 +515,10 @@ Layout Options:
 	my.dodge <- position_dodge(width=0.9)
 	if(!is.null(colourBy)) {
 		p <- p + geom_bar(aes(fill = get(colourCol)), stat = "identity", position = my.dodge, colour = "black")
-		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high, group = get(colourCol)), position = my.dodge, width = 0.35)
-		} else {
+	} else {
 		p <- p + geom_bar(stat = "identity", position = my.dodge, colour = "black", fill = "grey")
-		if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high), position = my.dodge, width = 0.35) 
 	}
+	if(plot.Errorbars) p <- p + geom_errorbar(aes(ymin = low, ymax = high), position = my.dodge, width = 0.35)
 
 	if(!is.null(facetBy)) {
 		p <- p + facet_wrap(~ template.facet.column, nrow = twoDgridRow, ncol = twoDgridColumn, scales=free.scales)
