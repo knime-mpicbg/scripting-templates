@@ -1692,6 +1692,11 @@ columnHeader = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Selection column" /
 <checkbox label="automatic number of digits" var="autoNumberDigits" selected="false"/>
 </hbox>
 
+<hbox>
+<checkbox label="append column" var="appendColumn" selected="false" />
+<textfield label="add suffix:" var="newColumnSuffix" data-type="text" default-value= ".text" size="10" />
+</hbox>
+
 </group>
 
 <![CDATA[
@@ -1747,7 +1752,12 @@ if(autoNumberDigits) {
 	}
 
 charVec <- sapply(numVec, sortableNumberString, minus, lWidth, dWidth)
-kIn[,columnHeader] <- charVec   
+if(appendColumn) {
+	kIn <- cbind(kIn,charVec)
+	names(kIn)[ncol(kIn)] <- paste(columnHeader, newColumnSuffix, sep = "")
+	} else {
+	kIn[,columnHeader] <- charVec
+	}  
 #sort(charVec)
 rOut <- kIn
 
