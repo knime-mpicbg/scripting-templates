@@ -3667,10 +3667,10 @@ Layout Options:
 	p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
 
 	#axis label options
-	p <- p + scale_x_discrete(name = xFactorCol)
+	p <- p + labs(x = xFactorCol, y = yAxisLabel)
 	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
 	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
-	p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
+	if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale) #use e.g. limits = c(0,100)
 
 	#legend
 	if(!is.null(colourCol)) {  #legend title and rotation
