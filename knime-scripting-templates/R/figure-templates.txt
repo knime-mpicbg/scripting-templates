@@ -622,15 +622,25 @@ numAttributeName = <combobox items="$$$NUM_ATTRIBUTES$$$" label="Numeric variabl
 rawFactor = kIn$<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis factor"/>;
 <textfield label="Title of the plot:" var="plotTitle" data-type="text" default-value= "" size="10" span="full"/>
 useVerticalLabels =  <checkbox label="Use vertical labels" span="2" selected="false"/>;
-<vector label="y-axis scale:" var="yScale" size="2" vector-type="character"/>
 
 <hbox>
-<textfield label="Magnification factor (axis annotation):" var="axisAnnotationScale" data-type="number" default-value="1"/>
+<textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
+useParameternameAsAxisLabel = <checkbox label="use numeric variable name" selected="t"/>
+</hbox>
+
+<vector label="y-axis scale:" var="yScale" size="2" vector-type="character"/>
+
+<separator label="Text macnification factors" span="full"/>
+<hbox>
+<textfield label="Title:" var="mainTitleScale" data-type="number" default-value="1.4"/>
+<textfield label="Axis label:" var="axisLabelScale" data-type="number" default-value="1.2"/>
+<textfield label="Axis annotation:" var="axisAnnotationScale" data-type="number" default-value="1"/>
 <checkbox  label="Auto-magnification factor" var="useAutoAxisAnnotationScale" selected="false"/>
 </hbox>
 
-<textfield label="Color of histogram:" var="color" data-type="text" default-value= "lightblue" size="5"/>
-<vector label="margins (bottom, left, top, right):" var="margins" size="4" default-value="7,1,1,1" vector-type="character"/>
+<separator label="Color ann margins" span="full"/>
+<textfield label="Color of boxes:" var="color" data-type="text" default-value= "lightblue" size="5"/>
+<vector label="Margins (bottom, left, top, right):" var="margins" size="4" default-value="7,1,1,1" vector-type="character"/>
 
 </group>
 
@@ -646,18 +656,24 @@ useVerticalLabels =  <checkbox label="Use vertical labels" span="2" selected="fa
 #define as numbers
 yScale <- as.numeric(yScale)
 margins <- as.numeric(margins)
+mainTitleScale <- as.numeric(mainTitleScale)
+axisLabelScale <- as.numeric(axisLabelScale)
 axisAnnotationScale <- as.numeric(axisAnnotationScale)
+
 
 #2.2 manage RGG to R: set scales to default and check scales
 
 #set scales to default and check scales 
 if (is.na(yScale[1]) | is.na(yScale[2])) 	yScale <- NULL		#default
-if (is.na(axisAnnotationScale)) 	axisAnnotationScale <- 1		#default
 if (is.na(color)) color <- 'lightblue'
 if (is.na(margins[1]) | is.na(margins[2]) | is.na(margins[3]) | is.na(margins[4])) 	margins <- c(7,1,1,1)	#default
+if (useFlowVar) numAttributeName = flowVariable
+if (useParameternameAsAxisLabel) yAxisLabel <- numAttributeName
+if (is.na(mainTitleScale) | mainTitleScale <= 0) mainTitleScale <- 1.4	#default
+if (is.na(axisLabelScale) | axisLabelScale <= 0) axisLabelScale <- 1.2	#default
+if (is.na(axisAnnotationScale) | axisAnnotationScale <= 0) axisAnnotationScale <- 1.0	#default
 
 #3. calulate
-if (useFlowVar) numAttributeName = flowVariable
 numAttribute <- kIn[,which(names(kIn) == numAttributeName)]
 
 factor = factor(rawFactor, levels=unique(rawFactor))
@@ -672,9 +688,9 @@ par(oma=margins)
 #4.2 plot data
 
 if(length(kIn[which(!is.na(numAttribute)),1]) > 0) {#check if data is there	
-	boxplot(numAttribute ~ factor, main =plotTitle, col = color, ylim = yScale, ylab = numAttributeName, cex.axis = axisAnnotationScale, las = ifelse(useVerticalLabels, 2, 1));
+	boxplot(numAttribute ~ factor, main = plotTitle, col = color, ylim = yScale, ylab = yAxisLabel, cex.main = mainTitleScale, cex.lab = axisLabelScale, cex.axis = axisAnnotationScale, las = ifelse(useVerticalLabels, 2, 1));
 	} else {
-	plot(0,0, main = plotTitle, col = color, ylab = numAttributeName, las = ifelse(useVerticalLabels, 2, 1))	
+	plot(0,0, main = plotTitle, col = color, ylab = yAxisLabel, las = ifelse(useVerticalLabels, 2, 1))	
 	text(0,0,"no data", col = "black")
 	}
 
@@ -3702,10 +3718,12 @@ Define x-/y-axis columns to set up the 2D matrix of the heatmap
  - spaces between axis ticks / labels can ge specified, -Auto- calculates that automatically, invert sets the direction of the column
 Define variable column that is plotted as as color in heatmap
  - to use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
- - define color for minimum values and for maximum value to use continuous color space
+ - define color for minimum, middle and maximum value to use continuous color space
  - or select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#rcolorbrewer-palette-chart )
+ - if 'default min-max' is selected calculation method for middle color can be chosen or custom value set
 Layout Options: 
- - select background/theme and set general font size in plot (default = 14)
+ - select background/theme and set general font size in plot (default = 14) (see: http://www.sthda.com/english/wiki/ggplot2-themes-and-background-colors-the-3-elements)
+ - theme 'nothing' just plots the heatmap without any labels
  - set size and alpha value (transparency) of points, lines and error bars (default = [2,0.5,0.1] and [1,0.5,0.5])
  - give plot title and title factor (default = 1.2)
  - x-axis text: angle, text size factor for x-/y-axis (default = 0.8) 
@@ -3759,15 +3777,21 @@ HINT: usage as Plate Heatmap Plotter:
 	</hbox>
 	
 	<hbox>
-	<textfield label="color for minimum:" var="minColor" data-type="text" default-value= "yellow" size="10" />
-	<textfield label="color for maximum:" var="maxColor" data-type="text" default-value= "red" size="10" />
+	<textfield label="color for minimum:" var="minColor" data-type="text" default-value= "blue" size="8" />
+	<textfield label="color for middle:" var="midColor" data-type="text" default-value= "white" size="8" />
+	<textfield label="color for maximum:" var="maxColor" data-type="text" default-value= "red" size="8" />
 	<combobox var="colorPalette" items="default min-max,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd" label="Color palette:"/>
 	</hbox>
  	
+	<hbox>
+	calulationMidValue = <combobox label = "calculated middle color:" items = "min+max/2,mean,median,custom"/>
+	<textfield label="custom value for middle color:" var="midValue" data-type="text" default-value= "0" size="8" />
+	</hbox>
+	
 	#diagram options
 	<separator label="Layout Options General Plot" span="full"/>
 	<hbox>
-	plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
+	plotTheme = <combobox items="grey,black-white,linedraw,light,minimal,classic,nothing" label="background/theme:"/>
 	plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
 	</hbox>
 	
@@ -3795,7 +3819,7 @@ HINT: usage as Plate Heatmap Plotter:
 	</hbox>
 	
 	<hbox>
-	legendTitle = <textfield label="legend title:" data-type="text" default-value="" size="3"/>
+	legendTitle = <textfield label="legend title:" data-type="text" default-value="values" size="3"/>
 	legendTextSizeFactor = as.numeric(c(<vector label="text size [title,text]:" size="2" default-value="0.8,0.8"/>))
 	rotateLegend = <checkbox label="rotate 90deg." selected="f"/>
 	</hbox>
@@ -3899,24 +3923,32 @@ HINT: usage as Plate Heatmap Plotter:
 	plotData <- data.frame(x,y,z)
 	
 	# define the color value ranges for color palette from ColorBrewer
-	if (colorPalette != "default min-max") plotData$col <- cut(plotData$z,breaks = seq(from = min(plotData$z), to = max(plotData$z)+0.000000001, length.out = maxNumberColors), right = FALSE)
+	if (colorPalette != "default min-max") {
+		plotData$col <- cut(plotData$z,breaks = seq(from = min(plotData$z), to = max(plotData$z)+0.000000001, length.out = maxNumberColors), right = FALSE)
+		} else {
+		if (calulationMidValue == "min+max/2") midValue <- (min(plotData$z, na.rm = TRUE) + max(plotData$z, na.rm = TRUE)) / 2
+		if (calulationMidValue == "mean") midValue <- mean(plotData$z, na.rm = TRUE)
+		if (calulationMidValue == "median") midValue <- median(plotData$z, na.rm = TRUE)
+		if (calulationMidValue == "custom") midValue <- midValue
+		}
 
 	#2.4.1 plot
 	#ggplot(plotData, aes(x=x, y=y)) + geom_tile(aes(fill=z)) + scale_fill_gradient(low="black", high="white")
 	p <- ggplot(plotData, aes(x=x, y=y)) 
 	if (colorPalette == "default min-max") {
-		p <- p + geom_raster(aes(fill=z)) + scale_fill_gradient(low = minColor, high = maxColor, name = "values") 
+		p <- p + geom_raster(aes(fill=z)) + scale_fill_gradient2(low = minColor, mid = midColor, high = maxColor, midpoint = midValue, name = legendTitle) 
 		} else {
 		p <- p + geom_raster(aes(fill=col)) + scale_fill_brewer(palette = colorPalette)
 		}
 
 	#2.4.1 layout plot
 	#general
-	if(plotTheme == "grey"){
-		p <- p + theme_grey(base_size=plotTextSize[1])
-		} else {
-		p <- p + theme_bw(base_size=plotTextSize[1])
-	}
+	if(plotTheme == "grey")	p <- p + theme_grey(base_size=plotTextSize[1])
+	if(plotTheme == "black-white")	p <- p + theme_bw(base_size=plotTextSize[1])
+	if(plotTheme == "linedraw")	p <- p + theme_linedraw(base_size=plotTextSize[1])	
+	if(plotTheme == "light")	p <- p + theme_light(base_size=plotTextSize[1])
+	if(plotTheme == "minimal")	p <- p + theme_minimal(base_size=plotTextSize[1])
+	if(plotTheme == "classic")	p <- p + theme_classic(base_size=plotTextSize[1])	
 
 	#title options
 	p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
@@ -3953,6 +3985,12 @@ HINT: usage as Plate Heatmap Plotter:
 		} else {
 		p <- p + theme(legend.position = legendPosition) 
 	}
+	
+	if(plotTheme == "nothing")	{
+		p <- p + theme_classic()
+		p <- p + theme(line = element_blank(), text = element_blank(), line = element_blank(), title = element_blank(), legend.position = "none")
+	}
+	
 	print(p)
 
     ]]>
