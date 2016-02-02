@@ -42,27 +42,27 @@ combiColumn2 = <combobox items="-NOT SELECTED-,$$$ALL_ATTRIBUTES$$$" label="Seco
 #2.1 load libraries
 #2.2.1 manage RGG to R: define as numbers
 combiSize <- as.numeric(combiSize)
+uniqueCombiColumn <- as.character(unique(kIn[, combiColumn]))
 #2.2.2 manage RGG to R: set values to default and check values
 if (is.na(combiSize) || (combiSize < 1)) combiSize <- 1
-if ((combiType == "unique_combinations") && (combiSize > length(unique(kIn[, combiColumn])))) combiSize <- length(unique(kIn[, combiColumn])) #prevent too many combinations
+if ((combiType == "unique_combinations") && (combiSize > length(uniqueCombiColumn))) combiSize <- length(uniqueCombiColumn) #prevent too many combinations
 
 #2.3. calulate
 if ((combiType == "unique_combinations")) {
-	rOut <- as.data.frame(t(combn(unique(kIn[, combiColumn]), combiSize)))
+	rOut <- as.data.frame(t(combn(uniqueCombiColumn, combiSize)))
 	names(rOut) <- paste(combiColumn, names(rOut), sep="_")
 	}
 if ((combiType == "all_combinations")) {
-	if (combiSize == 1) rOut <- expand.grid(unique(kIn[, combiColumn]))
-	if (combiSize == 2) rOut <- expand.grid(unique(kIn[, combiColumn]), unique(kIn[, combiColumn]))
-	if (combiSize == 3) rOut <- expand.grid(unique(kIn[, combiColumn]), unique(kIn[, combiColumn]), unique(kIn[, combiColumn]))
-	if (combiSize >= 4) rOut <- expand.grid(unique(kIn[, combiColumn]), unique(kIn[, combiColumn]), unique(kIn[, combiColumn]), unique(kIn[, combiColumn]))
+	if (combiSize == 1) rOut <- expand.grid(uniqueCombiColumn)
+	if (combiSize == 2) rOut <- expand.grid(uniqueCombiColumn, uniqueCombiColumn)
+	if (combiSize == 3) rOut <- expand.grid(uniqueCombiColumn, uniqueCombiColumn, uniqueCombiColumn)
+	if (combiSize >= 4) rOut <- expand.grid(uniqueCombiColumn, uniqueCombiColumn, uniqueCombiColumn, uniqueCombiColumn)
 	names(rOut) <- paste(combiColumn, names(rOut), sep="_")
 	}
 if ((combiType == "pairwise_with_second_column")) {
-	rOut <- expand.grid(unique(kIn[, combiColumn]), unique(kIn[, combiColumn2]))
+	rOut <- expand.grid(uniqueCombiColumn, unique(kIn[, combiColumn2]))
 	names(rOut) <- c(combiColumn, combiColumn2)
 	}
-
 ]]>
 </rgg>
 ########################################################################################
