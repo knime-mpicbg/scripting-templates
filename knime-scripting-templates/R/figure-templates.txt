@@ -3995,3 +3995,112 @@ HINT: usage as Plate Heatmap Plotter:
 
     ]]>
 </rgg>
+
+########################################################################################
+# name: 5D-Scatterplot (beta)
+# author: Antje Janosch
+# category: scatterplots
+# preview: scatterplot.png
+
+A simple scatterplot which is able to use KNIME-color , -shape and -size model (requires minimum version 3.0.0. for R-scripting integration)
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="5D-Scatterplot" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">a description</labelarea>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="1"/>
+
+#1.0 Parameter selection
+
+<group>
+
+# b) X-Axis
+x.col = c(<combobox items="$$$ALL_ATTRIBUTES$$$" label="X-Axis"/>)
+y.col = c(<combobox items="$$$ALL_ATTRIBUTES$$$" label="Y-Axis"/>)
+<checkbox  label="use KNIME color model" var="color.model" selected="false"/>
+<checkbox  label="use KNIME size model" var="size.model" selected="false"/>
+<checkbox  label="use KNIME shape model" var="shape.model" selected="false"/>
+<textfield label="Title of plot:" var="plot.title" data-type="text" default-value= "" size="1"/>
+<textfield label="Rotation angle for x axis labels:" var="x_angle" data-type="number" default-value="0"/>
+</group>
+
+<![CDATA[
+
+library(ggplot2)
+library(scales)
+
+x_angle <- as.numeric(x_angle)
+
+if(size.model && !exists("kIn.size.model")) 
+	warning("No KNIME size model provided.")
+if(color.model && !exists("kIn.color.model")) 
+	warning("No KNIME color model provided.")
+if(shape.model && !exists("kIn.shape.model")) 
+	warning("No KNIME shape model provided.")
+
+keep <- c(x = x.col,y = y.col)
+
+if(size.model & exists("kIn.size.model")) {
+	keep <- c(keep, size = kIn.size.model)
+} else size.model <- FALSE
+if(color.model & exists("kIn.color.model")) {
+	keep <- c(keep, color = names(kIn.color.model)[1])
+} else color.model <- FALSE
+if(shape.model & exists("kIn.shape.model")) {
+	keep <- c(keep, shapeVal = names(kIn.shape.model)[1])
+}else shape.model <- FALSE
+
+data <- kIn[,match(keep, names(kIn))]
+names(data) <- names(keep)
+
+if(size.model) {
+	my.trans <- trans_new("KNIME size model", "kIn.size.model.fun", function(x) x)
+}
+
+color.model.discrete <- FALSE
+if(color.model) {
+	kIn.color.model$color <- as.character(kIn.color.model$color)
+	if(!is.numeric(kIn.color.model[,1])) color.model.discrete <- TRUE
+}
+
+if(shape.model) {
+	data <- merge(data, kIn.shape.model, by.x = "shapeVal", by.y = names(kIn.shape.model)[1])
+	data$pch <- factor(data$pch)
+	shapeValues <- kIn.shape.model$pch[match(levels(data$shapeVal),kIn.shape.model[,1])]
+}
+
+
+p <- ggplot(data, aes(x = x, y = y)) + geom_point()
+#geom_point(aes(size = size, color = color, shape = shapeVal))
+if(size.model) {
+	p <- p + aes(size = size)
+	p <- p + scale_size_identity(kIn.size.model, trans = my.trans, guide = "legend")
+}
+if(color.model) {
+	p <- p + aes(color = color)
+	if(color.model.discrete) {
+		col.vec <- kIn.color.model[,2]
+		names(col.vec) <- kIn.color.model[,1]
+		p <- p + scale_color_manual(names(kIn.color.model)[1], values = col.vec)
+	} else {
+		p <- p + scale_color_gradient(names(kIn.color.model)[1], low = kIn.color.model$color[1], high = kIn.color.model$color[2])
+	}
+}
+if(shape.model) {
+	p <- p + aes(shape = shapeVal)
+	p <- p + scale_shape_manual(names(kIn.shape.model)[1], values = shapeValues)
+}
+p <- p + theme(axis.text.x = element_text(angle = x_angle, hjust = 1))
+p <- p + labs(title = plot.title, x = x.col, y = y.col)
+print(p)
+
+]]>
+</rgg>
