@@ -1,0 +1,59 @@
+########################################################################################
+# name: Hierarchical Clustering (no rgg)
+# author: Antje Janosch
+# category: clustering
+
+this template does a hierarchical clustering (k = 4)
+######
+
+# numeric columns only
+data <- kIn[,-which(names(kIn) == "Species")]
+
+# distance matrix
+dm <- dist(data)
+# hierarchical clustering
+hcl <- hclust(dm, method = "average")
+# assign four clusters
+clusters <- cutree(hcl, k = 4)
+
+kIn$clusterID <- clusters
+
+rOut <- kIn
+
+
+########################################################################################
+# name: Hierarchical Clustering (with rgg)
+# author: Antje Janosch
+# category: clustering
+
+this template does a hierarchical clustering for different k
+######
+
+<rgg>
+<group>
+<h1 text="Hierarchical clustering with RGG" span="full"/>
+<labelarea span="full">This template does a hierarchical clustering.
+Choose the input columns for clustering and the final cluster size.</labelarea>
+<vector  var="k" label="Number of clusters"
+size="5" default-value="3,5,7,8,9" vector-type="numeric"/>
+selectedColumns = c(<panellistbox items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+</group>
+
+<![CDATA[
+# numeric columns only
+data <- kIn[,which(names(kIn) %in% selectedColumns)]
+
+# distance matrix
+dm <- dist(data)
+# hierarchical clustering
+hcl <- hclust(dm, method = "average")
+
+# assign clusters
+cl <- sapply(k, function(x) {
+	clusters <- cutree(hcl, k = x)
+})
+colnames(cl) <- paste("k_",k)
+
+rOut <- cbind(kIn,cl)
+]]>
+</rgg>
