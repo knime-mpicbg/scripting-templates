@@ -3965,9 +3965,9 @@ HINT: usage as Plate Heatmap Plotter:
 		p <- p + scale_x_continuous(xValue, breaks=xBreacks)
 		}
 	if (invertyAxisDirection) {
-		p <- p + scale_y_reverse(yValue, breaks=yBreacks) + ggtitle(parameter)
+		p <- p + scale_y_reverse(yValue, breaks=yBreacks)
 		} else {
-		p <- p + scale_y_continuous(yValue, breaks=yBreacks) + ggtitle(parameter)
+		p <- p + scale_y_continuous(yValue, breaks=yBreacks)
 		}
 	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
 	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
