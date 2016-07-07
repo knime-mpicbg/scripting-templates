@@ -546,6 +546,13 @@ Layout Options:
 	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
 	if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 
+	# fixing the y-axis labeling, make parameter name or custom y-axis label instead of "height"
+	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) {
+		p <- p + scale_y_continuous(name = "height") 
+	} else {
+		p <- p + scale_y_continuous(name = yAxisLabel)   
+	}
+	
 	#legend
 	if(!is.null(colourCol)) {  #legend title and rotation
 		if(rotateLegend) {
