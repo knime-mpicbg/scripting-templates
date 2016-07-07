@@ -547,7 +547,7 @@ Layout Options:
 	if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 
 	# fixing the y-axis labeling, make parameter name or custom y-axis label instead of "height"
-	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) {
+	if((!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy )|| length(barHeight) > 1) {
 		p <- p + scale_y_continuous(name = "height") 
 	} else {
 		p <- p + scale_y_continuous(name = yAxisLabel)   
