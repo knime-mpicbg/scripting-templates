@@ -723,6 +723,9 @@ subsetTreatment = <combobox label="b) Subset of column 'treatment'" items="-NOT 
 library(car)
 library(alr3)
 
+#ensure randomness
+set.seed( as.integer((as.double(Sys.time())*1000+Sys.getpid()) %% 2^31) )
+
 #2.2.1 manage RGG to R: define as numbers
 
 #2.2.2 manage RGG to R: set values to default and check values
