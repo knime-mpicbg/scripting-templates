@@ -735,25 +735,25 @@ allGroups <- unique(data[,group])
 
 if (transformation == "project_to_Gaussian") {
 
-	#calc max number of values per group
-	maxNumberOfValues <- list()
-	for (i in 1:(length(allGroups))) {
-		maxNumberOfValues[[i]] <- data.frame(columnName = allGroups[i], values = length(which(data[,group] == allGroups[i]))) 
-		}
-	maxNumberOfValues <- do.call("rbind", maxNumberOfValues) 
-
-	#calc z rank normalization per group
-	for (i in 1:(length(allGroups))) {	
-		#generate normal distributes data (100-fold resolution of number of value in group)
-		normData <- sort(rnorm((maxNumberOfValues[i, "values"]+1)*100, mean = 0, sd = 1))	
-	
-		for (param in 1:(length(selectedParams))) {
-			#replace raw values with projected raw data to normal distribution
-			temp <- data.frame(rowID = which(data[,group] == allGroups[i]), values = data[which(data[,group] == allGroups[i]), selectedParams[param]], rank = as.integer(rank(data[which(data[,group] == allGroups[i]), selectedParams[param]])), normData = normData[as.integer(rank(data[which(data[,group] == allGroups[i]), selectedParams[param]]))*100+50])
-			data[temp[,"rowID"], selectedParams[param]] <- temp[,"normData"] 
-			}
-		}
-		transformedNames <- paste(names(data)[selectedParams], '.zrank', sep = "") #project_to_Gaussian	
+    #calc z rank normalization per group
+    for (i in 1:(length(allGroups))) {	
+        # get number of values in that group
+        curGroup <- allGroups[i]
+        groupData <-which(data[,group] == curGroup)
+        nValues <- length(groupData)
+        #generate normal distributes data (100-fold resolution of number of value in group)
+        normData <- sort(rnorm(nValues*100, mean = 0, sd = 1))	
+        
+        for (param in 1:(length(selectedParams))) {
+            #replace raw values with projected raw data to normal distribution
+            rawValues <- data[groupData, selectedParams[param]]
+            rankVals <- as.integer(rank(rawValues))
+            transformedData <- normData[rankVals*100-50]
+            temp <- data.frame(rowID = groupData, values = rawValues, rank = rankVals, normData = transformedData)
+            data[temp[,"rowID"], selectedParams[param]] <- temp[,"normData"] 
+        }
+    }
+    transformedNames <- paste(names(data)[selectedParams], '.zrank', sep = "") #project_to_Gaussian	
 
 	} else {
 	
