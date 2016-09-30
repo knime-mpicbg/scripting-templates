@@ -449,7 +449,7 @@ Layout Options:
 	if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
 	if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
 
-	#2.3. calulate
+	#2.3 calculate
 	# create rowID column if needed
 	if("-ROW ID-" %in% xFactorCol) kIn[,"-ROW ID-"] <- rownames(kIn)
 
@@ -680,7 +680,7 @@ if (is.na(mainTitleScale) | mainTitleScale <= 0) mainTitleScale <- 1.4	#default
 if (is.na(axisLabelScale) | axisLabelScale <= 0) axisLabelScale <- 1.2	#default
 if (is.na(axisAnnotationScale) | axisAnnotationScale <= 0) axisAnnotationScale <- 1.0	#default
 
-#3. calulate
+#3. calculate
 numAttribute <- kIn[,which(names(kIn) == numAttributeName)]
 
 factor = factor(rawFactor, levels=unique(rawFactor))
@@ -891,7 +891,7 @@ if (useFlowVarNumAttributeName) numAttributeName <- flowVariableNumAttributeName
 if (useFlowVarRawFactor) rawFactor <- flowVariableRawFactor
 if (useFlowVarGridFactor) gridFactor <- flowVariableGridFactor
 
-#3. calulate
+#3. calculate
 parallelFactor <- factor(rawFactor, levels=unique(rawFactor));
 numAttribute = eval(parse(text = paste("kIn$\"", numAttributeName, "\"", sep = '')))
 
@@ -999,7 +999,7 @@ if (colorPalette == "KNIME colors") {
 	if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) colorPalette <- "standard"
 	} 
 
-#2.3. calulate
+#2.3 calculate
 if (colorPalette == "KNIME colors") {
 	#generate color table from KNIME colors
 	colorTable <- lapply(factors, FUN = function(x) {
@@ -1399,7 +1399,7 @@ if (is.na(yAxisScaleFactors[5]) | (useDefaultyAxisScale)) yAxisScaleFactors[5] <
 
 if (is.na(title)) title <- NULL
 
-#2.3. calulate
+#2.3 calculate
 #reshape table and column names to make it work with ggplot(aes(...))
 paramIndex <- which(names(kIn) %in% params)
 origNames <- names(kIn)
@@ -1565,7 +1565,7 @@ if ((category != "treatment") && (is.null(errorMessage))) {
 if ((is.null(caseVar)) && (is.null(errorMessage))) errorMessage <- "Select at least one positive control"
 if (!(controlVar %in% kIn[,category]) && (is.null(errorMessage))) errorMessage <- paste("Didnt find negative control value in column ", category, sep="")
 
-#2.3. calulate
+#2.3 calculate
 if ((useJoinParameterToTitle) && (length(parameter) == 1)) titleLabel <- paste(titleLabel,": (", parameter,")", sep="")
 if (useJoinNegativeControlToXAxis) xAxisLabel <- paste(xAxisLabel,"(", controlVar,")", sep="")
 
@@ -1945,7 +1945,7 @@ library(reshape)
 library(ggplot2)
 
 #2.1.2 Define the data
-#see 2.3. calulate
+#see 2.3 calculate
 
 #2.2.1 manage RGG to R: define as numbers
 params <- numericColumns
@@ -1958,7 +1958,7 @@ if (setColorPaletteManual) {
 	if(length(colorPaletteVector) > length(unique(kIn[,groupColumn]))) colorPaletteVector <- colorPaletteVector[1:length(unique(kIn[,groupColumn]))]
 	}
 
-#2.3. calulate
+#2.3 calculate
 completeDF <- kIn[complete.cases(kIn[,params]),]
 
 dat <- data.frame(t(combn(params, 2)))
@@ -2082,7 +2082,7 @@ if (is.na(yAxisScale[1]) | is.na(yAxisScale[2])) 	yAxisScale <- NULL
 if (is.na(yLabel))	yLabel <- NULL
 if (is.na(mainTitle))	mainTitle <- NULL
 
-#2.3. calulate
+#2.3 calculate
 #define functions/methods to calculate central values and error bars
 if (robust == FALSE) {
 	#none robust statistics
@@ -2345,7 +2345,7 @@ if (useKNIMEColors) {
 	}
 }
 
-#2.3. calulate
+#2.3 calculate
 #define functions/methods to calculate central values and error bars
 if (robust == FALSE) {
 	#none robust statistics
@@ -2548,7 +2548,7 @@ if (is.na(yAxisScale[1]) | is.na(yAxisScale[2])) 	yAxisScale <- NULL
 if (is.na(yLabel))	yLabel <- NULL
 if (is.na(mainTitle))	mainTitle <- NULL
 
-#2.3. calulate
+#2.3 calculate
 #define functions/methods to calculate central values and error bars
 if (robust == FALSE) {
 	#none robust statistics
@@ -2681,7 +2681,7 @@ library(grid)
 #2.2 manage RGG to R: set scales to default and check scales
 if (useFlowVarSelReadouts) selReadouts <- flowVariableSelReadouts
 
-#3. calulate
+#3. calculate
 
 #4.1 layout plot
 numGridRows = ifelse(length(selReadouts) > 1, 2, 1)
@@ -2852,7 +2852,7 @@ if (is.na(yAxisScaleFactors[3])) yAxisScaleFactors[3] <- 1
 if (is.na(yAxisScaleFactors[4])) yAxisScaleFactors[4] <- 1
 if (is.na(yAxisScaleFactors[5]) | (useDefaultyAxisScale)) yAxisScaleFactors[5] <- 0.05
 
-#2.3. calulate
+#2.3 calculate
 if (useFlowVar) params <- flowVariable
 
 #2.4.1 layout plot
@@ -3276,7 +3276,7 @@ if (is.na(pearsonTextFactor) | (pearsonTextFactor <= 0) | (pearsonTextFactor > 1
 repVector <- unique(kIn[, repColName])
 if(length(repVector) < 2) repVector <- c(repVector[1], repVector[1])
 
-#2.3. calulate
+#2.3 calculate
 if (useFlowVar) params <- flowVariable
 
 #2.4.1 layout plot
@@ -3586,7 +3586,7 @@ Layout Options:
 	if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
 	if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
 
-	#2.3. calulate
+	#2.3 calculate
 	# create rowID column if needed
 	if("-ROW ID-" %in% xFactorCol) kIn[,"-ROW ID-"] <- rownames(kIn)
 
@@ -3904,7 +3904,7 @@ HINT: usage as Plate Heatmap Plotter:
 	if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
 	if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
 	
-	#2.3. calulate
+	#2.3 calculate
 	# create rowID column if needed
 	parameterCols <- c(xValue ,yValue , parameter)
 	x <- kIn[,xValue]
