@@ -532,9 +532,9 @@ Layout Options:
 	#2.4.1 layout plot
 	#general
 	if(plotTheme == "grey"){
-		p <- p + theme_grey(base_size=plotTextSize[1])
+		p <- p + theme_grey(base_size = plotTextSize[1])
 		} else {
-		p <- p + theme_bw(base_size=plotTextSize[1])
+		p <- p + theme_bw(base_size = plotTextSize[1])
 	}
 
 	#title options
@@ -544,29 +544,14 @@ Layout Options:
 	p <- p + scale_x_discrete(name = xFactorCol)
 	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
 	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
-	if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 
-	# fixing the y-axis labeling, make parameter name or custom y-axis label instead of "height"
+	# fixing the y-axis labeling, make parameter name or custom y-axis label instead of "height", set y-axis scale
 	if((!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy )|| length(barHeight) > 1) {
 		p <- p + scale_y_continuous(name = "height") 
 	} else {
 		p <- p + scale_y_continuous(name = yAxisLabel)   
 	}
-	
-	#legend
-	if(!is.null(colourCol)) {  #legend title and rotation
-		if(rotateLegend) {
-			p <- p + scale_fill_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position="bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
-			} else {
-			p <- p + scale_fill_discrete(name = legendTitle)
-		}
-	}
-	p <- p + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
-	if (useLegendCoordinate) {
-		p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
-		} else {
-		p <- p + theme(legend.position = legendPosition) 
-	}
+	if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 	
 	# color settings	
 	if(useKNIMEColors) {
@@ -581,7 +566,22 @@ Layout Options:
 			p <- p + scale_fill_brewer(name = colourCol, palette = colorPalette)
 		}
 	}
-
+	
+	#legend
+	if(!is.null(colourCol)) {  #legend title and rotation
+		if(rotateLegend) {
+			p <- p + scale_fill_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+			} else {
+			p <- p + scale_fill_discrete(name = legendTitle)
+		}
+	}
+	p <- p + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	if (useLegendCoordinate) {
+		p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
+		} else {
+		p <- p + theme(legend.position = legendPosition) 
+	}
+	
 	if(plotErrorMessage) p <- p + ggtitle("ERROR: NO DATA!!!")
 	
 	print(p)
