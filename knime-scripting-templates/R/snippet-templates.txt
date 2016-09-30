@@ -1190,8 +1190,11 @@ corrFunctionMethod = <combobox items="pearson, kendall, spearman" label="Select 
 
 <![CDATA[
 
+#check parameters
+if(length(paramName) < 3) stop("to few parameters selected, choose at least 3!")
+  
 #define group: e.g genes
-geneVector <- unique(kIn[, IDgene])
+geneVector <- unique(as.character(na.omit(kIn[, IDgene])))
 
 # create unqique combinations (disregarding order!) to calculate the correlation on
 combVec <- t(rbind(geneVector,geneVector))
@@ -1201,16 +1204,17 @@ pearsonResult <- as.data.frame(NULL)
 
 #now do correlation within groups (geneA vs geneA)
 for (comb in 1:length(combVec[,1])){
-		# extract data rows to correlate
-		kInXtable <- kIn[which(kIn[,IDgene] == combVec[comb,1]),c(IDgene, IDoligo, paramName)]
-		kInYtable <- kIn[which(kIn[,IDgene] == combVec[comb,2]),c(IDgene, IDoligo, paramName)]
-		#both for loops avoid correlation A vs A (same =1) and redundancy A vs B and B vs A (here necessary because groups are the same!) 
-		for (xOligo in 1:(length(kInXtable[,1])-1)){
-			for (yOligo in (xOligo+1):length(kInYtable[,1])){
-				#correlate all olives or only the same olives (oligoA vs oligoA, B, ...)
-				if (allCombiOligo || (kInXtable[xOligo,IDoligo] == kInYtable[yOligo,IDoligo])){	
-					corrTable <- t(as.matrix(rbind(kInXtable[xOligo,paramName], kInYtable[yOligo,paramName])))
-					#remove NA
+	# extract data rows to correlate
+	kInXtable <- kIn[which(as.character(kIn[,IDgene]) == combVec[comb,1]),c(IDgene, IDoligo, paramName)]
+	kInYtable <- kIn[which(as.character(kIn[,IDgene]) == combVec[comb,2]),c(IDgene, IDoligo, paramName)]
+	#both for loops avoid correlation A vs A (same =1) and redundancy A vs B and B vs A (here necessary because groups are the same!) 
+	for (xOligo in 1:(length(kInXtable[,1])-1)){
+		for (yOligo in (xOligo+1):length(kInYtable[,1])){
+			#correlate all oligos or only the same oligos (oligoA vs oligoA, B, ...)
+			if (allCombiOligo || (kInXtable[xOligo,IDoligo] == kInYtable[yOligo,IDoligo])){	
+				corrTable <- t(as.matrix(rbind(kInXtable[xOligo,paramName], kInYtable[yOligo,paramName])))
+				#remove NA
+				if (length(colnames(corrTable)) == 2) {
 					corrTable <- corrTable[which(!is.na(corrTable[,1]) & !is.na(corrTable[,2])),]
 					sampleIDmatch <- length(corrTable[,1])
 					if (sampleIDmatch > 1) {
@@ -1222,19 +1226,24 @@ for (comb in 1:length(combVec[,1])){
 						corrMethod <- "not enough values for correlation"
 						sampleIDmatch <- as.numeric(NA)
 						}
-					pearsonResult <- rbind(pearsonResult, data.frame(groupID1 = combVec[comb,1], sampleID1 = kInXtable[xOligo,IDoligo], groupID2 = combVec[comb,2], sampleID1 = kInYtable[yOligo,IDoligo], n = sampleIDmatch, coefficient = corrEstimate, method = corrMethod))
-					}
+					} else {
+					corrEstimate <- as.numeric(NA)
+					corrMethod <- "not enough profiles for correlation"
+					sampleIDmatch <- as.numeric(NA)
+					}  
+				pearsonResult <- rbind(pearsonResult, data.frame(groupID1 = combVec[comb,1], sampleID1 = kInXtable[xOligo,IDoligo], groupID2 = combVec[comb,2], sampleID1 = kInYtable[yOligo,IDoligo], n = sampleIDmatch, coefficient = corrEstimate, method = corrMethod))
 				}
 			}
 		}
+	}
 
 #now do correlation between groups (geneA vs geneB)
 if (allCombiGene){		
-combVec <- t(combn(geneVector,2))
-for (comb in 1:length(combVec[,1])){
+	combVec <- t(combn(geneVector,2))
+	for (comb in 1:length(combVec[,1])){
 		# extract data rows to correlate
-		kInXtable <- kIn[which(kIn[,IDgene] == combVec[comb,1]),c(IDgene, IDoligo, paramName)]
-		kInYtable <- kIn[which(kIn[,IDgene] == combVec[comb,2]),c(IDgene, IDoligo, paramName)]
+		kInXtable <- kIn[which(as.character(kIn[,IDgene]) == combVec[comb,1]),c(IDgene, IDoligo, paramName)]
+		kInYtable <- kIn[which(as.character(kIn[,IDgene]) == combVec[comb,2]),c(IDgene, IDoligo, paramName)]
 		for (xOligo in 1:length(kInXtable)){
 			for (yOligo in 1:length(kInYtable)){
 				#correlate all olives or only the same olives (oligoA vs oligoA, B, ...)
@@ -1258,9 +1267,10 @@ for (comb in 1:length(combVec[,1])){
 				}
 			}
 		}
-}
+	}
 
 rOut <- pearsonResult
+
 ]]>
 
 </rgg>
