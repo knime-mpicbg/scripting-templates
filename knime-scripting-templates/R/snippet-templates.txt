@@ -47,7 +47,7 @@ uniqueCombiColumn <- as.character(unique(kIn[, combiColumn]))
 if (is.na(combiSize) || (combiSize < 1)) combiSize <- 1
 if ((combiType == "unique_combinations") && (combiSize > length(uniqueCombiColumn))) combiSize <- length(uniqueCombiColumn) #prevent too many combinations
 
-#2.3. calulate
+#2.3. calculate
 if ((combiType == "unique_combinations")) {
 	rOut <- as.data.frame(t(combn(uniqueCombiColumn, combiSize)))
 	names(rOut) <- paste(combiColumn, names(rOut), sep="_")
@@ -105,7 +105,7 @@ Treatment = <combobox label="Treatment" items="$$$STR_ATTRIBUTES$$$" />;
 
 <![CDATA[
 
-# calulate
+# calculate
 platelist<-unique(kIn[,Group])
 
 Norm <- function(y) ((y-controlLow)/controlHigh)
@@ -331,7 +331,7 @@ if(is.na(batchSize) || (batchSize < 1)) batchSize <- 10  #default
 ##geneIDs <- kIn[which(!is.na(kIn[,geneIDcolumn])),geneIDcolumn]
 geneIDs <- as.numeric(levels(factor(kIn[,geneIDcolumn])))   ##removes NA, groups same geneIDs, converts to number (here, still could be a double!)
 
-#2.3. calulate
+#2.3 calculate
 batchSize <- 10  # with larger batchs as query time-out ans errors were experienced 
 geneIDbatch <- split(geneIDs,1:ceiling(length(geneIDs)/10))  # make list of batch vectors for NCBI query
 ncbiTable <- NULL
@@ -413,7 +413,7 @@ thrLow = <combobox items="$$$NUM_ATTRIBUTES_2$$$" label="Lower threshold:"/>;
 
 #2.2.2 manage RGG to R: set values to default and check values
 
-#2.3. calulate
+#2.3 calculate
 wellList <- list()
 wellID <- 1
 
@@ -469,7 +469,7 @@ Group = c(<panellistbox label="Grouping column" items="$$$STR_ATTRIBUTES$$$" spa
 <![CDATA[
 #2.0 R code
 
-#2.3. calulate
+#2.3 calculate
 ret<-lapply(selReadouts, function(param){
 	mads<-tapply(kIn[,param], kIn[,Group], mad)
 	meds<-tapply(kIn[,param], kIn[,Group], median)
@@ -526,7 +526,7 @@ mathForm = c(<combobox label="Mathematical formula" items="absolute_values,1-abs
 
 #2.2.2 manage RGG to R: set values to default and check values
 
-#2.3. calulate
+#2.3 calculate
 if (mathForm == "absolute_values"){
 	for (parameter in parameters){
 		kIn[,parameter] <- abs(kIn[,parameter])
@@ -596,7 +596,11 @@ rOut <- data.frame(do.call("cbind", new.l))
 
 Calculates mahalonobis distances to the mean of a control group (typically your negative controls). 
 Option: choose to use the inverted covariance matrix (default: auto) 
-ATTENTION: this snippet expects a column named 'treatment' with categorial values! 
+
+ATTENTION: 
+This snippet expects a column named 'treatment' with categorial values! Select a negative control name. This will be used if negative control column is set to -USE SELECTED TREATMENTS- (default).
+
+Alternatively, the message 'Error: Could not find atrribute: treatment' can be ignored, a negative control column can be selected and the name of the negative control can be given as text.   
 ######
 <rgg>
 
@@ -616,10 +620,15 @@ ATTENTION: this snippet expects a column named 'treatment' with categorial value
 
 <group>
 # 1) select the readouts that span the phenotypic space
-featSelection = match(c(<panellistbox label="Features of interest" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>), names(kIn));
+parameters = c(<panellistbox label="Features of interest" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>)
 
 # 2) calculate mean and covariance of the negative controls
-negCtrls = subset(kIn, treatment == <combobox items="$$$DOMAIN('treatment')$$$" label="Negative Control"/>);
+treatment = <combobox items="$$$DOMAIN('treatment')$$$" label="Negative control name"/>
+<hbox>
+<combobox var = "treatmentColumn" label = "Negative control column" items = "-USE SELECTED TREATMENTS-,$$$STR_ATTRIBUTES$$$"/>
+<textfield label = "Negative control:" var="negColtrolName" data-type="text" default-value= "" size="10"/>
+</hbox>
+<gaprow height="1"/>
 
 useInverted = <combobox label="use inverted" items="auto,false,true"/>
 </group>
@@ -633,8 +642,20 @@ library(MASS)
 #2.2.1 manage RGG to R: define as numbers
 
 #2.2.2 manage RGG to R: set values to default and check values
+if (treatmentColumn == "-USE SELECTED TREATMENTS-") {
+	treatmentColumn <- "treatment" #define treatment column as column treatment present in data table
+} else {
+	treatment <- negColtrolName  #set was the used wrote in template
+}
 
-#2.3. calulate
+#2.3. calculate
+featSelection = match(parameters, names(kIn))  # get vector for feature columns
+negCtrls = kIn[which(kIn[,treatmentColumn] == treatment),]  # get table with only negative control values
+
+#check if enough negative controls values are found and features are selected
+if(length(rownames(negCtrls)) == 0) stop(paste("not enough negative controls (", treatment, ") found in column ", treatmentColumn, sep=""))
+if(length(featSelection) < 2 ) stop("not enough features selected, choose at least 2!")
+
 nc <- negCtrls[,featSelection]
 ncCov <- cov(na.omit(array(nc)))
 ncMean <- colMeans(nc, na.rm=TRUE)
@@ -643,10 +664,9 @@ outInverted <- useInverted
 #check the determinant of the covariance matrix to prevent error message if determinant is too small
 if(useInverted == "auto") {
 	if(det(ncCov) < .Machine$double.eps) {
-		#if too small take inverse matrix
-		useInverted <- "true"
-	}
-	else useInverted <- "false"
+	#if too small take inverse matrix
+	useInverted <- "true"
+	} else useInverted <- "false"
 }
 if(useInverted == "true") {
 	#if too small take inverse matrix
@@ -659,10 +679,10 @@ if(useInverted == "false") {
 }
 
 # append the distance as additional column
-kIn$mahadist <- mahalanobis(array(kIn[featSelection]), ncMean, ncCov, inverted = mahaInverted);
+kIn$mahadist <- mahalanobis(array(kIn[featSelection]), ncMean, ncCov, inverted = mahaInverted)
 kIn$mahadistMode <- outInverted
 
-rOut <- kIn;
+rOut <- kIn
 
 ]]>
 </rgg>
@@ -867,7 +887,7 @@ Dataset = c(<panellistbox label="Choose the datasets" items="$$$STR_ATTRIBUTES$$
 <![CDATA[
 #2.0 R code
 
-#2.3. calulate
+#2.3 calculate
 setList <- unique(kIn[,Dataset])
 final<-NULL
 for (j in 1:length(setList)){
@@ -938,7 +958,7 @@ selReadouts = c(<panellistbox label="Parameters of interest" items="$$$NUM_ATTRI
 #2.2 manage RGG to R: set scales to default and check scales
 if (useFlowVarSelReadouts) selReadouts <- flowVariableSelReadouts
 
-#3. calulate
+#3. calculate
 #allResults <- list()
 # iterate over all parameters and create plots for all of them
 #ret <- apply(selReadouts, FUN = function (param) {
@@ -953,7 +973,7 @@ if (useFlowVarSelReadouts) selReadouts <- flowVariableSelReadouts
 #   ShapiroResult <- data.frame(do.call("rbind", ret))
 
 
-#3. calulate
+#3. calculate
 allResults <- list()
 # iterate over all parameters and create plots for all of them
 for (i in 1:length(selReadouts)) {
@@ -1011,7 +1031,7 @@ Treatment = <combobox label="Treatment" items="$$$STR_ATTRIBUTES$$$" />;
 <![CDATA[
 #2.0 R code
 
-#2.3. calulate
+#2.3 calculate
 platelist<-unique(kIn[,Group])
 
 Norm <- function(y) ((controlLow-y)/controlHigh)
@@ -1255,6 +1275,8 @@ The table must contain a column of replicate information. Then another column mu
 For the corresponding sample identifiers the correlation will be calculated pairwise between the replicates (A vs B, A vs C, B vs C) for the selected parameters (missing values will be removed/ignored).
 n is the number of sample identifiers per replicate in correlation. The type of correlation can be selected.
 
+Option: R square can be also calculated from linear regression
+
 Trouble shooting:
 a) "sampleID not unique" -> more than 1 sampleID (eg wells) per replicate
 b) "not enough samples for correlation" -> sampleID for a replicate = 0 (no data to correlate)
@@ -1290,62 +1312,81 @@ IDname = <combobox label="Sample identifier" items="$$$STR_ATTRIBUTES$$$" />;
 # 4) select correlation method
 corrFunctionMethod = <combobox items="pearson, kendall, spearman" label="Select correlation method"/>;
 
-</group>
+# 4) select correlation method
+useRegression = <checkbox label="Calculate Rsquare from linear regression" selected="false"/>;
 
+</group>
 
 <![CDATA[
 
 #define replicates: e.g A,B,C
-repVector <- unique(kIn[, repColName])
+repVector <- unique(as.character(na.omit(kIn[, repColName])))
+if(length(paramName) < 1 ) stop("no parameters selected, choose at least 1!")
 
 #iterate all replicates(A,B,C -> AB, AC, BC)
 for (i in 1:(length(repVector)-1)) {
-
+  
 	#define first table (A): e.g. kInA <- kIn[(which(kIn$"replicate"=="A")),c("sampleID","replicate","AvgIntenCh1","MinDistCh1","AreaCh1","CellNumber")]
-	kInXtable <- kIn[which(kIn[,repColName] == repVector[i]),c(IDname, repColName, paramName)]
-
+	kInXtable <- kIn[which(as.character(kIn[,repColName]) == repVector[i]),c(IDname, repColName, paramName)]
+  
 	for (j in (i+1):length(repVector)) {
-
+    
 		#define second table (B)
-		kInYtable <- kIn[which(kIn[,repColName] == repVector[j]),c(IDname, repColName, paramName)]
-
+		kInYtable <- kIn[which(as.character(kIn[,repColName]) == repVector[j]),c(IDname, repColName, paramName)]
+    
 		for (paramIteration in paramName) {
-
-		#check if sampleIDs are unique
-		if (length(unique(kInXtable[,IDname])) == length(kInXtable[,IDname]) & length(unique(kInYtable[,IDname])) == length(kInYtable[,IDname])) {
-
-			corrTable <- merge(kInXtable[,c(IDname, repColName, paramIteration)], kInYtable[,c(IDname, repColName, paramIteration)], by.x = IDname, by.y =IDname)
-			#remove NA
-			corrTable <- corrTable[which(!is.na(corrTable[,paste(paramIteration, "x", sep="."),]) & !is.na(corrTable[,paste(paramIteration, "y", sep="."),])),]
-
-			#check if XYtable match is bigger than 1
-			sampleIDmatch <- length(corrTable[,1])
-
-			if (sampleIDmatch > 1) {				
-				#calculate correlation
-				correlation <- cor.test(corrTable[,paste(paramIteration, "x", sep=".")], corrTable[,paste(paramIteration, "y", sep=".")], method = corrFunctionMethod)
-				corrEstimate <- correlation$"estimate"
-				corrMethod <- correlation$"method"
+      
+			#check if sampleIDs are unique, NA are ignored 
+			if (length(unique(as.character(na.omit(kInXtable[,IDname])))) == length(as.character(na.omit(kInXtable[,IDname]))) & length(unique(as.character(na.omit(kInYtable[,IDname])))) == length(as.character(na.omit(kInYtable[,IDname])))) {
+				corrTable <- merge(kInXtable[,c(IDname, repColName, paramIteration)], kInYtable[,c(IDname, repColName, paramIteration)], by.x = IDname, by.y =IDname, all = FALSE)
+				#remove NA => now not needed anymore because merge(... all=FALSE) means inner join and row with NA in joining/merging column are removed
+				if(corrFunctionMethod != "pearson") corrTable <- corrTable[which(!is.na(corrTable[,paste(paramIteration, "x", sep="."),]) & !is.na(corrTable[,paste(paramIteration, "y", sep="."),])),]
+        
+				#check if XYtable match is bigger than 1
+				sampleIDmatch <- length(corrTable[,1])
+        
+				if (sampleIDmatch > 1) {				
+					#calculate correlation
+					correlation <- cor.test(corrTable[,paste(paramIteration, "x", sep=".")], corrTable[,paste(paramIteration, "y", sep=".")], method = corrFunctionMethod)
+					corrEstimate <- correlation$"estimate"
+					corrMethod <- correlation$"method"
+					if(corrFunctionMethod == "pearson") {
+						corrDF <- correlation$"parameter" + 2  #DF = degree of freedom = number of XY-pairs without NAs 
+						} else {
+						corrDF <- sampleIDmatch
+						}
+					#corrPvalue <- correlation$"p.value" #is allways 0 in pearson correlation!?
+					if(useRegression) {
+						regression <- lm(corrTable[,paste(paramIteration, "x", sep=".")] ~ corrTable[,paste(paramIteration, "y", sep=".")])
+						rSquared <- summary(regression)$r.squared
+						}
+					} else {
+					corrEstimate <- as.numeric(NA)
+					corrMethod <- "not enough samples for correlation"
+					#corrPvalue <- as.numeric(NA)
+					if(useRegression) rSquared <- as.numeric(NA)
+					corrDF <- 0
+					}
 				} else {
 				corrEstimate <- as.numeric(NA)
-				corrMethod <- "not enough samples for correlation"
-				sampleIDmatch <- 0
+				corrMethod <- "sampleID not unique"
+				#corrPvalue <- as.numeric(NA)
+				if(useRegression) rSquared <- as.numeric(NA)
+				corrDF <- as.numeric(NA)
 				}
-			} else {
-			corrEstimate <- as.numeric(NA)
-			corrMethod <- "sampleID not unique"
-			sampleIDmatch <- as.numeric(NA)
+      
+			#assemble result
+			if(useRegression) {
+				pearsonResult <- data.frame(parameter = paramIteration, replicate1 = repVector[i], replicate2 = repVector[j], n = corrDF, coefficient = corrEstimate, method = corrMethod, linear.regression.R.squared = rSquared) #p.value = corrPvalue,
+				} else {
+				pearsonResult <- data.frame(parameter = paramIteration, replicate1 = repVector[i], replicate2 = repVector[j], n = corrDF, coefficient = corrEstimate, method = corrMethod)
+				}
+			if (exists("pearsonResultTable")) {
+				pearsonResultTable <- data.frame(rbind(pearsonResultTable, pearsonResult))
+				} else {
+				pearsonResultTable <- pearsonResult
+				}
 			}
-
-		#assemble result
-		pearsonResult <- data.frame(parameter = paramIteration, replicate1 = repVector[i], replicate2 = repVector[j], n = sampleIDmatch, coefficient = corrEstimate, method = corrMethod)
-
-		if (exists("pearsonResultTable")) {
-			pearsonResultTable <- data.frame(rbind(pearsonResultTable, pearsonResult))
-			} else {
-			pearsonResultTable <- pearsonResult
-			}
-		}
 		}
 	}
 
@@ -1472,7 +1513,7 @@ typeOfOutput = <combobox label="Select type of output" items="All column names a
 
 #2.2.2 manage RGG to R: set values to default and check values
 
-#2.3. calulate
+#2.3 calculate
 NaNresult <- list()
 
 for (i in 1:(length(kIn[1,]))) {
@@ -1585,7 +1626,7 @@ filter = <combobox label="Way to filter" items="filter in,filter out" />;
 
 #2.2.2 manage RGG to R: set scales to default and check scales
 
-#2.3. calulate
+#2.3 calculate
 allColumns <- colnames(kIn1)
 refColumn <- kIn2[,refColumnName]
 if (filter == "filter in") {
