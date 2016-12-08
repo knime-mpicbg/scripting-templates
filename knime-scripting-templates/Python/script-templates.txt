@@ -9,7 +9,7 @@ Move CV7000 images to subfolders
 This script moves all images of one CV7000 measurement into separate folders 
 for wells (e.g. C04) or well-fields (e.g. C04_F002).
 - select folder with CV7000 measurement or folder containing many measurements
-- measurement folder is recognized as folder containing correction images ("DC_sCMOS..." or "back_DC_sCMOS...")
+- measurement folder is recognized as folder containing correction images ("DC_sCMOS...", "OTF_sCMOS", "back_DC_sCMOS..." or "back_OTF_sCMOS...")
 - script runs recursively and goes through all subfolders
 ######
 
@@ -63,8 +63,94 @@ def doSubDir(subDir):
 		if os.path.isdir(file):  #if it is a directory, go into this function again (as new interation with this subdirectory)
 			doSubDir(file)
 		else:
-			if file.startswith("DC_sCMOS") | file.startswith("back_DC_sCMOS"):  #if such a file is found (a correction file), the this folder contains CV7000 images (.tif)
+			if file.startswith("DC_sCMOS") | file.startswith("back_DC_sCMOS") | file.startswith("OTF_sCMOS") | file.startswith("back_OTF_sCMOS"):  #if such a file is found (a correction file), the this folder contains CV7000 images (.tif)
 				folderWithCV7000images = True 
+	if folderWithCV7000images:
+		moveImagesToSubDirs(subDir)
+	os.chdir("..") #go out of subdirectory again		
+
+#start of code
+os.chdir(path)   #change to the directory containing images and then one folder up for recursive folder search
+os.chdir("..")
+patternDir = re.compile("(.*/)(.*)")  #get first folder name and call recursive function
+resDir = re.search(patternDir, path)
+doSubDir(resDir.group(2))
+
+pyOut = kIn #in is equal to out
+
+]]>
+</rgg>
+
+########################################################################################
+# name: Move CV7000 images to subfolders, NEW beta (uses folder name)
+# author: Marc Bickle, Martin Stoeter
+# category: utilities
+# preview: 
+
+Move CV7000 images to subfolders
+
+This script moves all images of one CV7000 measurement into separate folders 
+for wells (e.g. C04) or well-fields (e.g. C04_F002).
+- select folder with CV7000 measurement or folder containing many measurements
+- measurement folder is recognized as folder containing .tif files and fils start with folder name
+- script runs recursively and goes through all subfolders
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<h3 text="Create directories for well and move images inside" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+path = <filechooser label="Image Folder" description="Folder containing CV7000 .tif files" fileselection-mode="directories-only" size ="25"/>
+
+folderStructure = <combobox items="wells,well-fields" label="folder structure:" span="full"/>
+
+<!-- 3. Script-->
+
+<![CDATA[
+#import libraries
+import os as os
+import re as re
+
+#functions
+def moveImagesToSubDirs(subDir):
+	pattern = re.compile('(?P<Plate>.*)_(?P<Well>[A-P][0-9]{2})_(?P<TimePoint>T[0-9]{4})(?P<Field>F[0-9]{3}).*(?P<AqcuisitionNumber>A[0-9]{2})(?P<Plane>Z[0-9]{0,2})(?P<ChannelNumber>C[0-9]{2}).tif$')
+	for file in os.listdir("."):
+		if file.startswith(subDir) and file.endswith("tif"):
+			#find only the files starting with platename, i.e. the images of interest
+			res = re.search(pattern, file)
+			barcode, well, field = res.group("Plate"), res.group("Well"), res.group("Field")
+			if folderStructure == "wells":
+				if not os.path.exists(well):
+					os.makedirs(well)
+				os.rename(file, well+"/"+file)
+			if folderStructure == "well-fields":
+				if not os.path.exists(well+"_"+field):
+					os.makedirs(well+"_"+field)
+				os.rename(file, well+"_"+field+"/"+file)
+
+def doSubDir(subDir):
+	folderWithCV7000images = False  #this variable stores the information if this directory is actually the one containing CV7000 images (.tif)
+	os.chdir(subDir)				#go into directory
+	os.listdir(".")				 #get all files incl. directories
+	for file in os.listdir("."):
+		if os.path.isdir(file):  #if it is a directory, go into this function again (as new interation with this subdirectory)
+			doSubDir(file)
+		else:
+			if file.endswith(".tif"): #if file is an images
+				patternDir = re.compile("(.*/)(.*)")  #get first folder name and call recursive function
+				resDir = re.search(patternDir, file)
+				if file.startswith(resDir.group(2)):  #if file starts with with name of the folder name above
+					folderWithCV7000images = True 
 	if folderWithCV7000images:
 		moveImagesToSubDirs(subDir)
 	os.chdir("..") #go out of subdirectory again		
