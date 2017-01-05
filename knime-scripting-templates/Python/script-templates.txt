@@ -162,7 +162,7 @@ pyOut = kIn #in is equal to out
 </rgg>
 
 ########################################################################################
-# name: Move CV7000 images from subfolders one folder up, NEW beta local
+# name: Move CV7000 images from subfolders one folder up
 # author: Martin Stoeter, Marc Bickle 
 # category: utilities
 # preview: 
