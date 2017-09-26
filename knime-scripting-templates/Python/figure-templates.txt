@@ -1,4 +1,107 @@
 ########################################################################################
+# name: t-SNE plot
+# author: Marc Bickle 
+# category: dimensionality reduction
+# preview: 
+
+t-SNE (TSNE) converts affinities of data points to probabilities. The affinities in the original space are represented by Gaussian joint probabilities and the affinities in the embedded space are represented by Student’s t-distributions. This allows t-SNE to be particularly sensitive to local structure and has a few other advantages over existing techniques:
+	Revealing the structure at many scales on a single map
+	Revealing data that lie in multiple, different, manifolds or clusters
+	Reducing the tendency to crowd points together at the center
+online help:
+http://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
+http://scikit-learn.org/stable/modules/manifold.html#t-sne
+https://distill.pub/2016/misread-tsne/
+
+
+Inputs:
+1) Features of interest: choose parameters to test
+2) Parametrise t-SNE algorithm (for tips see:https://distill.pub/2016/misread-tsne/)
+
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="t-SNE plot" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full"> t-SNE (TSNE) converts affinities of data points to probabilities.
+
+Parametrization:
+http://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
+</labelarea>
+<gaprow height="1"/>
+
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+<group>
+
+# 1) Define the group column
+
+groupingColumns = <panellistbox label="Category column" items="$$$STR_ATTRIBUTES$$$" span="full"/>
+
+# 2) Define what numerical values to use
+features = [<panellistbox label="Features of interest" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="5" span="full"/>]
+
+# 3) Parametrise the t-SNE algorithm
+
+comp = int(<textfield label="Number of Dimensions" var="" data-type="number" default-value="2" size="10" span="full"/>)
+per = int(<textfield label="Perplexity" var="" data-type="number" default-value="30" size="10" span="full"/>)
+earl = int(<textfield label="Early Exaggeration" var="" data-type="number" default-value="12" size="10" span="full"/>)
+ler =  int(<textfield label="Learning Rate" var="" data-type="number" default-value="200" size="10" span="full"/>)
+iter = int(<textfield label="Number of Iterations" var="" data-type="number" default-value="1000" size="10" span="full"/>)
+iter_n = int(<textfield label="Number of Iterations without Progress" var="" data-type="number" default-value="300" size="10" span="full"/>)
+Distance = <combobox label="Distance" items="euclidean, l2, l1, manhattan, cityblock, braycurtis, canberra, chebyshev, correlation, cosine, dice, hamming, jaccard, kulsinski, mahalanobis, matching, minkowski, rogerstanimoto, russellrao, seuclidean, sokalmichener, sokalsneath, sqeuclidean, yule, wminkowski" span="full"/>;
+meth = <textfield label="Method" var="" data-type="string" default-value="barnes_hut" size="10" span="full"/>
+
+
+
+</group>
+
+<![CDATA[
+#load modules
+
+import numpy as np
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import dendrogram, linkage
+
+
+# prepare data
+
+DF = pd.DataFrame(kIn.values(), index = kIn.keys()).T
+DF = DF.convert_objects(convert_numeric=True)
+
+# perform t-SNE
+
+DF_embedded = TSNE(n_components=comp, perplexity = per, early_exaggeration = earl, learning_rate = ler, n_iter = iter, n_iter_without_progress = iter_n, min_grad_norm = 1e-7, metric = Distance, init = "random", verbose = 0, random_state = None, method = meth, angle = 0.5 ).fit_transform(DF[features])
+
+# add categories
+
+DF_embedded = pd.DataFrame(DF_embedded)
+DF_final = pd.concat([DF_embedded, DF[groupingColumns]], axis =1)
+
+
+# plot the data
+
+groups = DF_final.groupby(groupingColumns)
+fig, ax = plt.subplots()
+for name, group in groups:
+    ax.plot(group[0], group[1], marker='o', linestyle='', ms=12, label=name)
+ax.legend()
+
+
+]]>
+
+</rgg>
+
+########################################################################################
 # name: Venn Diagram
 # author: Marc Bickle
 # category: relations
