@@ -1,10 +1,8 @@
 ########################################################################################
-# name: Move CV7000 images to subfolders (deprecated)
+# name: Move CV7000 images to subfolders, (deprecated)
 # author: Marc Bickle, Martin Stoeter
 # category: utilities
 # preview: 
-
-Move CV7000 images to subfolders
 
 This script moves all images of one CV7000 measurement into separate folders 
 for wells (e.g. C04) or well-fields (e.g. C04_F002).
@@ -87,8 +85,6 @@ pyOut = kIn #in is equal to out
 # category: utilities
 # preview: 
 
-Move CV7000 images to subfolders
-
 This script moves all images of one CV7000 measurement into separate folders 
 for wells (e.g. C04) or well-fields (e.g. C04_F002).
 - select folder with CV7000 measurement or folder containing many measurements
@@ -167,8 +163,6 @@ pyOut = kIn #in is equal to out
 # category: utilities
 # preview: 
 
-Move CV7000 images from subfolders one folder up
-
 This script moves all images of a CV7000 measurement from separate folders 
 one folder up (reverse function of snippet: Move CV7000 images to subfolders)
 - select folder with CV7000 measurement or folder containing many measurements
@@ -181,7 +175,7 @@ one folder up (reverse function of snippet: Move CV7000 images to subfolders)
 <!--1. Title and short description -->
 
 <h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
-<h3 text="Create directories for well and move images inside" aligment="center" span="full"/>
+<h3 text="Move images from well folder one folder up" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
 <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
