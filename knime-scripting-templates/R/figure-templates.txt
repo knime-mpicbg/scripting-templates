@@ -2481,9 +2481,10 @@ Inputs:
 2) a selection of assay parameters
 3) option: use robust statistics
 4) option: scale of y-axis (default, use fixed values, auto-scale (plot area = +/-5% of min/max))
-5) option: draw horizontal lines at two y values
-6) option: label of y-axis
-7) option: add title
+5) option: set number of columns in grip plot (default, set automatic)
+6) option: draw horizontal lines at two y values
+7) option: label of y-axis
+8) option: add title
 ######
 
 <rgg>
@@ -2519,14 +2520,17 @@ parameters =  c(<panellistbox label="Assay parameters of interest" items="$$$NUM
 <checkbox label="Auto scale y-axis (min to max)" var="yAxisAutoScale" selected="false"/>
 </hbox>
 
+# d2) set grid colums
+<vector label="columns in grid:" var="numberOfGridColumns" size="1" vector-type="character"/>
+
 # e) add horizontal lines
 <vector label="Add horizontal lines at" var="hLines" size="2" vector-type="character"/>
 
 # f) define y-axis label
-<textfield label="y-axis label" var="yLabel" data-type="text" default-value= "" size="10" span="full"/>
+<textfield label="y-axis label" var="yLabel" data-type="text" default-value= "" size="10" />
 
 # g) define a title for the plot
-<textfield label="Title" var="mainTitle" data-type="text" default-value= "" size="10" span="full"/>
+<textfield label="Title" var="mainTitle" data-type="text" default-value= "" size="10" />
 
 </group>
 
@@ -2542,9 +2546,11 @@ library(grid)
 #2.2.1 manage RGG to R: define as numbers
 hLines <- as.numeric(hLines)
 yAxisScale <- as.numeric(yAxisScale)
+numberOfGridColumns <- as.numeric(numberOfGridColumns)
 
 #2.2.2 manage RGG to R: set scales to default and check scales
 if (is.na(yAxisScale[1]) | is.na(yAxisScale[2])) 	yAxisScale <- NULL
+if (is.na(numberOfGridColumns[1])) numberOfGridColumns <- NULL
 if (is.na(yLabel))	yLabel <- NULL
 if (is.na(mainTitle))	mainTitle <- NULL
 
@@ -2617,19 +2623,20 @@ names(plotData)[which(names(plotData) == catVar)] <- "catVar"
 #2.4.2 plot data
 p <- ggplot(plotData, aes(x = variable, y = value, group = catVar)) + geom_line(aes(group = id), colour = "grey") + geom_point(aes(group = id), colour = "grey")
 p <- p + coord_cartesian(ylim = yAxisScale)
-p <- p + stat_summary(fun.y = centralValue, geom = "line", colour = "red")
+p <- p + stat_summary(fun.y = centralValue, geom = "line", colour = "red", size = 0.5)
 p <- p + stat_summary(fun.ymax = errorUpper, fun.ymin = errorLower, geom = "errorbar", width=0.25, colour = "red")
 if (!is.na(hLines[1])) p <- p + geom_hline(yintercept = hLines[1])
 if (!is.na(hLines[2])) p <- p + geom_hline(yintercept = hLines[2])
 p <- p + labs(x = parameterLabel, y = yLabel)
 p <- p + theme(axis.text.x = element_text(hjust = 1, angle = 90))
 p <- p + ggtitle(mainTitle) 
-p <- p + facet_wrap(~ catVar)
+p <- p + facet_wrap(~ catVar, ncol = numberOfGridColumns[1])
 print(p)
 
 ]]>
 
 </rgg>
+
 ########################################################################################
 # name: QQ-Plot grid
 # author: Holger Brandl, Martin Stoeter 
