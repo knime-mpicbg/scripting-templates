@@ -1026,33 +1026,51 @@ selReadouts = c(<panellistbox label="Parameters to normalize" items="$$$NUM_ATTR
 Group = <combobox label="Group" items="$$$STR_ATTRIBUTES$$$" />;
 
 Treatment = <combobox label="Treatment" items="$$$STR_ATTRIBUTES$$$" />;
+
+<vector label="Negative control" var="negCtrl" size = "1" default-value="DMSO" vector-type="character"/>
+
 </group>
 
 <![CDATA[
 #2.0 R code
 
 #2.3 calculate
-platelist<-unique(kIn[,Group])
 
-Norm <- function(y) ((controlLow-y)/controlHigh)
-final<-NULL
+# get unique groups
+grouplist<-unique(na.omit(kIn[,Group]))
 
-for(i in 1:length(platelist)){
-	#DEBUG i<-"Week10_40111"
-	data<-kIn[which(kIn[,Group] == platelist[i]),]
-	controlPop<-data[which(data[,Treatment] == "DMSO"),]
-	for(j in 1:length(selReadouts)){
-		controlLow <- as.numeric(quantile(controlPop[,selReadouts[j]], probs= 0.01, type = 4))
-		controlHigh <- as.numeric(quantile(controlPop[,selReadouts[j]], probs= 0.99, type = 4))
-		res<-apply(as.array(data[,selReadouts[j]]), 1, Norm)
-		resframe<-data.frame(res)
-		names(resframe)<-paste(selReadouts[j], "norm", sep ="_")
-		data<-cbind(data, resframe)
-	}
-	final<-rbind(final,data)
+# define normalization function given a high and low value and x
+Norm <- function(x, controlLow, controlHigh) ((controlLow - x) / controlHigh)
+
+nrows <- nrow(kIn)
+for(i in 1:length(selReadouts)){
+  name <- paste(selReadouts[i], "norm", sep ="_")
+  kIn[[name]] <- rep_len(NA, nrows)
 }
 
-rOut <- final;
+for(i in 1:length(grouplist)){
+  
+  dataIdx <- which(kIn[,Group] == grouplist[i])
+  groupdata<-kIn[dataIdx,]
+  controlPop<-groupdata[which(groupdata[,Treatment] == negCtrl),]
+  
+  if(nrow(controlPop) < 2)
+    stop("Control population too small")
+  
+  for(j in 1:length(selReadouts)){
+    
+    readout <- selReadouts[j]
+    controlData <- controlPop[,readout]
+    data <- groupdata[,readout]
+    controlLow <- quantile(controlData, probs= 0.01, type = 4, na.rm = TRUE)
+    controlHigh <- quantile(controlData, probs= 0.99, type = 4, na.rm = TRUE)
+    res <- unlist(lapply(data, Norm, controlLow, controlHigh))
+    name <- paste(readout, "norm", sep ="_")
+    kIn[dataIdx,name] <- res
+  }
+}
+
+rOut <- kIn;
 
 ]]>
 </rgg>
