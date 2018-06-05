@@ -707,7 +707,7 @@ if(length(kIn[which(!is.na(numAttribute)),1]) > 0) {#check if data is there
 ########################################################################################
 # name: Multi-parameteric parallel boxplot grid 
 # author: Holger Brandl
-# category: basic/boxplots
+# category: _deprecated/basic/boxplots
 # preview: multipar-boxplotgrid.png
 
 
@@ -4117,4 +4117,127 @@ p <- p + labs(title = plot.title, x = x.col, y = y.col)
 print(p)
 
 ]]>
+</rgg>
+
+########################################################################################
+# name: Multiparametric Boxplot Grid (ggplot)
+# author: Antje Janosch
+# category: basic/boxplots
+# preview: boxplot_ggplot.png
+
+A grid of parallel boxplots, one for each selected assay parameter. The number of actual parallel boxplots is defined by a categorical variable (like a well-treatment)
+
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+
+# a) Define your categorical variable of interest
+# make sure that the sorting of the data is being preserved
+# b) Define the grouping factor
+<combobox var="groupColumn" items="$$$STR_ATTRIBUTES$$$" label="Factor" span = "1"/>
+
+# b) Define your assay parameters of interest
+params =  c(<panellistbox label="Assay parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
+
+<separator label="Layout Options Scales / Color" span="full"/>
+<hbox>
+free.scales = <checkbox label="use free y-scales" selected="t"/>
+<checkbox  label="use KNIME color model" var="color.model" selected="false"/>
+</hbox>
+
+#diagram options
+<separator label="Layout Options General Plot" span="full"/>
+<hbox>
+plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
+plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+</hbox>
+
+
+
+</group>
+
+
+# 2. r-code
+
+<![CDATA[
+
+library(ggplot2)
+library(tidyr)
+
+if(color.model && !exists("kIn.color.model")) 
+  warning("No KNIME color model provided.")
+
+keep <- c(x = groupColumn,y = params)
+names(keep) <- c(groupColumn, params)
+
+# color model checks:
+# should it be used?
+# is it available
+# is it defined for the grouping column?
+if(color.model & exists("kIn.color.model")) {
+  if(names(kIn.color.model[1]) != groupColumn) {
+    warning("KNIME color model not used as it does not belong to the grouping column")
+    color.model <- FALSE
+  }
+} else color.model <- FALSE
+
+data <- kIn[,match(keep, names(kIn))]
+
+# reshape to long format
+data_long <- gather_(data, "parameter", "value", params)
+
+# set if y-scaling should be fixed or free
+yScales <- "fixed"
+if(free.scales) yScales <- "free_y"
+
+# check if the color model is a discrete one
+color.model.discrete <- FALSE
+if(color.model) {
+  kIn.color.model$color <- as.character(kIn.color.model$color)
+  if(!is.numeric(kIn.color.model[,1])) color.model.discrete <- TRUE
+}
+
+p <- ggplot(data = data_long, aes_string(x = groupColumn, y = "value", group = groupColumn, colour = groupColumn, fill = groupColumn)) + geom_boxplot(notch = TRUE, alpha = 0.3)
+
+# plot settings - theme
+if(plotTheme == "grey"){
+  p <- p + theme_grey(base_size = plotTextSize[1])
+} else {
+  p <- p + theme_bw(base_size = plotTextSize[1])
+}
+
+p <- p + facet_wrap(~parameter, scales = yScales)
+p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# plot settings - color model
+if(color.model) {
+  p <- p + aes_string(color = groupColumn, fill = groupColumn)
+  if(color.model.discrete) {
+    col.vec <- kIn.color.model[,2]
+    names(col.vec) <- kIn.color.model[,1]
+    p <- p + scale_color_manual(names(kIn.color.model)[1], values = col.vec)
+    p <- p + scale_fill_manual(names(kIn.color.model)[1], values = col.vec)
+  } 
+}
+
+print(p)
+
+]]>
+
 </rgg>
