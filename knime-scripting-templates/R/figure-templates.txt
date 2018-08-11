@@ -3495,7 +3495,7 @@ Layout Options:
 
 	<separator label="Layout Options Legend" span="full"/>
 	<hbox>
-	legendPosition = <combobox label = "legend position:" items = "right,top,botton,left,none"/>
+	legendPosition = <combobox label = "legend position:" items = "right,top,bottom,left,none"/>
 	useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
 	legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
 	</hbox>
