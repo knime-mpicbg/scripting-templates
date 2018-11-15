@@ -4011,7 +4011,7 @@ HINT: usage as Plate Heatmap Plotter:
 </rgg>
 
 ########################################################################################
-# name: 5D-Scatterplot (beta)
+# name: 5D-Scatterplot
 # author: Antje Janosch
 # category: scatterplots
 # preview: scatterplot.png
@@ -4037,29 +4037,94 @@ A simple scatterplot which is able to use KNIME-color , -shape and -size model (
 <group>
 
 # b) X-Axis
+<hbox>
 x.col = c(<combobox items="$$$ALL_ATTRIBUTES$$$" label="X-Axis"/>)
+#define use of flow variables
+<checkbox label="use flow variable X" var="useFlowVarX" selected="false" />
+<textfield label="flow variable X:" var="flowVariableParameterX" data-type="text" default-value= "" size="10" />
+</hbox>
+<hbox>
+# c) Y-Axis
 y.col = c(<combobox items="$$$ALL_ATTRIBUTES$$$" label="Y-Axis"/>)
+#define use of flow variables
+<checkbox label="use flow variable Y" var="useFlowVarY" selected="false" />
+<textfield label="flow variable Y:" var="flowVariableParameterY" data-type="text" default-value= "" size="10" />
+</hbox>
+# d) color, size, shape model 
 <checkbox  label="use KNIME color model" var="color.model" selected="false"/>
 <checkbox  label="use KNIME size model" var="size.model" selected="false"/>
 <checkbox  label="use KNIME shape model" var="shape.model" selected="false"/>
+
+# e) #diagram options
+<separator label="Layout Options General Plot" span="full"/>
 <textfield label="Title of plot:" var="plot.title" data-type="text" default-value= "" size="1"/>
+<hbox>
+plotTheme = <combobox items="grey,black-white,linedraw,light,minimal,classic,nothing" label="background/theme:"/>
+plot.text.size = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+</hbox>
 <textfield label="Rotation angle for x axis labels:" var="x_angle" data-type="number" default-value="0"/>
+<hbox>
+point.fixed.size = as.numeric(c(<vector label="point size" size="1" default-value="2"/>))
+point.alpha = as.numeric(c(<vector label="point alpha value" size="1" default-value="0.7"/>))
+</hbox>
 </group>
 
 <![CDATA[
+#2.0 R code	
 
+#2.1 load libaries
 library(ggplot2)
 library(scales)
 
-x_angle <- as.numeric(x_angle)
+#2.2 manage RGG to R: define as numbers / check input parameters
+# check flow variables
+if (useFlowVarX && !is.na(flowVariableParameterX)) {
+	if(flowVariableParameterX %in% names(kIn)) x.col <- flowVariableParameterX
+} else {
+	warning("Flow variable for x-axis not found")
+}
+if (useFlowVarY && !is.na(flowVariableParameterY)) {
+	if(flowVariableParameterY %in% names(kIn)) y.col <- flowVariableParameterY
+} else {
+	warning("Flow variable for y-axis not found")
+}
 
+if (is.na(plot.title)) plot.title <- NULL	#default if no title is given
+if (is.na(plot.text.size[1]) | (plot.text.size[1] < 0) | (plot.text.size[1] > 40)) plot.text.size[1] <- 14
+#if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
+
+# setting x-axis angle
+x_angle <- as.numeric(x_angle)
+if (is.na(x_angle)) x_angle <- 0
+if (x_angle == 0 ) {
+	x_axis_ajust <- c(0.5,1.0) # x_axis_ajust = c(hjust,vjust)
+} else {
+	if (x_angle == 45)  {
+		x_axis_ajust <- c(1.0,1.0)	
+	} else {
+		if (x_angle == 90) {
+			x_axis_ajust <- c(1.0,0.5)	
+		} else {
+			x_axis_ajust <- c(0.5,1.0)
+		}
+	}
+}	
+if(size.model) {
+	if (!is.na(point.fixed.size)) warning("Given fixed point size will be ignored because size model is used.")
+	point.fixed.size <- NULL 
+} else {
+	if (is.na(point.fixed.size) | point.fixed.size < 0) point.fixed.size <- 2
+}
+if (is.na(point.alpha) | point.alpha < 0 | point.alpha > 1) point.fixed.size <- 0.7
+
+# check models
 if(size.model && !exists("kIn.size.model")) 
 	warning("No KNIME size model provided.")
 if(color.model && !exists("kIn.color.model")) 
 	warning("No KNIME color model provided.")
 if(shape.model && !exists("kIn.shape.model")) 
 	warning("No KNIME shape model provided.")
-
+	
 keep <- c(x = x.col,y = y.col)
 
 if(size.model & exists("kIn.size.model")) {
@@ -4072,6 +4137,7 @@ if(shape.model & exists("kIn.shape.model")) {
 	keep <- c(keep, shapeVal = names(kIn.shape.model)[1])
 }else shape.model <- FALSE
 
+#2.3 calculate
 data <- kIn[,match(keep, names(kIn))]
 names(data) <- names(keep)
 
@@ -4091,12 +4157,23 @@ if(shape.model) {
 	shapeValues <- kIn.shape.model$pch[match(levels(data$shapeVal),kIn.shape.model[,1])]
 }
 
-
-p <- ggplot(data, aes(x = x, y = y)) + geom_point()
+#2.4.1 plot
+p <- ggplot(data, aes(x = x, y = y)) + geom_point(alpha = point.alpha, size = point.fixed.size)
 #geom_point(aes(size = size, color = color, shape = shapeVal))
+
+#2.4.2 set general layout of plot
+if(plotTheme == "grey")	p <- p + theme_grey(base_size=plot.text.size[1])
+if(plotTheme == "black-white")	p <- p + theme_bw(base_size=plot.text.size[1])
+if(plotTheme == "linedraw")	p <- p + theme_linedraw(base_size=plot.text.size[1])	
+if(plotTheme == "light")	p <- p + theme_light(base_size=plot.text.size[1])
+if(plotTheme == "minimal")	p <- p + theme_minimal(base_size=plot.text.size[1])
+if(plotTheme == "classic")	p <- p + theme_classic(base_size=plot.text.size[1])
+if(plotTheme == "nothing")	p <- p + theme_classic() + theme(line = element_blank(), text = element_blank(), title = element_blank(), legend.position = "none")
+
+#2.4.3 use models in plot
 if(size.model) {
 	p <- p + aes(size = size)
-	p <- p + scale_size_identity(kIn.size.model, trans = my.trans, guide = "legend")
+	p <- p + scale_size_identity(kIn.size.model, trans = my.trans, guide = "legend")
 }
 if(color.model) {
 	p <- p + aes(color = color)
@@ -4112,7 +4189,9 @@ if(shape.model) {
 	p <- p + aes(shape = shapeVal)
 	p <- p + scale_shape_manual(names(kIn.shape.model)[1], values = shapeValues)
 }
-p <- p + theme(axis.text.x = element_text(angle = x_angle, hjust = 1))
+
+#2.4.4 set specific layout options
+p <- p + theme(axis.text.x = element_text(angle = x_angle, hjust =  x_axis_ajust[1], vjust =  x_axis_ajust[2]))
 p <- p + labs(title = plot.title, x = x.col, y = y.col)
 print(p)
 
