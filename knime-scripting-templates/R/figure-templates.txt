@@ -338,6 +338,11 @@ Layout Options:
 	free.scales = <checkbox label="use free y-scales (for 2D grid)" selected="t"/>
 	</hbox>
 
+	<hbox>
+    yAxisScaleLog10 = <checkbox label="logarithmic y-axis scale" selected="f"/>
+    yAxisTextLog10 = <checkbox label="logarithmic y-axis numbers" selected="f"/>
+	</hbox>
+	
 	<separator label="Layout Options Legend" span="full"/>
 	<hbox>
 	legendPosition = <combobox label = "legend position:" items = "right,top,botton,left,none"/>
@@ -361,6 +366,7 @@ Layout Options:
 	library(reshape)
 	library(grid)
 	library(RColorBrewer)
+	library(scales)
 
 	#2.2.1 manage RGG to R: define as numbers / check input parameters
 	# check flow variables
@@ -391,7 +397,6 @@ Layout Options:
 
 	# for brewer palettes check possible values
 	nFactors <- length(colourCol)
-	library(RColorBrewer)
 	brewerTable <- do.call("cbind", brewer.pal.info)
 	rownames(brewerTable) <- rownames(brewer.pal.info)
 	if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
@@ -551,7 +556,17 @@ Layout Options:
 	} else {
 		p <- p + scale_y_continuous(name = yAxisLabel)   
 	}
-	if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
+	
+	#if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
+	if(useManualYaxisScale) p <- p + coord_cartesian(ylim = yAxisScale)  # this does not crop the data like "limits" parameter
+
+	if(yAxisScaleLog10) {
+		p <- p + scale_y_log10(name = yAxisLabel)
+		if(yAxisTextLog10) p <- p + scale_y_log10(name = yAxisLabel, breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))
+	} else {
+		p <- p + scale_y_continuous(name = yAxisLabel) 
+		if(yAxisTextLog10) p <- p + scale_y_continuous(name = yAxisLabel, breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) 
+	}
 	
 	# color settings	
 	if(useKNIMEColors) {
