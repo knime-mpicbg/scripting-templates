@@ -286,9 +286,13 @@ Layout Options:
 
 	# Define your numerical parameters represented by bar height
 	barHeight = c(<panellistbox label="select columns with values for bar height" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
-	plot.Errorbars = <checkbox label="draw errorbars (select column with errorbar values)" selected="t"/>
-	
+
 	# Define your numerical parameters for error bars
+	<hbox>  
+	plot.Errorbars = <checkbox label="draw errorbars (select column with errorbar values)" selected="t"/>
+	plot.Errorbars.Plus = <checkbox label="draw positive error" selected="t"/>
+	plot.Errorbars.Negative = <checkbox label="draw negative error" selected="t"/>
+	</hbox> 
 	barError = c(<panellistbox label="cErrorBars" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
 	<gaprow height="2"/>
 
@@ -492,8 +496,19 @@ Layout Options:
 		sdData <- kIn[,c(barError,xFactorCol, facetCol, colourCol)]
 		sdDataLong <- melt(sdData, measure.vars = barError)
 		meanDataLong$error <- sdDataLong$value
-		meanDataLong$low <- with(meanDataLong, height - error)
-		meanDataLong$high <- with(meanDataLong, height + error)
+		if(plot.Errorbars.Negative) {
+			meanDataLong$low <- with(meanDataLong, height - error)
+		} else {
+			meanDataLong$low <- with(meanDataLong, height)
+		}
+		if(plot.Errorbars.Plus) {
+			meanDataLong$high <- with(meanDataLong, height + error)
+		} else {
+			meanDataLong$high <- with(meanDataLong, height)
+		}
+		if(yAxisScaleLog10) {
+			meanDataLong[which(meanDataLong$low < 0),"low"] <- 0.000000001
+		}
 	}
 
 	if(xFactorFlag) xFactorCol <- "- PARAMETERS -"
