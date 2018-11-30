@@ -550,21 +550,17 @@ Layout Options:
 	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
 	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
 
-	# fixing the y-axis labeling, make parameter name or custom y-axis label instead of "height", set y-axis scale
-	if((!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy )|| length(barHeight) > 1) {
-		p <- p + scale_y_continuous(name = "height") 
-	} else {
-		p <- p + scale_y_continuous(name = yAxisLabel)   
-	}
+	# fixing the y-axis labeling, make parameter name or custom y-axis label instead of "height", only if no multi-parameteric plot and only if no y-Axis label was added in the GUI
+	if(((!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy )|| length(barHeight) > 1) && is.null(yAxisLabel)) yAxisLabel <- "height"
 	
 	#if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
 	if(useManualYaxisScale) p <- p + coord_cartesian(ylim = yAxisScale)  # this does not crop the data like "limits" parameter
 
 	if(yAxisScaleLog10) {
-		p <- p + scale_y_log10(name = yAxisLabel)
+		p <- p + scale_y_log10(name = yAxisLabel)   # do y-axis in log 10 scale
 		if(yAxisTextLog10) p <- p + scale_y_log10(name = yAxisLabel, breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))
 	} else {
-		p <- p + scale_y_continuous(name = yAxisLabel) 
+		p <- p + scale_y_continuous(name = yAxisLabel)   # do normal y-axis 
 		if(yAxisTextLog10) p <- p + scale_y_continuous(name = yAxisLabel, breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) 
 	}
 	
