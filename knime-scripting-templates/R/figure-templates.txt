@@ -250,7 +250,7 @@ HINT: use GroupBy node to aggregated the data to e.g mean and sd columns
 
 Parameter:
 Bar height - One or multiple numerical variables. Each value will result in one bar
-Error bar checkbox - Draw errorbars?
+Error bar checkbox - Draw errorbars? Choose to plot just positive or negative error bars
 Error bar - Error bar values corresponding to the height values (same number of columns have to be selected)
 To use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
 x-axis - Label to put at the x-axis for each bar (mulitple columns can be selected to combine information)
@@ -263,7 +263,7 @@ Layout Options:
  - give plot title and title factor (default = 1.2)
  - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
  - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
- - adjust y-axis scale (check fixed and enter min + max; free for 2D grid)
+ - adjust y-axis scale (check fixed and enter min + max; free for 2D grid), option for log10 scale and log10 numbers on y-axis
  - give legend title, adjust position (fixed position outside diagram or free(range:0-1): [0.1,0.9] = top-left) and legend title/text size factor(default = 0.8)   
 ######
 
@@ -349,7 +349,7 @@ Layout Options:
 	
 	<separator label="Layout Options Legend" span="full"/>
 	<hbox>
-	legendPosition = <combobox label = "legend position:" items = "right,top,botton,left,none"/>
+	legendPosition = <combobox label = "legend position:" items = "right,top,bottom,left,none"/>
 	useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
 	legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
 	</hbox>
@@ -396,8 +396,7 @@ Layout Options:
 	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) { facetCol <- NULL; facetFlag <- TRUE } else facetCol <- facetBy
 	if(!is.null(colourBy) && "-USE COLUMN SELECTION-" %in% colourBy) { colourCol <- NULL; colourFlag <- TRUE } else colourCol <- colourBy
 
-	useKNIMEColors <- FALSE
-	if(colorPalette == "KNIME colors") useKNIMEColors <- FALSE #set this to TRUE once KNIME colors is tested
+	if(colorPalette == "KNIME colors") useKNIMEColors <- TRUE 
 
 	# for brewer palettes check possible values
 	nFactors <- length(colourCol)
@@ -411,27 +410,6 @@ Layout Options:
 		colorPalette <- "ggplot default"
 	}
 
-	if (useKNIMEColors) {
-		# check if color model is joined to data table
-		if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) {
-			colorPalette <- "standard"
-			warning("KNIME colors not available in input table, standard palette is used instead")
-			# if yes, generate color table from KNIME colors
-		} else { 
-			# check whether colors belong to grouping factor  
-			colorTable <- lapply(factors, FUN = function(x) {
-				subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)
-				if(length(unique(subdata$RGBA)) > 1) stop("KNIME color model does not fit to selected factor column")
-				subdata[1,]
-				})
-			# create color vector
-			names(colorTable) <- factors
-			colorTable <- do.call("rbind", colorTable)
-			factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, max =  255) 
-			names(factorColors) <- factors
-		}
-	}
-	
 	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
 	# 2D grid options (define rows and columns)
 	if(is.na(as.numeric(twoDgridRow))) {twoDgridRow <- NULL  #e.g. is equal to "-AUTO-"
@@ -482,7 +460,6 @@ Layout Options:
 	meanDataLong <- melt(meanData, measure.vars = barHeight, variable_name = "- PARAMETERS -")
 	names(meanDataLong)[which(names(meanDataLong) == "value")] <- "height"
 
-
 	#check if values/data is there, to prevent R error message
 	if(length(which(!is.na(meanDataLong$height))) == 0){
 		meanDataLong$height[1] <- 0
@@ -514,7 +491,6 @@ Layout Options:
 	if(xFactorFlag) xFactorCol <- "- PARAMETERS -"
 	if(facetFlag) facetCol <- "- PARAMETERS -"
 	if(colourFlag) colourCol <- "- PARAMETERS -"
-
 	
 	if(is.na(legendTitle)) legendTitle <- colourCol		#default if no title is given
 
@@ -578,11 +554,27 @@ Layout Options:
 		p <- p + scale_y_continuous(name = yAxisLabel)   # do normal y-axis 
 		if(yAxisTextLog10) p <- p + scale_y_continuous(name = yAxisLabel, breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) 
 	}
-	
-	# color settings	
+
+# color model checks: is it available? is it defined for the grouping column?
+	if(useKNIMEColors && !exists("kIn.color.model")) {
+		stop("No KNIME color model provided. Script was stopped!")
+		useKNIMEColors <- FALSE
+	}
+	if(useKNIMEColors && names(kIn.color.model[1]) != colourCol) {
+		stop(paste("KNIME color model is different (", names(kIn.color.model[1]), ") from selected color grouping column (", colourCol, ") in template. Script was stopped!"))
+		useKNIMEColors <- FALSE
+	} 
 	if(useKNIMEColors) {
-		p <- p + scale_color_manual(name = colourCol, labels = factors, values = factorColors)
-		p <- p + scale_fill_manual(name = colourCol, labels = factors, values = factorColors)
+		kIn.color.model$color <- as.character(kIn.color.model$color)
+		colourCol <- names(kIn.color.model)[1]
+		factorColors <- kIn.color.model[,2]
+		names(factorColors) <- kIn.color.model[,1]
+	}
+	
+	# color settings		
+	if(useKNIMEColors) {
+		p <- p + scale_color_manual(name = colourCol, values = factorColors)
+		p <- p + scale_fill_manual(name = colourCol, values = factorColors)
 	} else {
 		if(colorPalette == "ggplot default") {
 			p <- p + scale_color_discrete(name = colourCol)
@@ -593,18 +585,13 @@ Layout Options:
 		}
 	}
 	
-	#legend
-	if(!is.null(colourCol)) {  #legend title and rotation
-		if(rotateLegend) {
-			p <- p + scale_fill_discrete(name = legendTitle, guide = guide_legend(direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
-			} else {
-			p <- p + scale_fill_discrete(name = legendTitle)
-		}
-	}
-	p <- p + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	#legend: legend title, text style and rotation
+	p <- p + guides(fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	
+	if(rotateLegend) p <- p + guides(fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
 	if (useLegendCoordinate) {
 		p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
-		} else {
+	} else {
 		p <- p + theme(legend.position = legendPosition) 
 	}
 	
