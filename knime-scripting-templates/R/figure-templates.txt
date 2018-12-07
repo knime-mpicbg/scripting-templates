@@ -312,7 +312,7 @@ Layout Options:
  	#diagram options
 	<separator label="Layout Options General Plot" span="full"/>
 	<hbox>
-	plotTheme = <combobox items="grey,black-white" label="background/theme:"/>
+	plotTheme = <combobox items="grey,black-white,linedraw,light,classic" label="background/theme:"/>
 	plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
 	twoDgridRow = c(<vector label="2D grid [row]:" size="1" default-value="-AUTO-"/>)
 	twoDgridColumn = c(<vector label="2D grid [column]:" size="1" default-value="-AUTO-"/>)
@@ -396,7 +396,7 @@ Layout Options:
 	if(!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy) { facetCol <- NULL; facetFlag <- TRUE } else facetCol <- facetBy
 	if(!is.null(colourBy) && "-USE COLUMN SELECTION-" %in% colourBy) { colourCol <- NULL; colourFlag <- TRUE } else colourCol <- colourBy
 
-	if(colorPalette == "KNIME colors") useKNIMEColors <- TRUE 
+	useKNIMEColors <- colorPalette == "KNIME colors"
 
 	# for brewer palettes check possible values
 	nFactors <- length(colourCol)
@@ -527,12 +527,13 @@ Layout Options:
 	
 	#2.4.1 layout plot
 	#general
-	if(plotTheme == "grey"){
-		p <- p + theme_grey(base_size = plotTextSize[1])
-		} else {
-		p <- p + theme_bw(base_size = plotTextSize[1])
-	}
+	if(plotTheme == "grey")	p <- p + theme_grey(base_size=plotTextSize[1])
+	if(plotTheme == "black-white")	p <- p + theme_bw(base_size=plotTextSize[1])
+	if(plotTheme == "linedraw")	p <- p + theme_linedraw(base_size=plotTextSize[1])	
+	if(plotTheme == "light")	p <- p + theme_light(base_size=plotTextSize[1])
+	if(plotTheme == "classic")	p <- p + theme_classic(base_size=plotTextSize[1])
 
+	#2.4.2 set general layout of plot
 	#title options
 	p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
 
