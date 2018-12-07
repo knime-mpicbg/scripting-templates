@@ -1369,12 +1369,14 @@ params = c(<combobox items="$$$NUM_ATTRIBUTES$$$" label="Numerical attributes"/>
 factorName = c(<combobox items="$$$STR_ATTRIBUTES$$$" selected-item="treatment" label="Factor"/>)
 
 <gaprow height="1"/>
+</group>
 
+<group>
 # c) Options for visualization
 <separator label="more layout options" span="full"/>
 <gaprow height="1"/>
 
-<label text="                                                                                   y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]" aligment="center" span="full"/>
+<separator label="                                                                                       y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]" aligment="right" span="full"/>
 <hbox>
 <checkbox label="Default y-Axis scale?" var="useDefaultyAxisScale" selected="true"/>
 <vector label="y-axis scale factors:" var="yAxisScaleFactors" size="5" default-value="0.005,0.995,1,1,0" vector-type="character"/>
@@ -2680,7 +2682,7 @@ Creates a grid of qq-plots (with respect to normal distribution) which allow to 
 <group>
 
 #Select the parameter of interest
-<label text="Select your parameters for which you would like to see a qq-plots"/>
+<separator label="Select your parameters for which you would like to see a qq-plots                                                                                                          "/>
 
 selReadouts = c(<panellistbox label="Parameters of interest" items="$$$NUM_ATTRIBUTES$$$" span="full"/>)
 <hbox>
@@ -2774,10 +2776,10 @@ Hint: use "Nominal row filter" node to select the categories to plot (former tre
 
 # 1. Parameter selection
 <group>
-# a) Define column with categorial values
-treatments = c(<listbox label="Treatments of interest" items="$$$DOMAIN('treatment')$$$" span="full" visible-row-count="15"/>);
 <hbox>
+# a) Define column with categorial values
 <combobox var = "catVar" label = "Categorial values" items = "-USE SELECTED TREATMENTS-,$$$STR_ATTRIBUTES$$$"/>
+treatments = c(<listbox label="Treatments of interest" items="$$$DOMAIN('treatment')$$$" span="full" visible-row-count="15"/>);
 </hbox>
 
 # b) Define which parameter you would like to visualize
@@ -2793,7 +2795,7 @@ params =  c(<panellistbox label="Parameters" items="$$$NUM_ATTRIBUTES$$$" span="
 <gaprow height="1"/>
 
 <checkbox label="Use KNIME colors palette?" var="useKNIMEcolors" selected="false"/>
-<label text="                                                                                   y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]" aligment="center" span="full"/>
+<separator label="                                                                                        y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]                                        " aligment="center" span="full"/>
 <hbox>
 <checkbox label="Default y-Axis scale?" var="useDefaultyAxisScale" selected="true"/>
 <vector label="y-axis scale factors:" var="yAxisScaleFactors" size="5" default-value="0.005,0.995,1,1,0" vector-type="character"/>
@@ -3179,7 +3181,7 @@ treatments = c(<listbox label="Treatments of interest" items="$$$DOMAIN('treatme
 
 <gaprow height="1"/>
 <separator label="Layout Options Axis Scales" span="full"/>
-<label text="                                                                                                      x/y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]" aligment="center" span="full"/>
+<separator label="                                                                                x/y-axis scale factors: [lower quantile, upper quantile, lower scale factor, upper scale factor, extended range]                                                                                          " aligment="center" span="full"/>
 <hbox>
 <checkbox label="Default x-Axis?" var="useDefaultxAxisScale" selected="true"/>
 <vector label="Scale factors [x]:" var="xAxisScaleFactors" size="5" default-value="0.005,0.995,1,1,0" vector-type="character"/>
