@@ -4336,3 +4336,340 @@ print(p)
 ]]>
 
 </rgg>
+
+########################################################################################
+# name: Barplot or Boxplot with points (beta)
+# author: Martin Stoeter
+# category: basic/bar-boxplots
+# preview: bar-boxplot.png
+
+Flexible template to create a barplot or a boxplot with points (optional add violins or error bars)
+
+Parameter:
+Parameter to plot - Select a column with values to plot
+To use a flow variable check box and type in variable name using the format: FLOWVAR(variable name)
+Plot style - Select to plot the data as barplot, boxplot or none of those (e.g. just plot points or violins)
+Select checkboxs to plot points, violins and/or errorbars? 
+
+x-axis - Label to put at the x-axis 
+2D-grid grouping - Allows to split the dataset into multiple plots by this condition 
+colourby - Colour bars by condition
+
+Change point size or jitterin width if neccessary
+HINT: points are plotted twice with second being a little smaller (1. is line, 2. is fill; play with alpha values...)
+Trim distribution of violins, or change alpha value of violins
+If robust statistics is checked then median and mad will be used for bar height and error bar; use dogde to change gap of data in x
+
+Layout Options: 
+ - select background/theme and set general font size in plot (default = 14)
+ - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#rcolorbrewer-palette-chart )
+ - give plot title and title factor (default = 1.2)
+ - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
+ - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
+ - adjust y-axis scale (check fixed and enter min + max)
+ - give legend title, adjust position (fixed position outside diagram or free(range:0-1): [0.1,0.9] = top-left) and legend title/text size factor(default = 0.8)   
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+<group>
+
+# Define your numerical parameters to be plotted
+<hbox>  #define use of flow variables
+yParameters = c(<combobox items="$$$NUM_ATTRIBUTES$$$" label="select parameter to plot"/>)
+<checkbox label="use flow variable" var="useFlowVar" selected="false" />
+<textfield label="parameter variable:" var="flowVariableParameter" data-type="text" default-value= "" size="10" />
+</hbox>
+
+# Define your numerical parameters for error bars
+<hbox>  
+plotType = c(<combobox items="barplot,boxplot,-NO SELECTION-" label="select plot type"/>)
+plotPoints = <checkbox label="plot points" selected="t"/>
+plotErrorbars = <checkbox label="plot errorbars" selected="t"/>
+plotViolins = <checkbox label="plot violins" selected="f"/>
+</hbox> 
+
+<hbox>  #define x-axis, grid and color group
+xFactor = c(<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis"/>)
+facetBy = c(<combobox items="-NO SELECTION-,$$$STR_ATTRIBUTES$$$" label="2D grid grouping"/>)
+colourBy = c(<combobox items="$$$STR_ATTRIBUTES$$$" label="coloured by"/>)
+<combobox var="colorPalette" items="ggplot default,KNIMEcolors,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd" label="Color palette:"/>
+</hbox>
+
+#diagram options
+<separator label="Layout Options Plot Style" span="full"/>
+<hbox>
+pointSize = as.numeric(c(<vector label="point size:" size="1" default-value="3"/>))
+alphaPoints = as.numeric(c(<vector label="alpha values of points:" size="2" default-value="0.2,0.6"/>))
+jitterWidth = as.numeric(c(<vector label="jitter width of points:" size="1" default-value="0.5"/>))
+</hbox>
+
+<hbox>
+<textfield label="color of boxplot outliers:" var="boxPlotOutlierColor" data-type="text" default-value= "black" size="5"/>
+trimViolin = <checkbox label="trim violins" selected="f"/>
+alphaViolin = as.numeric(c(<vector label="alpha values of violins:" size="1" default-value="0.2"/>))
+</hbox>
+
+<hbox>
+robustStatistics = <checkbox label="use robust statistics" selected="f"/>
+dodgeWidth = as.numeric(c(<vector label="dodge width:" size="1" default-value="0.9"/>))
+</hbox>
+
+<gaprow height="2"/>	
+
+#diagram options
+<separator label="Layout Options General Plot" span="full"/>
+<hbox>
+plotTheme = <combobox items="grey,black-white,linedraw,light,classic" label="background/theme:"/>
+plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+</hbox>
+
+<separator label="Layout Options Title" span="full"/>
+<hbox>
+<textfield label="plot title:" var="plotTitle" data-type="text" default-value= "" size="5"/>
+plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default-value="1.2"/>))
+</hbox>
+
+<separator label="Layout Options Axes" span="full"/>	
+<hbox>
+xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "0,45,90"/>))
+axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
+</hbox>
+	
+<hbox>
+<textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
+useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="f"/>
+axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
+</hbox>
+
+<hbox>
+useManualYaxisScale = <checkbox label="use fixed y-axis scale" selected="f"/>
+yAxisScale = as.numeric(c(<vector label="y-axis scale [min,max]:" size="2" default-value=","/>))
+</hbox>
+	
+#not yet implemented
+<separator label="Layout Options Legend" span="full"/>
+<hbox>
+legendPosition = <combobox label = "legend position:" items = "right,top,bottom,left,none"/>
+useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
+legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
+</hbox>
+
+#not yet implemented	
+<hbox>
+legendTitle = <textfield label="legend title:" data-type="text" default-value="" size="3"/>
+legendTextSizeFactor = as.numeric(c(<vector label="text size [title,text]:" size="2" default-value="0.8,0.8"/>))
+rotateLegend = <checkbox label="rotate 90deg." selected="f"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code	
+colorVector <- c("#C0AFBB", "#E7B800", "#FC4E07","#C0AFBB", "#E7B800", "#FC4E07","#C0AFBB", "#E7B800", "#FC4E07")
+#2.1 load libaries
+library(dplyr) 
+library(ggplot2)
+library(RColorBrewer)
+
+#2.2.1 manage RGG to R: define as numbers / check input parameters
+# check flow variables
+if (useFlowVar && !is.na(flowVariableParameter)) {
+  yParameters <- flowVariableParameter
+}
+#make R compatibel column names (" ", "/", and other strange characters are replaced by ".")
+yParametersOriginal <- yParameters
+yParameters <- make.names(yParameters)
+colnames(kIn)[colnames(kIn) == yParametersOriginal] <- make.names(yParameters)
+colourByOriginal <- colourBy
+colourBy <- make.names(colourBy)
+colnames(kIn)[colnames(kIn) == colourByOriginal] <- make.names(colourBy)
+xFactorOriginal <- xFactor
+xFactor <- make.names(xFactor)
+colnames(kIn)[colnames(kIn) == xFactorOriginal] <- make.names(xFactor)
+facetByOriginal <- facetBy
+if("-NO SELECTION-" %in% facetBy) {
+  facetBy <- NULL 
+  } else {
+  facetBy <- make.names(facetBy)
+  colnames(kIn)[colnames(kIn) == facetByOriginal] <- make.names(facetBy)
+  }
+
+# no bar height columns selected
+if (is.null(yParameters)) stop("Error: Template initialization fails - no columns for bar height selected")
+
+# for brewer palettes check possible values
+useKNIMEColors <- colorPalette == "KNIME colors"
+nFactors <- length(colourBy)
+brewerTable <- do.call("cbind", brewer.pal.info)
+rownames(brewerTable) <- rownames(brewer.pal.info)
+if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
+	if (brewerTable[which(rownames(brewerTable) == colorPalette),"maxcolors"] < nFactors) colorPalette <- "ggplot default"
+	} else {
+	warningMessage <- paste("Color set '", colorPalette, "' cannot be used for ", nFactors, " different values. Color palette is reset to ggplot default", sep = "")
+	warning(warningMessage)
+	colorPalette <- "ggplot default"
+	}
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if(plotPoints) boxPlotOutlierColor <- NA
+
+kIn[,xFactor] <- as.factor(kIn[,xFactor])
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
+if (is.na(plotTextSize[1]) | (plotTextSize[1] < 0) | (plotTextSize[1] > 40)) plotTextSize[1] <- 14
+if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
+if (is.na(yAxisLabel))	yAxisLabel <- NULL
+if (is.na(xAngle))	xAngle <- 0
+if (is.na(axisTextSizeFactor[1]) | (axisTextSizeFactor[1] < 0) | (axisTextSizeFactor[1] > 5)) axisTextSizeFactor[1] <- 0.8
+if (is.na(axisTextSizeFactor[2]) | (axisTextSizeFactor[2] < 0) | (axisTextSizeFactor[2] > 5)) axisTextSizeFactor[2] <- 0.8
+if (is.na(axisTitleSizeFactor[1]) | (axisTitleSizeFactor[1] < 0) | (axisTitleSizeFactor[1] > 5)) axisTitleSizeFactor[1] <- 1
+if (is.na(axisTitleSizeFactor[2]) | (axisTitleSizeFactor[2] < 0) | (axisTitleSizeFactor[2] > 5)) axisTitleSizeFactor[2] <- 1
+if (is.na(yAxisScale[1]) | is.na(yAxisScale[2]))	yAxisScale <- NULL
+if (useParameternameAsAxisLabel) yAxisLabel <- yParametersOriginal
+if (is.na(legendCoordinate[1]) | is.na(legendCoordinate[2]) | (legendCoordinate[1] < 0) | (legendCoordinate[1] > 1) | (legendCoordinate[2] < 0) | (legendCoordinate[2] > 1)) useLegendCoordinate <- FALSE
+if (is.na(legendTextSizeFactor[1]) | (legendTextSizeFactor[1] < 0) | (legendTextSizeFactor[1] > 5)) legendTextSizeFactor[1] <- 0.8
+if (is.na(legendTextSizeFactor[2]) | (legendTextSizeFactor[2] < 0) | (legendTextSizeFactor[2] > 5)) legendTextSizeFactor[2] <- 0.8
+if (xAngle == 0 ) xAxisAjust <- c(0.5,1.0) #xAxisAjust = c(hjust,vjust)
+if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
+if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
+if (is.na(jitterWidth))	jitterWidth <- NULL
+if (is.na(legendTitle)) legendTitle <- colourByOriginal		#default if no title is given
+
+#2.3 calculate
+# statistice table kIn.summary
+if(robustStatistics) {
+  kIn.summary <- kIn %>%
+    group_by_at(vars(c(xFactor, colourBy, facetBy))) %>%  # _ at the end means it accepts strings and variables rather then interpretation of code as column name of data frame / table; at means it will evaluated with vars the list of grouping variables, e.g. here facetBy might be NULL and will not lead to crash of code
+	summarise(
+      median = median(.data[[yParameters]], na.rm = TRUE),  # .data[[]] interprets variable as name of column in data frame 
+      mad = mad(.data[[yParameters]], na.rm = TRUE)
+    ) %>%
+    mutate(errorLow = median - mad) %>%
+    mutate(errorHigh = median + mad) %>%
+    rename(!!yParameters := median)  # !! means unqouting and yParameters is not interpreted as column name of data frame, instead content of this variable in interpreted as column name; := is neccessary to new value to old (old := new)
+  } else {
+  kIn.summary <- kIn %>%
+    group_by_at(vars(c(xFactor, colourBy, facetBy)))  %>%
+    summarise(  
+      mean = mean(.data[[yParameters]], na.rm = TRUE),
+      sd = sd(.data[[yParameters]], na.rm = TRUE)
+    ) %>%
+    mutate(errorLow = mean - sd) %>%
+    mutate(errorHigh = mean + sd) %>%
+    rename(!!yParameters := mean) 
+  }
+#kIn.summary
+
+#2.4.1 plot
+p <- ggplot(kIn, aes_string(x = xFactor, y = yParameters), color = black)
+
+#2.4.1 layout of plot
+#general layout
+if(plotTheme == "grey")	p <- p + theme_grey(base_size=plotTextSize[1])
+if(plotTheme == "black-white")	p <- p + theme_bw(base_size=plotTextSize[1])
+if(plotTheme == "linedraw")	p <- p + theme_linedraw(base_size=plotTextSize[1])	
+if(plotTheme == "light")	p <- p + theme_light(base_size=plotTextSize[1])
+if(plotTheme == "classic")	p <- p + theme_classic(base_size=plotTextSize[1])
+
+if(plotType == "boxplot") p <- p + geom_boxplot(aes_string(fill = colourBy), position = position_dodge(dodgeWidth), outlier.colour = boxPlotOutlierColor)
+if(plotType == "barplot") p <- p + geom_bar(aes_string(fill = colourBy), data = kIn.summary, stat = "identity", position = position_dodge(dodgeWidth)) #+ geom_jitter(position = position_jitter(0.2), color = "black")
+
+if(plotViolins) p <- p + geom_violin(aes_string(color = colourBy), alpha = alphaViolin, trim = trimViolin, inherit.aes = TRUE)
+
+if(plotErrorbars)  p <- p + geom_errorbar(aes_string(ymin = "errorLow", ymax = "errorHigh", group = colourBy), data = kIn.summary, width = 0.2, position = position_dodge(dodgeWidth))
+
+if(plotPoints) {
+  p <- p + geom_point(aes_string(fill = colourBy), alpha = alphaPoints[1], size = pointSize, position = position_jitterdodge(jitter.width = jitterWidth, dodge.width=dodgeWidth, seed = 1))
+  p <- p + geom_point(aes_string(color = colourBy), alpha = alphaPoints[2], size = pointSize - 1, position = position_jitterdodge(jitter.width = jitterWidth, dodge.width=dodgeWidth, seed = 1))
+  }
+#p <- p + geom_jitter(aes_string(color = colourBy), position = position_dodge(0.9), size = 3)
+
+#doDotPlot <- TRUE
+#dotPlotColor <- "darkgrey"
+#dotPlotSize <- 0.7
+#dotPlotStackRatio <- 0.7
+#if(doDotPlot) p <- p + geom_dotplot(binaxis = "y", stackdir = "center", dotsize = dotPlotSize, stackratio = dotPlotStackRatio, fill = dotPlotColor) 
+#if(doDotPlot) p <- p + geom_jitter(aes_string(x = xFactor, shape = colourBy, color = colourBy), position = position_jitter(0.2), size = 3, dodge.width = 0.8)
+
+#2.4.2 set optional layout of plot
+# facet
+if(!is.null(facetBy)) p <- p + facet_wrap(as.formula(paste("~", facetBy)))
+
+#title options
+p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
+p <- p + ggtitle(plotTitle)
+
+#axis label options
+p <- p + scale_x_discrete(name = xFactorOriginal)
+p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
+p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+
+p <- p + scale_y_continuous(name = yAxisLabel)   # do normal y-axis 
+
+#if(useManualYaxisScale) p <- p + scale_y_continuous(limits = yAxisScale, name = yAxisLabel) #use e.g. limits = c(0,100)
+if(useManualYaxisScale) p <- p + coord_cartesian(ylim = yAxisScale)  # this does not crop the data like "limits" parameter
+
+# color model checks: is it available? is it defined for the grouping column?
+if(useKNIMEColors && !exists("kIn.color.model")) {
+	stop("No KNIME color model provided. Script was stopped!")
+	useKNIMEColors <- FALSE
+	}
+if(useKNIMEColors && names(kIn.color.model[1]) != colourBy) {
+	stop(paste("KNIME color model is different (", names(kIn.color.model[1]), ") from selected color grouping column (", colourCol, ") in template. Script was stopped!"))
+	useKNIMEColors <- FALSE
+	} 
+if(useKNIMEColors) {
+	kIn.color.model$color <- as.character(kIn.color.model$color)
+	colourCol <- names(kIn.color.model)[1]
+	factorColors <- kIn.color.model[,2]
+	names(factorColors) <- kIn.color.model[,1]
+	}
+	
+# color settings		
+if(useKNIMEColors) {
+	p <- p + scale_color_manual(name = colourCol, values = factorColors)
+	p <- p + scale_fill_manual(name = colourCol, values = factorColors)
+	} else {
+	if(colorPalette == "ggplot default") {
+		p <- p + scale_color_discrete(name = colourBy)
+		p <- p + scale_fill_discrete(name = colourBy)
+		} else {
+		p <- p + scale_color_brewer(name = colourBy, palette = colorPalette) 
+		p <- p + scale_fill_brewer(name = colourBy, palette = colorPalette)
+		}
+	}
+
+#p <- p + scale_fill_manual(values = colorVector) + scale_colour_manual(values = colorVector)
+
+#legend: legend title, text style and rotation
+p <- p + guides(fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	
+if(rotateLegend) p <- p + guides(fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+if (useLegendCoordinate) {
+	p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
+	} else {
+	p <- p + theme(legend.position = legendPosition) 
+	}
+	
+#if(plotErrorMessage) p <- p + ggtitle("ERROR: NO DATA!!!")
+	
+print(p)
+
+]]>
+</rgg>
