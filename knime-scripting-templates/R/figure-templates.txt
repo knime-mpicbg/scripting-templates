@@ -4406,7 +4406,7 @@ plotViolins = <checkbox label="plot violins" selected="f"/>
 xFactor = c(<combobox items="$$$STR_ATTRIBUTES$$$" label="x-axis"/>)
 facetBy = c(<combobox items="-NO SELECTION-,$$$STR_ATTRIBUTES$$$" label="2D grid grouping"/>)
 colourBy = c(<combobox items="$$$STR_ATTRIBUTES$$$" label="coloured by"/>)
-<combobox var="colorPalette" items="ggplot default,KNIMEcolors,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd" label="Color palette:"/>
+<combobox var="colorPalette" items="ggplot default,KNIME colors,Set1,Set2,Set3,Accent,Dark2,Paired,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd" label="Color palette:"/>
 </hbox>
 
 #diagram options
@@ -4514,11 +4514,11 @@ if (is.null(yParameters)) stop("Error: Template initialization fails - no column
 
 # for brewer palettes check possible values
 useKNIMEColors <- colorPalette == "KNIME colors"
-nFactors <- length(colourBy)
+nFactors <- length(levels(kIn[,colourBy]))
 brewerTable <- do.call("cbind", brewer.pal.info)
 rownames(brewerTable) <- rownames(brewer.pal.info)
 if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
-	if (brewerTable[which(rownames(brewerTable) == colorPalette),"maxcolors"] < nFactors) colorPalette <- "ggplot default"
+	if (brewerTable[which(rownames(brewerTable) == colorPalette), "maxcolors"] < nFactors) colorPalette <- "ggplot default"
 	} else {
 	warningMessage <- paste("Color set '", colorPalette, "' cannot be used for ", nFactors, " different values. Color palette is reset to ggplot default", sep = "")
 	warning(warningMessage)
@@ -4630,21 +4630,21 @@ if(useKNIMEColors && !exists("kIn.color.model")) {
 	stop("No KNIME color model provided. Script was stopped!")
 	useKNIMEColors <- FALSE
 	}
-if(useKNIMEColors && names(kIn.color.model[1]) != colourBy) {
-	stop(paste("KNIME color model is different (", names(kIn.color.model[1]), ") from selected color grouping column (", colourCol, ") in template. Script was stopped!"))
+if(useKNIMEColors && names(kIn.color.model[1]) != colourByOriginal) {
+	stop(paste("KNIME color model is different (", names(kIn.color.model[1]), ") from selected color grouping column (", colourByOriginal, ") in template. Script was stopped!"))
 	useKNIMEColors <- FALSE
 	} 
 if(useKNIMEColors) {
 	kIn.color.model$color <- as.character(kIn.color.model$color)
-	colourCol <- names(kIn.color.model)[1]
+	#colourCol <- names(kIn.color.model)[1]
 	factorColors <- kIn.color.model[,2]
 	names(factorColors) <- kIn.color.model[,1]
 	}
 	
 # color settings		
 if(useKNIMEColors) {
-	p <- p + scale_color_manual(name = colourCol, values = factorColors)
-	p <- p + scale_fill_manual(name = colourCol, values = factorColors)
+	p <- p + scale_color_manual(name = colourBy, values = factorColors)
+	p <- p + scale_fill_manual(name = colourBy, values = factorColors)
 	} else {
 	if(colorPalette == "ggplot default") {
 		p <- p + scale_color_discrete(name = colourBy)
@@ -4658,9 +4658,9 @@ if(useKNIMEColors) {
 #p <- p + scale_fill_manual(values = colorVector) + scale_colour_manual(values = colorVector)
 
 #legend: legend title, text style and rotation
-p <- p + guides(fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+p <- p + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
 	
-if(rotateLegend) p <- p + guides(fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+if(rotateLegend) p <- p + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
 if (useLegendCoordinate) {
 	p <- p + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
 	} else {
