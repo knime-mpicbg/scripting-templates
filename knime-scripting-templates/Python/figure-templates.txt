@@ -809,3 +809,86 @@ plt.show()
 ]]>
 
 </rgg>
+
+############################################################
+# name: Violin Plot
+# author: Felix Meyenhofer
+# category: distributions
+# preview: pandas-violinplot.png
+
+Creates a violing plot.
+
+Note: the Seaborn module has to be installed.
+
+######
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+<group>
+# a) Define grouping
+grp = <combobox label="Categorical variable (group)" items="$$$STR_ATTRIBUTES$$$" span="full"/>
+sec = <combobox label="Binary variable (ignored if it's the same as above)" items="$$$STR_ATTRIBUTES$$$" span="full"/>
+
+# b) Define what numerical values to use
+amp = <combobox label="Numeric variable" items="$$$NUM_ATTRIBUTES$$$" span="full"/>
+
+# c) Graph title
+tit = <textfield label="Title" data-type="text" default-value="None" size="10" span="full"/>
+
+# d) Orientation
+ori = <combobox items="vertical,horizontal" label="Orientation"/>;
+
+# e) Inner glyphs
+gly = <combobox items="None,box,point,quartile,stick" label="Inner glyphs"  default-value="None" span="full"/>
+</group>
+
+<!-- 3. Python script-->
+
+<![CDATA[
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pan
+
+# Parse into a pandas DataFrame
+df = pan.DataFrame(kIn)
+
+# deternine the secondairy category
+if sec != grp:
+	col = sec
+	spl = True
+else:
+	col = None
+	spl = False
+
+if gly == 'None':
+	gly = None
+
+if ori == 'vertical':
+	xvar = grp
+	yvar = amp
+else: 
+	xvar = amp
+	yvar = grp
+
+fi, ax = plt.subplots()
+sns.violinplot(x=xvar, y=yvar, data=df, hue=col, split=spl, inner=gly)
+
+if tit != 'None':
+	plt.title(tit)
+
+plt.subplots_adjust(bottom=0.15, left=0.15)
+plt.show()
+
+]]>
+</rgg>
