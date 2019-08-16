@@ -1836,3 +1836,249 @@ rOut <- kIn
 ]]>
 
 </rgg>
+######################################################################################
+# name: Z rank transformation (beta)
+# author: Martin Stoeter
+# category: distributions
+# preview: 
+
+This rank-preserving data transformation is a pre-processing technique to stabilize the variance and to make the data more normal distribution-like. The Z rank transformation (project_to_Gaussian) projects the data to a random normal distribution. For each group and each parameter the values are transformed independently.
+- select type of normalization
+- select parameters that should be rank normalized 
+- select a group column that should be used for ranking (e.g. barcode, date, project name,...)
+If subset data is chosen as reference, only this subset data is used to calculate the lambda for the transformation (either a) or b); not possible in Z rank!).
+a) select a column and give name of subset data used as reference 
+b) select subset of column 'treatment' to be used as reference (needs a column with name 'treatment') 
+######
+
+<rgg>
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+<group>
+# 1.1 select type of transformation
+transformation = <combobox items="Box-Cox,Yeo-Johnson,basic,project_to_Gaussian" label="Power transformation"/>;
+
+# 1.2 select the columns
+selectedParams = match(c(<panellistbox label="Column selection" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>), names(kIn));
+
+# 1.3 select group
+groupColumnName = <combobox items="$$$STR_ATTRIBUTES$$$" label="Group column"/>
+
+# 1.4 select subset
+<separator label="Subset data as reference" span="full"/>
+subsetOption = <combobox items="-NO SUBSET - USE ALL DATA IN GROUP!-,a) subset column,b) subset of column 'treatment'" label="Subset column"/>
+<hbox>
+subsetColumn = <combobox items="-NOT USED-,$$$STR_ATTRIBUTES$$$" label="a) Subset column"/>
+<textfield label="subset:" var="subsetName" data-type="text" default-value= "" size="5" />
+</hbox>
+subsetTreatment = <combobox label="b) Subset of column 'treatment'" items="-NOT USED-,$$$DOMAIN('treatment')$$$" />
+
+</group>
+
+<![CDATA[
+#2.0 R code
+
+#2.1 load libraries
+library(car)
+library(alr3)
+library(dplyr)
+
+#ensure randomness
+set.seed( as.integer((as.double(Sys.time())*1000+Sys.getpid()) %% 2^31) )
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set values to default and check values
+
+#2.3. calulate
+
+allGroups <- unique(kIn[,groupColumnName])
+table <- tbl_df(kIn) %>% mutate(rowID = row.names(kIn))
+#table <- table %>% filter(Metadata_barcode == "060AZ190218A-man-fixed")
+rOut <- table
+aggregatedGroupData <- head(table,0)
+randomDataTable <- NULL   # data frame to store random normal distributions
+calculateTransformationModel <- TRUE
+debugAndPlot <- FALSE  # set this TRUE for visualization and debugging
+storeRandomDistributionTable <- FALSE
+
+if (transformation == "project_to_Gaussian") {
+  
+  #calc z rank normalization per group
+  for (group in 1:(length(allGroups))) {	
+    # ================================= for each group, (get subset data,) and calculate & store randome distribution ================ 
+    # get name of group
+    curGroup <- allGroups[group]
+    groupData <- table %>% filter(get(groupColumnName) == curGroup)
+    
+    # z rank normalization can be calculated on complete data set (still for each group independently, here = ELSE), or based on a subset of the group (e.g. untreated) and then applied on the complete data set of the group (here = IF) 
+    groupDataModel <- groupData %>% filter(0 > 1)  # initialize table with 0 rows
+    if(subsetOption == "a) subset column") {
+      groupDataModel <- groupData %>% filter(get(subsetColumn) == subsetName)  # get the subset table to calculate the normalization / transformation model data 
+      doApplyOnNormalDistribution <- TRUE
+    }
+    if(subsetOption == "b) subset of column 'treatment'" && subsetTreatment != "-NOT USED-") {
+      subsetColumn <- "treatment"
+      groupDataModel <- groupData %>% filter(get(subsetColumn) == subsetTreatment)  # get the subset table to calculate the normalization / transformation model data 
+      doApplyOnNormalDistribution <- TRUE
+    }
+    if (subsetOption == "-NO SUBSET - USE ALL DATA IN GROUP!-" | nrow(groupDataModel) == 0) {
+      groupDataModel <- groupData   
+      doApplyOnNormalDistribution <- FALSE
+    }
+    
+    # generate data set with random normal distribution that is 100 bigger than the group data set (100 => less random sampling errors)
+    nValues <- nrow(groupDataModel)  # length of model data vector
+    normData <- sort(rnorm(nValues*100, mean = 0, sd = 1))   # random normal distribution is sampled 100-fold more to avoid effects due to random data 
+    
+    # store random distribution in table to export to output and use as model later...
+    if (storeRandomDistributionTable) {
+      if (is.null(randomDataTable)) randomDataTable <- data.frame(cbind(normData))
+      else {
+        if (nrow(randomDataTable) > length(normData)) randomDataTable <- data.frame(cbind(randomDataTable, c(normData, rep(NA,nrow(randomDataTable)-length(normData)))))
+        else {
+          for (fillNA in (nrow(randomDataTable)+1):length(normData)) randomDataTable <- data.frame(rbind(randomDataTable, rep(NA, ncol(randomDataTable))))
+          randomDataTable <- data.frame(cbind(randomDataTable, normData))
+        }
+      }
+      names(randomDataTable)[group] <- levels(curGroup)
+    }  # end of if (storeRandomDistributionTable) 
+    # ================================= for each group, (get subset data,) and calculate & store randome distribution ================ 
+    
+    # iterate through all selected parameter
+    for (param in 1:(length(selectedParams))) {  
+      paramName <- colnames(groupDataModel)[selectedParams[param]]    # get current parameter name
+      groupData$normData <- NA                                        # make column for transformed data and set all values to NA for now
+      if(calculateTransformationModel) {   # xxx is this if variable neccessary?
+        rawValues <- pull(groupDataModel, paramName)
+        rankVals <- as.integer(rank(rawValues))
+        transformedData <- normData[rankVals*100-50]
+        temp <- data.frame(rowID = groupDataModel, values = rawValues, rank = rankVals, normData = transformedData)  # xxx is this needed?
+      } # if
+      
+      if (doApplyOnNormalDistribution) {
+        groupData <- groupData %>% arrange_(paramName)
+        rawValuesGroupDataSorted <- pull(groupData, paramName)
+        i = 1  # varible for iteration through transformation model data
+        j = 1  # varible for iteration through group data
+        rawValuesSorted <- sort(rawValues)   # xxx again sorting? yes, but same variable could be used...
+        transformedData <- sort(transformedData)  # xxx again sorting?
+        
+        #rawValuesSorted <- rawValuesSorted[1:5]
+        intvervalLow <- rawValuesSorted[i]
+        intvervalHigh <- rawValuesSorted[i + 1]
+        intervalHighLow <- intvervalHigh - intvervalLow
+        intervalNormData <- normData[(i+1)*100-50]-normData[i*100-50]
+        intervalTransformedData <- transformedData[i + 1] - transformedData[i]
+        
+        if (debugAndPlot) {  # initialize plot for debugging with first data point
+          plot(x = rawValuesSorted[1], y = transformedData[1], ylim = c(-5,5), xlim = c(rawValuesGroupDataSorted[2],rawValuesGroupDataSorted[length(rawValuesGroupDataSorted)])) # first data: c(rawValuesGroupDataSorted[2],rawValuesGroupDataSorted[20]) ; end of the data: c(rawValuesGroupDataSorted[length(rawValuesGroupDataSorted)-20],rawValuesGroupDataSorted[length(rawValuesGroupDataSorted)])
+          abline(v = intvervalLow, lty = 2, col = "grey")
+        } # debug
+        
+        # find data points that are lower smaller than model data of subset 
+        while (!intvervalLow <= rawValuesGroupDataSorted[j]) j = j + 1
+        
+        if (j > 1) { # apply linear model on this data
+          xData <- rawValuesSorted[1:(length(rawValuesSorted)*0.05)]    # get the lowest 5% of the data for fitting a linear model
+          yData <- transformedData[1:(length(rawValuesSorted)*0.05)]
+          linearModelLow <- lm(yData ~ xData)
+          differenceLastModelDataPoint <- predict.lm(linearModelLow, data.frame(xData = rawValuesGroupDataSorted[j-1])) - transformedData[1]   # to ensure continuity / steadiness of the data a shift correction of the fitted data and the projected data is neccessary
+          groupData$normData[1:(j-1)] <- predict.lm(linearModelLow, data.frame(xData = rawValuesGroupDataSorted[1:(j-1)])) - differenceLastModelDataPoint   
+          if (debugAndPlot) {
+            points(x = xData, y = yData, col = "lightgrey")            # plot the modelled data
+            points(y = groupData$normData[1:(j-1)], x = rawValuesGroupDataSorted[1:(j-1)], col = "darkgrey")  # plot fitted points; j-1 because value of j ist now already bigger/equal intervalLow
+            #print(as.numeric(c(i,j,groupData$normData[1:(j-1)],rawValuesGroupDataSorted[1:(j-1)])))
+            #print(rawValuesSorted[1:10])
+            #print(transformedData[1:10])
+            abline(linearModelLow, col="darkgrey")   # plot line to show linear model
+          } # debug
+        } # apply linear model
+        
+        #print(as.numeric(c( intvervalLow, intvervalHigh,intervalHighLow, intervalNormData, intervalTransformedData)))
+        #print(as.numeric(c(i, intvervalLow, intvervalHigh, intervalHighLow, intervalNormData)))
+        while (i < length(rawValuesSorted) && j <= length(rawValuesGroupDataSorted)) {
+          if(intvervalLow <= rawValuesGroupDataSorted[j] && rawValuesGroupDataSorted[j] <= intvervalHigh) {
+            
+            groupData$normData[j] <- as.numeric(normData[i*100-50] + intervalNormData * (rawValuesGroupDataSorted[j] - intvervalLow) / intervalHighLow)
+            if (debugAndPlot) {
+              points(y = groupData$normData[j],x = rawValuesGroupDataSorted[j], col = (i %% 5) + 1)
+              #if (i < 20) print(as.numeric(c(i,j,groupData$normData[j],rawValuesGroupDataSorted[j])))   # print first 20
+              #if (i > length(rawValuesSorted)-20) print(as.numeric(c(i,j,groupData$normData[j],rawValuesGroupDataSorted[j]))) # print last 20
+            }                 
+            j = j + 1
+          } else {
+            i = i + 1
+            if (i < length(rawValuesSorted)) {
+              intvervalLow <- rawValuesSorted[i]
+              intvervalHigh <- rawValuesSorted[i + 1]
+              intervalHighLow <- intvervalHigh - intvervalLow
+              intervalNormData <- normData[(i+1)*100-50] - normData[i*100-50]
+              if (debugAndPlot) {
+                abline(v = c(intvervalLow), lty = 2, col = (i %% 5) + 1)
+                #if (i < 20) print(as.numeric(c( intvervalLow, intvervalHigh,intervalHighLow))) # print first 20
+                #if (i > length(rawValuesSorted)-20) print(as.numeric(c( intvervalLow, intvervalHigh,intervalHighLow)))  # print last 20
+                #print(as.numeric(c(i, intvervalLow, intvervalHigh, intervalHighLow, intervalNormData)))
+              }  # debug
+            } # if
+          }  # if else
+        }  # while
+        if (debugAndPlot) abline(v = c(intvervalHigh), lty = 2, col = (i %% 5) + 1) # plot last data point / line of modelled subset data
+        
+        #print(as.numeric(c(i,j, length(rawValuesSorted), length(rawValuesGroupDataSorted))))
+        
+        # apply linear model on data that is larger than model data of subset 
+        if (i >= length(rawValuesSorted) && j <= length(rawValuesGroupDataSorted)) {
+          xData <- rawValuesSorted[(length(rawValuesSorted)*0.95):length(rawValuesSorted)]    # get the highest 5% of the data for fitting a linear model
+          yData <- transformedData[(length(rawValuesSorted)*0.95):length(rawValuesSorted)]
+          #print("done")
+          linearModelHigh <- lm(yData ~ xData)
+          differenceLastModelDataPoint <- predict.lm(linearModelHigh, data.frame(xData = rawValuesGroupDataSorted[j])) - transformedData[i]   # to ensure continuity / steadiness of the data a shift correction of the fitted data and the projected data is neccessary
+          groupData$normData[(j):length(rawValuesGroupDataSorted)] <- predict.lm(linearModelHigh, data.frame(xData = rawValuesGroupDataSorted[(j):length(rawValuesGroupDataSorted)])) - differenceLastModelDataPoint   
+          if (debugAndPlot) {
+            #print(tail(rawValuesSorted))
+            #print(tail(transformedData))
+            points(x = xData, y = yData, col = "lightgrey")            # plot the modelled data
+            points(y = groupData$normData[(j):length(rawValuesGroupDataSorted)], x = rawValuesGroupDataSorted[(j):length(rawValuesGroupDataSorted)], col = "darkgrey")  # plot fitted points; j-1 because value of j ist now already bigger/equal intervalLow
+            #print(as.numeric(c(i,j,groupData$normData[(j):length(rawValuesGroupDataSorted)],rawValuesGroupDataSorted[(j):length(rawValuesGroupDataSorted)]))) 
+            abline(linearModelHigh, col="darkgrey")   # plot line to show linear model
+          }  # debug
+        }  # if
+      } else { # if (doApplyOnNormalDistribution)
+        groupData$normData <- transformedData  # if groupDataModel = groupData, then just put transformed data into table
+      }
+      names(groupData)[ncol(groupData)] <- paste(paramName, '.zrank', sep = "") #project_to_Gaussian, rename current column name to .zrank
+    }  # for (param in 1:(length(selectedParams)))
+    aggregatedGroupData <- bind_rows(aggregatedGroupData, groupData)
+  }  # for (group in 1:(length(allGroups)))
+  rOut <- rOut %>% left_join(select(aggregatedGroupData, c("rowID",tail(names(aggregatedGroupData),length(selectedParams)))), by="rowID") %>% select(-one_of(c("rowID")))
+  rOut <- as.data.frame(rOut)
+  row.names(rOut) <- row.names(kIn)
+} #  if (transformation == "project_to_Gaussian") 
+#print("done all loops")
+
+
+if (storeRandomDistributionTable) {
+  randomDataTable <- cbind(randomDataTable, rank = row.names(randomDataTable))
+  rSave <- rOut
+  
+  if(nrow(rOut) < nrow(randomDataTable)) {
+    rOut <- cbind(rOut, rowNames = row.names(rOut))
+    for (fillNA in (nrow(rOut)+1):nrow(randomDataTable)) rOut <- data.frame(rbind(rOut, rep(NA, ncol(rOut))))
+    rOut <- data.frame(cbind(rOut, randomDataTable))
+  }
+}
+
+
+]]>
+</rgg>
