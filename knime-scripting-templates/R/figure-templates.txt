@@ -4798,8 +4798,8 @@ Layout Options:
  	#diagram options
 	<separator label="Layout Options General Plot" span="full"/>
 	<hbox>
-	plotPointsLines = <combobox label = "Points and/or lines:" items = "points_and_lines,points_only,lines_only"/>
-	pointLineSize = as.numeric(c(<vector label="Size [points/lines/error]:" size="3" default-value="2,0.5,0.1"/>))
+	plotPointsLines = <combobox label = "Points and/or lines:" items = "points_only,points_and_lines,lines_only"/>
+	pointLineSize = as.numeric(c(<vector label="Size [points/lines/error]:" size="3" default-value="5,0.5,0.01"/>))
 	alphaValue = as.numeric(c(<vector label="Alpha [points/lines/error]:" size="3" default-value="1,0.5,0.5"/>))
 	</hbox>
 	<hbox>
@@ -4823,7 +4823,7 @@ Layout Options:
 	
 	<hbox>
 	<textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
-	useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="f"/>
+	useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="t"/>
 	axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
 	</hbox>
 
@@ -5006,10 +5006,10 @@ Layout Options:
 
 	#convert to discrete format
 	#meanDataLong[,xFactorCol] <- factor(meanDataLong[,xFactorCol])
-	#meanDataLong[,"ggplot_groupid"] <- 1 : nrow(meanDataLong)  # variable colorCol needs to be replaced with ggplot_groupid
+	#meanDataLong[,"ggplot_groupid"] <- 1 : nrow(meanDataLong)  # variable colourCol needs to be replaced with ggplot_groupid
 
 	#2.4.1 plot
-	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height, group = colorCol))
+	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height, group = colourCol))
 
 	my.dodge <- position_dodge(width=0.9)
 	if(!is.null(colourBy)) {
