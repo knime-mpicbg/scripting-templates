@@ -1433,6 +1433,7 @@ Creates a table with a single column that contains the selected column headers.
 - select or type name of column for column headers
 - preview shows what the snippet is doing instead of using KNIME nodes
 - use check box to create two more columns with additional tags (for looping barplot)
+- if the selecsted column headers haver already the tag ' (Mean)' from GroupBy node, then this tag can be removed before processing (generate column table from aggregated data)
 
 ######
 
@@ -1461,7 +1462,10 @@ columnHeaders = c(<panellistbox label="Column selection" items="$$$PARNAMES$$$" 
 # 3) make columns for barplot looping
 <gaprow height="2"/>
 <separator label="more options: barplot looping columns / adding tags to column headers" span="full"/>
+<hbox>
 <checkbox label="make barplot looping columns?" var="makeTagColumns" selected="false"/>
+<checkbox label="remove tag ' (Mean)'?" var="isTagColumn" selected="false"/>
+</hbox>
 <vector label="tags for the two columns" var="tagVector" size="2" default-value=" (Mean), (Standard deviation)" vector-type="character"/>
 <vector label="column names of the two columns" var="tagNameVector" size="2" default-value="mean,sd" vector-type="character"/>
 
@@ -1479,6 +1483,10 @@ columnHeaders = c(<panellistbox label="Column selection" items="$$$PARNAMES$$$" 
 if (is.na(columnHeaderName)) columnHeaderName <- "column header"	  #default
 
 #2.3. calculate
+if (isTagColumn) {
+	columnHeaders <- substr(columnHeaders, 1, nchar(columnHeaders) - 7)
+	}
+
 if (makeTagColumns) {
 	rOut <- data.frame(columnHeaders, paste(columnHeaders, tagVector[1], sep=""), paste(columnHeaders, tagVector[2], sep=""))
 	names(rOut) <- c(columnHeaderName, tagNameVector)
