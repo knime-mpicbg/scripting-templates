@@ -587,7 +587,7 @@ Layout Options:
 	}
 	
 	#legend: legend title, text style and rotation
-	p <- p + guides(fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	p <- p + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
 	
 	if(rotateLegend) p <- p + guides(fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
 	if (useLegendCoordinate) {
@@ -3423,6 +3423,7 @@ Layout Options:
  - set size and alpha value (transparency) of points, lines and error bars (default = [2,0.5,0.1] and [1,0.5,0.5])
  - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#rcolorbrewer-palette-chart )
  - optional the rows and columns can be defined for the 2D grid
+ - optional the dogde width can adjusted (default = 0.9), set to 0 for no dodge (all points on same x value)
  - give plot title and title factor (default = 1.2)
  - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
  - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
@@ -3487,6 +3488,7 @@ Layout Options:
 	plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
 	twoDgridRow = c(<vector label="2D grid [row]:" size="1" default-value="-AUTO-"/>)
 	twoDgridColumn = c(<vector label="2D grid [column]:" size="1" default-value="-AUTO-"/>)
+	positionDodgeWidth = as.numeric(c(<vector label="dodge width:" size="1" default-value="0.9"/>))
 	</hbox>
 
 	<separator label="Layout Options Title" span="full"/>
@@ -3691,21 +3693,21 @@ Layout Options:
 	#2.4.1 plot
 	p <- ggplot(meanDataLong, aes(x = get(xFactorCol), y = height, group = ggplot_groupid))
 
-	my.dodge <- position_dodge(width=0.9)
+	my.dodge <- position_dodge(width = positionDodgeWidth)
 	if(!is.null(colourBy)) {
-		if(plotPointsLines == "points_and_lines" || plotPointsLines == "points_only") {
-			p <- p + geom_point(aes(colour = factor(get(colourCol))), position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])}
-		if(plotPointsLines == "points_and_lines" || plotPointsLines == "lines_only") {
-			p <- p + geom_line(aes(colour = factor(get(colourCol)), group = get(groupData)), size = pointLineSize[2], alpha = alphaValue[2])}
-		if(plot.Errorbars) {
-			p <- p + geom_errorbar(aes(colour = factor(get(colourCol)), ymin = low, ymax = high, group = get(colourCol)), width = pointLineSize[3], alpha = alphaValue[3])}
-		} else { 
-		if(plotPointsLines == "points_and_lines" || plotPointsLines == "points_only") {
-			p <- p + geom_point(colour = "black", position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])}
-		if(plotPointsLines == "points_and_lines" || plotPointsLines == "lines_only") {
-			p <- p + geom_line(aes(group = get(groupData)), colour = "black", size = pointLineSize[2], alpha = alphaValue[2])}
-		if(plot.Errorbars) {
-			p <- p + geom_errorbar(aes(ymin = low, ymax = high), colour = "black", width = pointLineSize[3], alpha = alphaValue[3])}
+	  if(plotPointsLines == "points_and_lines" || plotPointsLines == "points_only") {
+		p <- p + geom_point(aes(colour = factor(get(colourCol))), position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])}
+	  if(plotPointsLines == "points_and_lines" || plotPointsLines == "lines_only") {
+		p <- p + geom_line(aes(colour = factor(get(colourCol)), group = get(groupData)), position = my.dodge, size = pointLineSize[2], alpha = alphaValue[2])}
+	  if(plot.Errorbars) {
+		p <- p + geom_errorbar(aes(colour = factor(get(colourCol)), ymin = low, ymax = high, group = get(colourCol)), position = my.dodge, width = pointLineSize[3], alpha = alphaValue[3])}
+	} else { 
+	  if(plotPointsLines == "points_and_lines" || plotPointsLines == "points_only") {
+		p <- p + geom_point(colour = "black", position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])}
+	  if(plotPointsLines == "points_and_lines" || plotPointsLines == "lines_only") {
+		p <- p + geom_line(aes(group = get(groupData)), colour = "black", position = my.dodge, size = pointLineSize[2], alpha = alphaValue[2])}
+	  if(plot.Errorbars) {
+		p <- p + geom_errorbar(aes(ymin = low, ymax = high), colour = "black", position = my.dodge, width = pointLineSize[3], alpha = alphaValue[3])}
 	}
 
 	if(!is.null(facetBy)) {
@@ -3778,7 +3780,7 @@ Layout Options:
 	}
 	
 	#legend: legend title, text style and rotation
-	p <- p + guides(fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	p <- p + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
 	
 	if(rotateLegend) p <- p + guides(fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
 	if (useLegendCoordinate) {
@@ -5111,7 +5113,7 @@ Layout Options:
 	}
 	
 	#legend: legend title, text style and rotation
-	p <- p + guides(fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	p <- p + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
 	
 	if(rotateLegend) p <- p + guides(fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
 	if (useLegendCoordinate) {
@@ -5147,12 +5149,12 @@ coloured by - Colour of points and lines by condition (mulitple columns can be s
 Layout Options: 
  - select background/theme and set general font size in plot (default = 14)
  - plot points or lines or both
- - set size and alpha value (transparency) of points, lines and error bars (default = [2,0.5,0.1] and [1,0.5,0.5])
+ - set size and alpha value (transparency) of points, lines and error bars; for no stroke of points set stroke size to 0 (default = [2,0.5,0.1,0.5] and [1,0.5,0.5])
  - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#rcolorbrewer-palette-chart )
  - optional the rows and columns can be defined for the 2D grid
- - give plot title and title factor (default = 1.2)
- - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
- - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
+ - give plot title, title factor (default = 1.2) and alignment
+ - x-axis text: angle, text size factor for x-/y-axis (default = 0.8) 
+ - y-axis title (or use parameter name: for 2D grid => 'height'), x-axis title, axis title factor (default = 1.0)
  - adjust y-axis scale (check fixed and enter min + max; free for 2D grid)
  - give legend title, adjust position (fixed position outside diagram or free(range:0-1): [0.1,0.9] = top-left) and legend title/text size factor(default = 0.8)   
 ######
@@ -5209,7 +5211,7 @@ Layout Options:
 	<separator label="Layout Options General Plot" span="full"/>
 	<hbox>
 	plotPointsLines = <combobox label = "Points and/or lines (scatter and line plot):" items = "points_only,points_and_lines,lines_only"/>
-	pointLineSize = as.numeric(c(<vector label="Size [points/lines/error]:" size="3" default-value="5,0.5,0.01"/>))
+	pointLineSize = as.numeric(c(<vector label="Size [points/lines/error/stroke]:" size="4" default-value="5,0.5,0.01,0"/>))
 	alphaValue = as.numeric(c(<vector label="Alpha [points/lines/error]:" size="3" default-value="1,0.5,0.5"/>))
 	</hbox>
 	<hbox>
@@ -5223,6 +5225,7 @@ Layout Options:
 	<hbox>
 	<textfield label="plot title:" var="plotTitle" data-type="text" default-value= "" size="5"/>
 	plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default-value="1.2"/>))
+	plotTitleHadjust = <combobox label = "Alignment:" items = "left,center,right"/>
 	</hbox>
 
 	<separator label="Layout Options Axes" span="full"/>	
@@ -5234,6 +5237,7 @@ Layout Options:
 	<hbox>
 	<textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
 	useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="t"/>
+	<textfield label="x-axis title:" var="xAxisLabel" data-type="text" default-value= "" size="3"/>
 	axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
 	</hbox>
 
@@ -5248,6 +5252,12 @@ Layout Options:
     yAxisTextLog10 = <checkbox label="logarithmic y-axis numbers" selected="f"/>
 	</hbox>
 
+	<separator label="Layout Additional Lines" span="full"/>
+	<hbox>
+	lineTypeH = <combobox label = "horizontal line type:" items = "blanck,solid,dashed,dotted,dotdash,longdash,twodash"/>
+	lineOptionsH = c(<vector label="horizontal line options [intercept,color,size]:" size="3" default-value="100,red,1"/>)
+	</hbox>
+	
 	<separator label="Layout Options Legend" span="full"/>
 	<hbox>
 	legendPosition = <combobox label = "legend position:" items = "right,top,bottom,left,none"/>
@@ -5328,20 +5338,21 @@ Layout Options:
 	if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
 	if (is.na(plotTextSize[1]) | (plotTextSize[1] < 0) | (plotTextSize[1] > 40)) plotTextSize[1] <- 14
 	if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
-	if (is.na(yAxisLabel))	yAxisLabel <- NULL
 	if (is.na(xAngle))	xAngle <- 0
 	if (is.na(axisTextSizeFactor[1]) | (axisTextSizeFactor[1] < 0) | (axisTextSizeFactor[1] > 5)) axisTextSizeFactor[1] <- 0.8
 	if (is.na(axisTextSizeFactor[2]) | (axisTextSizeFactor[2] < 0) | (axisTextSizeFactor[2] > 5)) axisTextSizeFactor[2] <- 0.8
 	if (is.na(axisTitleSizeFactor[1]) | (axisTitleSizeFactor[1] < 0) | (axisTitleSizeFactor[1] > 5)) axisTitleSizeFactor[1] <- 1
 	if (is.na(axisTitleSizeFactor[2]) | (axisTitleSizeFactor[2] < 0) | (axisTitleSizeFactor[2] > 5)) axisTitleSizeFactor[2] <- 1
 	if (is.na(yAxisScale[1]) | is.na(yAxisScale[2]))	yAxisScale <- NULL
-	if (useParameternameAsAxisLabel) yAxisLabel <- barHeight
 	if (is.na(legendCoordinate[1]) | is.na(legendCoordinate[2]) | (legendCoordinate[1] < 0) | (legendCoordinate[1] > 1) | (legendCoordinate[2] < 0) | (legendCoordinate[2] > 1)) useLegendCoordinate <- FALSE
 	if (is.na(legendTextSizeFactor[1]) | (legendTextSizeFactor[1] < 0) | (legendTextSizeFactor[1] > 5)) legendTextSizeFactor[1] <- 0.8
 	if (is.na(legendTextSizeFactor[2]) | (legendTextSizeFactor[2] < 0) | (legendTextSizeFactor[2] > 5)) legendTextSizeFactor[2] <- 0.8
 	if (xAngle == 0 ) xAxisAjust <- c(0.5,1.0) #xAxisAjust = c(hjust,vjust)
 	if (xAngle == 45) xAxisAjust <- c(1.0,1.0)	
 	if (xAngle == 90) xAxisAjust <- c(1.0,0.5)	
+	if (plotTitleHadjust == "left") plotTitleHadjust <- 0
+	if (plotTitleHadjust == "center") plotTitleHadjust <- 0.5
+	if (plotTitleHadjust == "right") plotTitleHadjust <- 1
 
 	#2.3 calculate
 	# create rowID column if needed
@@ -5399,8 +5410,6 @@ Layout Options:
 	if(facetFlag) facetCol <- "- PARAMETERS -"
 	if(colourFlag) colourCol <- "- PARAMETERS -"
 
-	if(is.na(legendTitle)) legendTitle <- colourCol		#default if no title is given
-	
 	if(!is.null(facetBy)) { 
 		facetTitle <- facetCol
 		meanDataLong$template.facet.column <- meanDataLong[,facetCol]
@@ -5414,6 +5423,11 @@ Layout Options:
 			
 	if(!is.null(colourBy)) meanDataLong[,colourCol] <- factor(meanDataLong[,colourCol])
 
+	if(is.na(xAxisLabel)) xAxisLabel <- xFactorCol    #default if no x-axis title is given
+	if(useParameternameAsAxisLabel) yAxisLabel <- barHeight #default if use parameter name is checked
+	if(is.na(yAxisLabel))	yAxisLabel <- NULL	#default if no y-axis title is given
+	if(is.na(legendTitle)) legendTitle <- colourCol		#default if no legend title is given
+
 	#convert to discrete format
 	#meanDataLong[,xFactorCol] <- factor(meanDataLong[,xFactorCol])
 	#meanDataLong[,"ggplot_groupid"] <- 1 : nrow(meanDataLong)  # variable colourCol needs to be replaced with ggplot_groupid
@@ -5424,7 +5438,12 @@ Layout Options:
 	my.dodge <- position_dodge(width=0.9)
 	if(!is.null(colourBy)) {
 		if(plotPointsLines == "points_and_lines" || plotPointsLines == "points_only") {
-			p <- p + geom_point(aes(colour = factor(get(colourCol))), position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])}
+			if (pointLineSize[4] < 0.5) {
+				p <- p + geom_point(aes(colour = factor(get(colourCol))), position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])
+				} else {
+				p <- p + geom_point(aes(fill = factor(get(colourCol))), shape = 21, colour = "black", stroke = pointLineSize[4], position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])
+				}
+			}
 		if(plotPointsLines == "points_and_lines" || plotPointsLines == "lines_only") {
 			p <- p + geom_line(aes(colour = factor(get(colourCol)), group = get(groupData)), size = pointLineSize[2], alpha = alphaValue[2])}
 		if(plot.Errorbars) {
@@ -5457,10 +5476,10 @@ Layout Options:
 
 	#2.4.2 set general layout of plot
 	#title options
-	p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
+	p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1], hjust = plotTitleHadjust))
 
 	#axis label options
-	p <- p + labs(x = xFactorCol, y = yAxisLabel)
+	p <- p + labs(x = xAxisLabel, y = yAxisLabel)
 	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
 	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
 	
@@ -5507,8 +5526,12 @@ Layout Options:
 		}
 	}
 	
+	#additional lines like horizontal or vertical
+	if (lineTypeH != "blanck") p <- p + geom_hline(linetype = lineTypeH, yintercept = as.numeric(lineOptionsH[1]), color = lineOptionsH[2], size = as.numeric(lineOptionsH[3]))
+	#if (addLine == "vertial")    p <- p + geom_vline(linetype = lineType, xintercept = as.numeric(lineOptions[1]), color = lineOptions[2], size = as.numeric(lineOptions[3]))
+	
 	#legend: legend title, text style and rotation
-	p <- p + guides(fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	p <- p + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
 	
 	if(rotateLegend) p <- p + guides(fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
 	if (useLegendCoordinate) {
