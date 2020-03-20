@@ -4472,8 +4472,8 @@ colourBy = c(<combobox items="$$$STR_ATTRIBUTES$$$" label="coloured by"/>)
 #diagram options
 <separator label="Layout Options Plot Style" span="full"/>
 <hbox>
-pointSize = as.numeric(c(<vector label="point size:" size="1" default-value="3"/>))
-alphaPoints = as.numeric(c(<vector label="alpha values of points:" size="2" default-value="0.2,0.6"/>))
+pointSize = as.numeric(c(<vector label="Size [points/stroke]:" size="2" default-value="3,1"/>))
+alphaValue = as.numeric(c(<vector label="Alpha [points]:" size="1" default-value="0.7"/>))
 jitterWidth = as.numeric(c(<vector label="jitter width of points:" size="1" default-value="0.5"/>))
 </hbox>
 
@@ -4493,8 +4493,8 @@ dodgeWidth = as.numeric(c(<vector label="dodge width:" size="1" default-value="0
 #diagram options
 <separator label="Layout Options General Plot" span="full"/>
 <hbox>
-plotTheme = <combobox items="grey,black-white,linedraw,light,classic" label="background/theme:"/>
-plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="14"/>))
+plotTheme = <combobox items="black-white,grey,linedraw,light,classic" label="background/theme:"/>
+plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="20"/>))
 </hbox>
 
 <separator label="Layout Options Title" span="full"/>
@@ -4505,13 +4505,13 @@ plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default
 
 <separator label="Layout Options Axes" span="full"/>	
 <hbox>
-xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "0,45,90"/>))
+xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "90,45,0"/>))
 axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
 </hbox>
 	
 <hbox>
 <textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
-useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="f"/>
+useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="t"/>
 axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
 </hbox>
 
@@ -4648,16 +4648,18 @@ if(plotTheme == "light")	p <- p + theme_light(base_size=plotTextSize[1])
 if(plotTheme == "classic")	p <- p + theme_classic(base_size=plotTextSize[1])
 
 if(plotType == "boxplot") p <- p + geom_boxplot(aes_string(fill = colourBy), position = position_dodge(dodgeWidth), outlier.colour = boxPlotOutlierColor)
-if(plotType == "barplot") p <- p + geom_bar(aes_string(fill = colourBy), data = kIn.summary, stat = "identity", position = position_dodge(dodgeWidth)) #+ geom_jitter(position = position_jitter(0.2), color = "black")
-
-if(plotViolins) p <- p + geom_violin(aes_string(color = colourBy), alpha = alphaViolin, trim = trimViolin, inherit.aes = TRUE)
-
-if(plotErrorbars)  p <- p + geom_errorbar(aes_string(ymin = "errorLow", ymax = "errorHigh", group = colourBy), data = kIn.summary, width = 0.2, position = position_dodge(dodgeWidth))
+if(plotType == "barplot") p <- p + geom_bar(aes_string(fill = colourBy), data = kIn.summary, stat = "identity", color = "black", position = position_dodge(dodgeWidth)) #+ geom_jitter(position = position_jitter(0.2))
 
 if(plotPoints) {
-  p <- p + geom_point(aes_string(fill = colourBy), alpha = alphaPoints[1], size = pointSize, position = position_jitterdodge(jitter.width = jitterWidth, dodge.width=dodgeWidth, seed = 1))
-  p <- p + geom_point(aes_string(color = colourBy), alpha = alphaPoints[2], size = pointSize - 1, position = position_jitterdodge(jitter.width = jitterWidth, dodge.width=dodgeWidth, seed = 1))
-  }
+	if (pointSize[2] < 0.5) {
+		p <- p + geom_point(aes_string(color = colourBy), shape = 16, alpha = alphaValue[1], size = pointSize[1], position = position_jitterdodge(jitter.width = jitterWidth, dodge.width=dodgeWidth, seed = 1))
+		#p <- p + geom_point(aes(colour = factor(get(colourCol))), position = my.dodge, size = pointSize[1], alpha = alphaValue[1])
+			} else {
+		p <- p + geom_point(aes_string(fill = colourBy), shape = 21, colour = "black", stroke = 1, alpha = alphaValue[1], size = pointSize[1], position = position_jitterdodge(jitter.width = jitterWidth, dodge.width=dodgeWidth, seed = 1))
+		#p <- p + geom_point(aes(fill = factor(get(colourCol))), shape = 21, colour = "black", stroke = pointLineSize[4], position = my.dodge, size = pointLineSize[1], alpha = alphaValue[1])
+			}
+}
+
 #p <- p + geom_jitter(aes_string(color = colourBy), position = position_dodge(0.9), size = 3)
 
 #doDotPlot <- TRUE
@@ -4666,6 +4668,10 @@ if(plotPoints) {
 #dotPlotStackRatio <- 0.7
 #if(doDotPlot) p <- p + geom_dotplot(binaxis = "y", stackdir = "center", dotsize = dotPlotSize, stackratio = dotPlotStackRatio, fill = dotPlotColor) 
 #if(doDotPlot) p <- p + geom_jitter(aes_string(x = xFactor, shape = colourBy, color = colourBy), position = position_jitter(0.2), size = 3, dodge.width = 0.8)
+
+if(plotViolins) p <- p + geom_violin(aes_string(color = colourBy), alpha = alphaViolin, trim = trimViolin, inherit.aes = TRUE)
+
+if(plotErrorbars)  p <- p + geom_errorbar(aes_string(ymin = "errorLow", ymax = "errorHigh", group = colourBy), data = kIn.summary, width = 0.2, position = position_dodge(dodgeWidth))
 
 #2.4.2 set optional layout of plot
 # facet
