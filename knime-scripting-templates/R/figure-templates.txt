@@ -2946,6 +2946,8 @@ b) adjust transparency for filled and line thickness for line densities, adjust 
 c) color palette that is used (KNIME colors: if colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories)
 c) Select if background should be white.
 d) optional title and whether parameter name should be plotted in title
+e) optional add horiziontal and/or vertical lines with certain type, color and line size
+f) adjust legend position, text size and legend title
 ######
 <rgg>
 
@@ -2992,9 +2994,32 @@ params = c(<panellistbox label="Numerical attributes" items="$$$NUM_ATTRIBUTES$$
 <textfield label="Alpha value (fill color):" var="alphaValue" data-type="numeric" default-value= "0.7" size="1"/>
 <textfield label="Line thickness (line size):" var="lineSize" data-type="numeric" default-value= "0.5" size="1"/>
 <combobox var="colorPalette" items="ggplot default,Accent,Dark2,Paired,Set1,Set2,Set3,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd,KNIME colors" label="Color palette:"/>
-<combobox var="legendPosition" items="right,left,bottom,top,none" label="Legend position:"/>
 <textfield label="Title of plot:" var="title" data-type="text" default-value= "" size="1" span = "1"/>
 <textfield label="Base text size:" var="baseSize" data-type="numeric" default-value= "12" size="1"/>
+
+<separator label="Layout Additional Lines" span="full"/>
+<hbox>
+lineTypeH = <combobox label = "horizontal line type:" items = "blank,solid,dashed,dotted,dotdash,longdash,twodash"/>
+lineOptionsH = c(<vector label="horizontal line options [intercept,color,size]:" size="3" default-value="100,red,1"/>)
+</hbox>
+<hbox>
+lineTypeV = <combobox label = "vertical line type:" items = "blank,solid,dashed,dotted,dotdash,longdash,twodash"/>
+lineOptionsV = c(<vector label="vertical line options [intercept,color,size]:" size="3" default-value="100,red,1"/>)
+</hbox>
+
+# legend configureation
+<separator label="Layout Options Legend" span="full"/>
+<hbox>
+legendPosition = <combobox label = "legend position:" items = "right,top,bottom,left,none"/>
+useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
+legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
+</hbox>
+
+<hbox>
+legendTitle = <textfield label="legend title:" data-type="text" default-value="" size="3"/>
+legendTextSizeFactor = as.numeric(c(<vector label="text size [title,text]:" size="2" default-value="0.8,0.8"/>))
+rotateLegend = <checkbox label="rotate 90deg." selected="f"/>
+</hbox>
 
 </group>
 # End of RGG-Configuration ==============================================================================================
@@ -3116,6 +3141,21 @@ m <- m + theme(legend.position = legendPosition)
 if(!setBkgWhite) { m <- m + theme_gray(base_size = baseSize) 
 } else { m <- m + theme_bw(base_size = baseSize) }
 m <- m + facet_wrap( ~ variable,scales = "free")
+
+#additional lines like horizontal or vertical
+if (lineTypeH != "blank") m <- m + geom_hline(linetype = lineTypeH, yintercept = as.numeric(lineOptionsH[1]), color = lineOptionsH[2], size = as.numeric(lineOptionsH[3]))
+if (lineTypeV != "blank") m <- m + geom_vline(linetype = lineTypeV, xintercept = as.numeric(lineOptionsV[1]), color = lineOptionsV[2], size = as.numeric(lineOptionsV[3]))
+
+#legend: legend title, text style and rotation
+m <- m + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+	
+if(rotateLegend) m <- m + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+if (useLegendCoordinate) {
+	m <- m + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
+	} else {
+	m <- m + theme(legend.position = legendPosition) 
+	}
+
 print(m)
 
 ]]>
@@ -4520,7 +4560,6 @@ useManualYaxisScale = <checkbox label="use fixed y-axis scale" selected="f"/>
 yAxisScale = as.numeric(c(<vector label="y-axis scale [min,max]:" size="2" default-value=","/>))
 </hbox>
 	
-#not yet implemented
 <separator label="Layout Options Legend" span="full"/>
 <hbox>
 legendPosition = <combobox label = "legend position:" items = "right,top,bottom,left,none"/>
@@ -4528,7 +4567,6 @@ useLegendCoordinate = <checkbox label="use legend coordinate" selected="f"/>
 legendCoordinate = as.numeric(c(<vector label="coordinate [x,y]:" size="2" default-value="0.0,1.0"/>))
 </hbox>
 
-#not yet implemented	
 <hbox>
 legendTitle = <textfield label="legend title:" data-type="text" default-value="" size="3"/>
 legendTextSizeFactor = as.numeric(c(<vector label="text size [title,text]:" size="2" default-value="0.8,0.8"/>))
