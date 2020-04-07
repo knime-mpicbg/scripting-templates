@@ -2995,7 +2995,7 @@ params = c(<panellistbox label="Numerical attributes" items="$$$NUM_ATTRIBUTES$$
 <textfield label="Line thickness (line size):" var="lineSize" data-type="numeric" default-value= "0.5" size="1"/>
 <combobox var="colorPalette" items="ggplot default,Accent,Dark2,Paired,Set1,Set2,Set3,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd,KNIME colors" label="Color palette:"/>
 <textfield label="Title of plot:" var="title" data-type="text" default-value= "" size="1" span = "1"/>
-<textfield label="Base text size:" var="baseSize" data-type="numeric" default-value= "12" size="1"/>
+<textfield label="Text size [title]:" var="plotTextSize" data-type="numeric" default-value= "12" size="1"/>
 
 <separator label="Layout Additional Lines" span="full"/>
 <hbox>
@@ -3034,6 +3034,7 @@ library(plyr)
 # define the (grouping factor)
 factorIndex <- which(names(kIn) == factorName)
 factors <- levels(factor(kIn[,factorName]))
+if (is.na(legendTitle)) legendTitle <- factorName
 
 # set paramters to flow variable if required
 if (useFlowVar) params <- flowVariable
@@ -3050,30 +3051,30 @@ t_accent <- colorPalette == "Accent" & nFactors > 8
 t_dark2 <- colorPalette == "Dark2" & nFactors > 8
 t_paired <- colorPalette == "Paired" & nFactors > 12
 if(t_set1 | t_set2 | t_set3 | t_accent | t_dark2 | t_paired) {
-  warningMessage <- paste("Color set '", colorPalette, "' cannot be used for ", nFactors, " different values. Color palette is reset to ggplot default", sep = "")
-  warning(warningMessage)
-  colorPalette <- "ggplot default"
+    warningMessage <- paste("Color set '", colorPalette, "' cannot be used for ", nFactors, " different values. Color palette is reset to ggplot default", sep = "")
+    warning(warningMessage)
+    colorPalette <- "ggplot default"
 } 
 
 if (useKNIMEColors) {
-  # check if color model is joined to data table
-  if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) {
-    colorPalette <- "standard"
-    warning("KNIME colors not available in input table, standard palette is used instead")
-  # if yes, generate color table from KNIME colors
-  } else { 
-    # check whether colors belong to grouping factor  
-    colorTable <- lapply(factors, FUN = function(x) {
-      subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)
-      if(length(unique(subdata$RGBA)) > 1) stop("KNIME color model does not fit to selected factor column")
-      subdata[1,]
-    })
-    # create color vector
-    names(colorTable) <- factors
-    colorTable <- do.call("rbind", colorTable)
-    factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, max =  255) 
-    names(factorColors) <- factors
-  }
+    # check if color model is joined to data table
+    if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) {
+        colorPalette <- "standard"
+        warning("KNIME colors not available in input table, standard palette is used instead")
+        # if yes, generate color table from KNIME colors
+    } else { 
+        # check whether colors belong to grouping factor  
+        colorTable <- lapply(factors, FUN = function(x) {
+            subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)
+            if(length(unique(subdata$RGBA)) > 1) stop("KNIME color model does not fit to selected factor column")
+            subdata[1,]
+        })
+        # create color vector
+        names(colorTable) <- factors
+        colorTable <- do.call("rbind", colorTable)
+        factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, max =  255) 
+        names(factorColors) <- factors
+    }
 }
 
 # reshape data
@@ -3083,34 +3084,34 @@ names(plotData)[names(plotData) == factorName] <- "group"
 
 # handle missing values
 if (ignoreMissingValues) {
-  plotDataRowCount <- length(plotData[,1])
-  plotData <- na.omit(plotData)
-  if (plotDataRowCount > length(plotData[,1]))
-    warning(paste("WARNING: excluded ", length(plotData[,1]) - plotDataRowCount ," missing value(s)."))
+    plotDataRowCount <- length(plotData[,1])
+    plotData <- na.omit(plotData)
+    if (plotDataRowCount > length(plotData[,1]))
+        warning(paste("WARNING: excluded ", length(plotData[,1]) - plotDataRowCount ," missing value(s)."))
 } else {
-  if (length(plotData[,1]) > length(na.omit(plotData)[,1]))
-    stop("Missing values found: please select 'ignore missing values' in template or check your data set!")
+    if (length(plotData[,1]) > length(na.omit(plotData)[,1]))
+        stop("Missing values found: please select 'ignore missing values' in template or check your data set!")
 }
-  
+
 groupedData <- dlply(plotData, .(variable))
 groupedBinWidth <- llply(groupedData, .fun = function(data, nBins) {
-  r <- range(data$value, na.rm = TRUE, finite = TRUE)
-  r <- extendrange(r = r, f = 0.0)  #why extend by 0.0? makes no sense
-  widthOfBins = (r[2] - r[1])/nBins
-  if (is.na(widthOfBins) || is.infinite(widthOfBins) || (widthOfBins <= 0)) widthOfBins <- NULL
-  widthOfBins
-}, nBins = numberOfBins)
+    r <- range(data$value, na.rm = TRUE, finite = TRUE)
+    r <- extendrange(r = r, f = 0.0)  #why extend by 0.0? makes no sense
+    widthOfBins = (r[2] - r[1])/nBins
+    if (is.na(widthOfBins) || is.infinite(widthOfBins) || (widthOfBins <= 0)) widthOfBins <- NULL
+    widthOfBins
+}, nBins = numberOfBins - 1)  # numberOfBins -1, because the actual number of bins would be one more
 
 densData <- dlply(plotData, .(variable, group), .fun = function(subData){
-  param <- subData$variable[1]
-  group <- subData$group[1]
-  d <- density(subData$value)
-  bw <- groupedBinWidth[[param]]
-  data.frame(x = d$x, y = d$y * nrow(subData) * bw , group = group, variable = param)
+    param <- subData$variable[1]
+    group <- subData$group[1]
+    d <- density(subData$value)
+    bw <- groupedBinWidth[[param]]
+    data.frame(x = d$x, y = d$y * nrow(subData) * bw , group = group, variable = param)
 })
 
-hLay <- mapply(function(x, b) geom_bar(aes(x = value, fill = group), position = position_dodge(), data = x, binwidth = b, alpha = alphaValue), 
-              groupedData, groupedBinWidth)
+hLay <- mapply(function(x, b) geom_bar(aes(x = value, fill = group), position = position_dodge(), data = x, binwidth = b, alpha = alphaValue, show_guide = FALSE), 
+               groupedData, groupedBinWidth)
 
 dLay <- mapply(function(data) geom_density(data = data, aes(x = x, y = y), stat = "identity", fill = NA, size = lineSize, alpha = alphaValue), 
                densData)
@@ -3118,28 +3119,28 @@ dLay <- mapply(function(data) geom_density(data = data, aes(x = x, y = y), stat 
 # the actual plot
 m <- ggplot(plotData, aes(x = value, color = group, fill = group, group = group))
 if(plotHistogram) {
-  m <- m + dLay
-  m <- m + hLay
+    m <- m + dLay
+    m <- m + hLay
 } else {
-  if(plotDensityMode == "filled curves") m <- m + geom_density(alpha = alphaValue)
-  if(plotDensityMode != "filled curves") m <- m + geom_density(fill = NA, size = lineSize, alpha = alphaValue)
+    if(plotDensityMode == "filled curves") m <- m + geom_density(alpha = alphaValue)
+    if(plotDensityMode != "filled curves") m <- m + geom_density(fill = NA, size = lineSize, alpha = alphaValue)
 }
 if(useKNIMEColors) {
-  m <- m + scale_color_manual(name = factorName, breaks = factors, labels = factors, values = factorColors)
-  m <- m + scale_fill_manual(name = factorName, breaks = factors, labels = factors, values = factorColors)
+    m <- m + scale_color_manual(name = factorName, breaks = factors, labels = factors, values = factorColors)
+    m <- m + scale_fill_manual(name = factorName, breaks = factors, labels = factors, values = factorColors)
 } else {
-  if(colorPalette == "ggplot default") {
-    m <- m + scale_color_discrete(name = factorName)
-    m <- m + scale_fill_discrete(name = factorName)
-  } else {
-    m <- m + scale_color_brewer(name = factorName, palette = colorPalette) 
-    m <- m + scale_fill_brewer(name = factorName, palette = colorPalette)
-  }
+    if(colorPalette == "ggplot default") {
+        m <- m + scale_color_discrete(name = factorName)
+        m <- m + scale_fill_discrete(name = factorName)
+    } else {
+        m <- m + scale_color_brewer(name = factorName, palette = colorPalette) 
+        m <- m + scale_fill_brewer(name = factorName, palette = colorPalette)
+    }
 }
 if(!is.na(title)) m <- m + ggtitle(label = title) 
 m <- m + theme(legend.position = legendPosition)
-if(!setBkgWhite) { m <- m + theme_gray(base_size = baseSize) 
-} else { m <- m + theme_bw(base_size = baseSize) }
+if(!setBkgWhite) { m <- m + theme_gray(base_size = plotTextSize) 
+} else { m <- m + theme_bw(base_size = plotTextSize) }
 m <- m + facet_wrap( ~ variable,scales = "free")
 
 #additional lines like horizontal or vertical
@@ -3148,13 +3149,13 @@ if (lineTypeV != "blank") m <- m + geom_vline(linetype = lineTypeV, xintercept =
 
 #legend: legend title, text style and rotation
 m <- m + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
-	
+
 if(rotateLegend) m <- m + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
 if (useLegendCoordinate) {
-	m <- m + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
-	} else {
-	m <- m + theme(legend.position = legendPosition) 
-	}
+    m <- m + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
+} else {
+    m <- m + theme(legend.position = legendPosition) 
+}
 
 print(m)
 
