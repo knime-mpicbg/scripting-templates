@@ -2946,7 +2946,7 @@ b) adjust transparency for filled and line thickness for line densities, adjust 
 c) color palette that is used (KNIME colors: if colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories)
 c) Select if background should be white.
 d) optional title and whether parameter name should be plotted in title
-e) optional add horiziontal and/or vertical lines with certain type, color and line size
+e) optional add horiziontal and/or vertical lines with certain type, color and line size (no legend title = legend not diplayed) 
 f) adjust legend position, text size and legend title
 ######
 <rgg>
@@ -3000,11 +3000,11 @@ params = c(<panellistbox label="Numerical attributes" items="$$$NUM_ATTRIBUTES$$
 <separator label="Layout Additional Lines" span="full"/>
 <hbox>
 lineTypeH = <combobox label = "horizontal line type:" items = "blank,solid,dashed,dotted,dotdash,longdash,twodash"/>
-lineOptionsH = c(<vector label="horizontal line options [intercept,color,size]:" size="3" default-value="100,red,1"/>)
+lineOptionsH = c(<vector label="horizontal line options [intercept,color,size,legend]:" size="4" default-value="100,red,1,line"/>)
 </hbox>
 <hbox>
 lineTypeV = <combobox label = "vertical line type:" items = "blank,solid,dashed,dotted,dotdash,longdash,twodash"/>
-lineOptionsV = c(<vector label="vertical line options [intercept,color,size]:" size="3" default-value="100,red,1"/>)
+lineOptionsV = c(<vector label="vertical line options [intercept,color,size,legend]:" size="4" default-value="100,red,1,line"/>)
 </hbox>
 
 # legend configureation
@@ -3110,7 +3110,7 @@ densData <- dlply(plotData, .(variable, group), .fun = function(subData){
     data.frame(x = d$x, y = d$y * nrow(subData) * bw , group = group, variable = param)
 })
 
-hLay <- mapply(function(x, b) geom_bar(aes(x = value, fill = group), position = position_dodge(), data = x, binwidth = b, alpha = alphaValue, show_guide = FALSE), 
+hLay <- mapply(function(x, b) geom_bar(aes(x = value, fill = group), position = position_dodge(), data = x, binwidth = b, alpha = alphaValue, show.legend = FALSE), 
                groupedData, groupedBinWidth)
 
 dLay <- mapply(function(data) geom_density(data = data, aes(x = x, y = y), stat = "identity", fill = NA, size = lineSize, alpha = alphaValue), 
@@ -3144,13 +3144,46 @@ if(!setBkgWhite) { m <- m + theme_gray(base_size = plotTextSize)
 m <- m + facet_wrap( ~ variable,scales = "free")
 
 #additional lines like horizontal or vertical
-if (lineTypeH != "blank") m <- m + geom_hline(linetype = lineTypeH, yintercept = as.numeric(lineOptionsH[1]), color = lineOptionsH[2], size = as.numeric(lineOptionsH[3]))
-if (lineTypeV != "blank") m <- m + geom_vline(linetype = lineTypeV, xintercept = as.numeric(lineOptionsV[1]), color = lineOptionsV[2], size = as.numeric(lineOptionsV[3]))
+# debugging work in progress.... MS
+#lineTypeH = "blank"
+#lineOptionsH[4]= "lines "
+#lineOptionsH[4]= ""
+#lineTypeH = "dotted"
+showLegendH <- FALSE  # no legend will be shown for Hline, will be set to NA if title is given... see below...
+if (lineTypeH != "blank") {
+    if (nchar(lineOptionsH[4]) > 0) { # if no legend title is given for Hline, then dont show legend = FALSE
+        showLegendH <- NA  # must be NA and not TRUE, otherwise Hline legend will be plotted on data legend
+    }
+    if(!is.na(showLegendH) & lineTypeV != "blank") {
+        m <- m + geom_hline(linetype = lineTypeH, yintercept = as.numeric(lineOptionsH[1]), color = lineOptionsH[2], size = as.numeric(lineOptionsH[3]))  
+    } else {    
+        m <- m + geom_hline(aes(yintercept = as.numeric(lineOptionsH[1]), linetype = lineTypeH), show.legend = showLegendH, color = lineOptionsH[2], size = as.numeric(lineOptionsH[3]))
+        m <- m + scale_linetype_manual(name = lineOptionsH[4], values = c(lineTypeH), guide = guide_legend(order=2), labels = c(lineOptionsH[1]))  # , override.aes = list(color = c(lineOptionsH[2]))
+    }
+    #m <- m + geom_text(aes(0,as.numeric(lineOptionsH[1]),label = as.numeric(lineOptionsH[1]), vjust = -1))
+    #m <- m + scale_y_continuous(breaks = sort(c(ggplot_build(m)$layout$panel_ranges[[1]]$y.major_source, as.numeric(lineOptionsH[1]))))
+}
+# debugging
+#lineTypeV = "blank"
+#lineOptionsV[4]= ""
+if (lineTypeV != "blank") {
+    if(is.na(showLegendH)) {  # if legend is plotted for Hline
+        m <- m + geom_vline(linetype = lineTypeV, xintercept = as.numeric(lineOptionsV[1]), color = lineOptionsV[2], size = as.numeric(lineOptionsV[3]))
+    } else{
+        if (nchar(lineOptionsV[4]) > 0) { # if no legend title is given for Vline, then dont show legend
+            showLegendV <- NA  # must be NA and not TRUE, otherwise Vline legend will be plotted on data legend
+        } else {
+            showLegendV <- FALSE  # no legend will be shown for Hline
+        }
+        m <- m + geom_vline(aes(xintercept = as.numeric(lineOptionsV[1]), linetype = lineTypeV), show.legend = showLegendV, color = lineOptionsV[2], size = as.numeric(lineOptionsV[3]))
+        m <- m + scale_linetype_manual(name = lineOptionsV[4], values = c(lineTypeV), guide = guide_legend(order=3), labels = c(lineOptionsV[1]))
+    }
+}
 
 #legend: legend title, text style and rotation
-m <- m + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
+m <- m + guides(color = guide_legend(order=1, title = legendTitle), fill = guide_legend(title = legendTitle)) + theme(legend.title = element_text(size = plotTextSize[1] * legendTextSizeFactor[1], face = "bold"), legend.text = element_text(size = plotTextSize[1] * legendTextSizeFactor[2]))
 
-if(rotateLegend) m <- m + guides(color = guide_legend(title = legendTitle), fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
+if(rotateLegend) m <- m + guides(color = guide_legend(order=1, title = legendTitle), fill = guide_legend(title = legendTitle, direction = "horizontal", title.position = "top", label.position = "bottom", label.hjust = 0.5, label.vjust = 0.5, label.theme = element_text(angle = 90)))
 if (useLegendCoordinate) {
     m <- m + theme(legend.position = legendCoordinate, legend.background = element_rect(fill = "transparent",colour = NA))
 } else {
