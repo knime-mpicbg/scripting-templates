@@ -4442,7 +4442,7 @@ if(color.model) {
   if(!is.numeric(kIn.color.model[,1])) color.model.discrete <- TRUE
 }
 
-p <- ggplot(data = data_long, aes_string(x = groupColumn, y = "value", group = groupColumn, colour = groupColumn, fill = groupColumn)) + geom_boxplot(notch = TRUE, alpha = 0.3)
+p <- ggplot(data = data_long, aes(x = get(groupColumn), y = value, group = get(groupColumn), colour = get(groupColumn), fill = get(groupColumn))) + geom_boxplot(notch = TRUE, alpha = 0.3)
 
 # plot settings - theme
 if(plotTheme == "grey"){
@@ -4454,9 +4454,12 @@ if(plotTheme == "grey"){
 p <- p + facet_wrap(~parameter, scales = yScales)
 p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+p <- p + guides(color = guide_legend(title = groupColumn), fill = guide_legend(title = groupColumn)) 
+p <- p + labs(x = groupColumn)
+
 # plot settings - color model
 if(color.model) {
-  p <- p + aes_string(color = groupColumn, fill = groupColumn)
+  p <- p + aes(color = get(groupColumn), fill = get(groupColumn))
   if(color.model.discrete) {
     col.vec <- kIn.color.model[,2]
     names(col.vec) <- kIn.color.model[,1]
@@ -4466,6 +4469,7 @@ if(color.model) {
 }
 
 print(p)
+
 
 ]]>
 
