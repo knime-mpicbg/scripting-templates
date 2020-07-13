@@ -1,6 +1,6 @@
 ########################################################################################
 # name: Cumulative Density Function (cdf)
-# author: Marc Bickle, Antje Janosch
+# author: Marc Bickle, Antje Janosch, Rico
 # category: basic/cdf
 # preview: 
 
