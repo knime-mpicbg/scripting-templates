@@ -4859,7 +4859,7 @@ print(p)
 ]]>
 </rgg>
 ########################################################################################
-# name: Scatterplot with plot options (beta)
+# name: Scatterplot with plot options
 # author: Martin Stoeter, modified from Antje Niederleins' Barplot 
 # category: scatterplots
 # preview: scatterPlot_options.png
@@ -4883,9 +4883,9 @@ Layout Options:
  - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#rcolorbrewer-palette-chart )
  - optional the rows and columns can be defined for the 2D grid
  - give plot title and title factor (default = 1.2)
- - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
- - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
- - adjust y-axis scale (check fixed and enter min + max; free for 2D grid)
+ - x-axis text: angle, text size factor for x-/y-axis (default = 0.8) 
+ - x-/y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
+ - adjust x-/y-axis scale (check fixed and enter min + max; free for 2D grid (free scales for x- and/or y-axis independently))
  - give legend title, adjust position (fixed position outside diagram or free(range:0-1): [0.1,0.9] = top-left) and legend title/text size factor(default = 0.8)   
 ######
 
@@ -4898,7 +4898,7 @@ Layout Options:
 
     <gaprow height="1"/>
 
-    <!-- 2. Configuration-->
+   <!-- 2. Configuration-->
 
     <separator label="Options" span="full"/>
     <gaprow height="2"/>
@@ -4955,27 +4955,36 @@ Layout Options:
 	plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default-value="1.2"/>))
 	</hbox>
 
-	<separator label="Layout Options Axes" span="full"/>	
+	<separator label="Layout Options x-Axis" span="full"/>	
 	<hbox>
+	<textfield label="x-axis title:" var="xAxisLabel" data-type="text" default-value= "" size="3"/>
+	useParameterXnameAsAxisLabel = <checkbox label="use x parameter name" selected="t"/>
+	axisTextSizeFactorX = as.numeric(c(<vector label="x-axis text size [title/label]:" size="2" default-value="1.0,0.8"/>))
 	xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "0,45,90"/>))
-	axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
 	</hbox>
 	
 	<hbox>
+	useManualXaxisScale = <checkbox label="use fixed x-axis scale" selected="f"/>
+	xAxisScale = as.numeric(c(<vector label="x-axis scale [min,max]:" size="2" default-value=","/>))
+	free.xscales = <checkbox label="use free x-scales (for 2D grid)" selected="t"/>
+	</hbox>
+
+	<separator label="Layout Options y-Axis" span="full"/>	
+	<hbox>
 	<textfield label="y-axis title:" var="yAxisLabel" data-type="text" default-value= "" size="3"/>
-	useParameternameAsAxisLabel = <checkbox label="use parameter name" selected="t"/>
-	axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="2" default-value="1.0,1.0"/>))
+	useParameterYnameAsAxisLabel = <checkbox label="use y parameter name" selected="t"/>
+	axisTextSizeFactorY = as.numeric(c(<vector label="y-axis text size [title/label]:" size="2" default-value="1.0,0.8"/>))
 	</hbox>
 
 	<hbox>
 	useManualYaxisScale = <checkbox label="use fixed y-axis scale" selected="f"/>
 	yAxisScale = as.numeric(c(<vector label="y-axis scale [min,max]:" size="2" default-value=","/>))
-	free.scales = <checkbox label="use free y-scales (for 2D grid)" selected="t"/>
+	free.yscales = <checkbox label="use free y-scales (for 2D grid)" selected="t"/>
 	</hbox>
 
 	<hbox>
-    yAxisScaleLog10 = <checkbox label="logarithmic y-axis scale" selected="f"/>
-    yAxisTextLog10 = <checkbox label="logarithmic y-axis numbers" selected="f"/>
+   	yAxisScaleLog10 = <checkbox label="logarithmic y-axis scale" selected="f"/>
+    	yAxisTextLog10 = <checkbox label="logarithmic y-axis numbers" selected="f"/>
 	</hbox>
 
 	<separator label="Layout Options Legend" span="full"/>
@@ -5041,7 +5050,12 @@ Layout Options:
 		colorPalette <- "ggplot default"
 	}
 	
-	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
+	# set scales for grid
+	if(free.xscales & free.yscales) free.scales <- "free"
+	if(free.xscales & !free.yscales) free.scales <- "free_x" 
+	if(!free.xscales & free.yscales) free.scales <- "free_y" 
+	if(!free.xscales & !free.yscales) free.scales <- "fixed"
+
 	# 2D grid options (define rows and columns)
 	if(is.na(as.numeric(twoDgridRow))) {twoDgridRow <- NULL  #e.g. is equal to "-AUTO-"
 		} else twoDgridRow <- round(as.numeric(twoDgridRow))
@@ -5058,14 +5072,15 @@ Layout Options:
 	if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
 	if (is.na(plotTextSize[1]) | (plotTextSize[1] < 0) | (plotTextSize[1] > 40)) plotTextSize[1] <- 14
 	if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
+	if (is.na(xAxisLabel))	xAxisLabel <- NULL
 	if (is.na(yAxisLabel))	yAxisLabel <- NULL
 	if (is.na(xAngle))	xAngle <- 0
-	if (is.na(axisTextSizeFactor[1]) | (axisTextSizeFactor[1] < 0) | (axisTextSizeFactor[1] > 5)) axisTextSizeFactor[1] <- 0.8
-	if (is.na(axisTextSizeFactor[2]) | (axisTextSizeFactor[2] < 0) | (axisTextSizeFactor[2] > 5)) axisTextSizeFactor[2] <- 0.8
-	if (is.na(axisTitleSizeFactor[1]) | (axisTitleSizeFactor[1] < 0) | (axisTitleSizeFactor[1] > 5)) axisTitleSizeFactor[1] <- 1
-	if (is.na(axisTitleSizeFactor[2]) | (axisTitleSizeFactor[2] < 0) | (axisTitleSizeFactor[2] > 5)) axisTitleSizeFactor[2] <- 1
+	if (is.na(axisTextSizeFactorX[1]) | (axisTextSizeFactorX[1] < 0) | (axisTextSizeFactorX[1] > 5)) axisTextSizeFactorX[1] <- 1.0
+	if (is.na(axisTextSizeFactorX[2]) | (axisTextSizeFactorX[2] < 0) | (axisTextSizeFactorX[2] > 5)) axisTextSizeFactorX[2] <- 0.8
+	if (is.na(axisTextSizeFactorY[1]) | (axisTextSizeFactorY[1] < 0) | (axisTextSizeFactorY[1] > 5)) axisTextSizeFactorY[1] <- 1
+	if (is.na(axisTextSizeFactorY[2]) | (axisTextSizeFactorY[2] < 0) | (axisTextSizeFactorY[2] > 5)) axisTextSizeFactorY[2] <- 0.8
 	if (is.na(yAxisScale[1]) | is.na(yAxisScale[2]))	yAxisScale <- NULL
-	if (useParameternameAsAxisLabel) yAxisLabel <- barHeight
+	if (useParameterYnameAsAxisLabel) yAxisLabel <- barHeight
 	if (is.na(legendCoordinate[1]) | is.na(legendCoordinate[2]) | (legendCoordinate[1] < 0) | (legendCoordinate[1] > 1) | (legendCoordinate[2] < 0) | (legendCoordinate[2] > 1)) useLegendCoordinate <- FALSE
 	if (is.na(legendTextSizeFactor[1]) | (legendTextSizeFactor[1] < 0) | (legendTextSizeFactor[1] > 5)) legendTextSizeFactor[1] <- 0.8
 	if (is.na(legendTextSizeFactor[2]) | (legendTextSizeFactor[2] < 0) | (legendTextSizeFactor[2] > 5)) legendTextSizeFactor[2] <- 0.8
@@ -5190,14 +5205,18 @@ Layout Options:
 	p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
 
 	#axis label options
-	p <- p + labs(x = xFactorCol, y = yAxisLabel)
-	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTitleSizeFactor[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTitleSizeFactor[2]))
-	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactor[1]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactor[2]))
+	if (useParameterXnameAsAxisLabel) xAxisLabel <- xFactorCol
+	p <- p + labs(x = xAxisLabel, y = yAxisLabel)
+	p <- p + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTextSizeFactorX[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTextSizeFactorY[1]))
+	p <- p + theme(axis.text.x = element_text(angle = xAngle, hjust = xAxisAjust[1], vjust = xAxisAjust[2], size = plotTextSize[1] * axisTextSizeFactorX[2]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactorY[2]))
 	
 	# fixing the y-axis labeling, make parameter name or custom y-axis label instead of "height", only if no multi-parameteric plot and only if no y-Axis label was added in the GUI
 	if(((!is.null(facetBy) && "-USE COLUMN SELECTION-" %in% facetBy )|| length(barHeight) > 1) && is.null(yAxisLabel)) yAxisLabel <- "height"
 	
 	if(useManualYaxisScale) p <- p + coord_cartesian(ylim = yAxisScale) 
+	if(useManualXaxisScale) p <- p + coord_cartesian(xlim = xAxisScale) 
+
+	#if(!is.null(xAxisLabel)) p <- p + scale_x_continuous(name = xAxisLabel)   # do normal y-axis 
 
 	if(yAxisScaleLog10) {
 		p <- p + scale_y_log10(name = yAxisLabel)   # do y-axis in log 10 scale
