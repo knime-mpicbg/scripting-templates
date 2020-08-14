@@ -2945,7 +2945,9 @@ a) how to plot the data (filled densities, line densities and/or histogram).
 b) adjust transparency for filled and line thickness for line densities, adjust number of bins
 c) color palette that is used (KNIME colors: if colors were assigned to categories in KMIME and attached to the data table (Color Manager -> Extract Colors -> Join), R will use the R, G, B, A columns to generate the colors for the categories)
 c) Select if background should be white.
-d) optional title and whether parameter name should be plotted in title
+d) optional title, font size of plot can de defined
+e) x-axis title can be customized, and relative font size of axis title and label for x- and y-axis can be specified 
+f) x-axis limits can be set and where global or free axis ranges are applied (free scales) for 2D grid
 e) optional add horiziontal and/or vertical lines with certain type, color and line size (no legend title = legend not diplayed) 
 f) adjust legend position, text size and legend title
 ######
@@ -2982,20 +2984,40 @@ params = c(<panellistbox label="Numerical attributes" items="$$$NUM_ATTRIBUTES$$
 <h3 text="More Layout Options" span = "full"/>
 
 <separator label="Define plot mode" span="full"/>
-
 <combobox var="plotDensityMode" items="filled curves, lines only" selected-item="fill curves" label="Plot density as" span = "1"/>
 <hbox>
 <checkbox label="Plot histogram" var="plotHistogram" selected="false"/>
 <textfield label="Number of histogram bins:" var="numberOfBins" data-type="numeric" default-value="30" size="1"/>
 </hbox>
 
-<separator label="Define plot options" span="full"/>
+<separator label="Define Plot Options" span="full"/>
+<hbox>
 <checkbox label="White background?" var="setBkgWhite" selected="false"/>
 <textfield label="Alpha value (fill color):" var="alphaValue" data-type="numeric" default-value= "0.7" size="1"/>
 <textfield label="Line thickness (line size):" var="lineSize" data-type="numeric" default-value= "0.5" size="1"/>
 <combobox var="colorPalette" items="ggplot default,Accent,Dark2,Paired,Set1,Set2,Set3,Spectral,RdYlGn,RdYlBu,RdGy,RdBu,PuOr,PrGn,PiYG,BrBG,Blues,BuGn,BuPu,GnBu,Greens,Greys,Oranges,OrRd,PuBu,PuBuGn,PuRd,Purples,RdPu,Reds,YlGn,YlGnBu,YlOrBr,YlOrRd,KNIME colors" label="Color palette:"/>
+</hbox>
+
+<separator label="Layout Plot Title and Font Size" span="full"/>	
+<hbox>
 <textfield label="Title of plot:" var="title" data-type="text" default-value= "" size="1" span = "1"/>
 <textfield label="Text size [title]:" var="plotTextSize" data-type="numeric" default-value= "12" size="1"/>
+</hbox>
+
+<separator label="Layout Options x-Axis" span="full"/>	
+<hbox>
+<textfield label="x-axis title:" var="xAxisLabel" data-type="text" default-value= "" size="3"/>
+useParameterXnameAsAxisLabel = <checkbox label="use x parameter name" selected="f"/>
+axisTextSizeFactorX = as.numeric(c(<vector label="x-axis text size [title/label]:" size="2" default-value="1.0,0.8"/>))
+axisTextSizeFactorY = as.numeric(c(<vector label="y-axis text size [title/label]:" size="2" default-value="1.0,0.8"/>))
+</hbox>
+	
+<hbox>
+useManualXaxisScale = <checkbox label="use fixed x-axis scale" selected="f"/>
+xAxisScale = as.numeric(c(<vector label="x-axis scale [min,max]:" size="2" default-value=","/>))
+free.xscales = <checkbox label="use free x-scales (for 2D grid)" selected="t"/>
+</hbox>
+
 
 <separator label="Layout Additional Lines" span="full"/>
 <hbox>
@@ -3035,6 +3057,19 @@ library(plyr)
 factorIndex <- which(names(kIn) == factorName)
 factors <- levels(factor(kIn[,factorName]))
 if (is.na(legendTitle)) legendTitle <- factorName
+
+# set scales for grid
+
+if(free.xscales) free.scales <- "free" 
+if(!free.xscales) free.scales <- "free_y"
+
+# check option settings
+if (is.na(xAxisLabel))	xAxisLabel <- NULL
+if (is.na(axisTextSizeFactorX[1]) | (axisTextSizeFactorX[1] < 0) | (axisTextSizeFactorX[1] > 5)) axisTextSizeFactorX[1] <- 1.0
+if (is.na(axisTextSizeFactorX[2]) | (axisTextSizeFactorX[2] < 0) | (axisTextSizeFactorX[2] > 5)) axisTextSizeFactorX[2] <- 0.8
+if (is.na(axisTextSizeFactorY[1]) | (axisTextSizeFactorY[1] < 0) | (axisTextSizeFactorY[1] > 5)) axisTextSizeFactorY[1] <- 1.0
+if (is.na(axisTextSizeFactorY[2]) | (axisTextSizeFactorY[2] < 0) | (axisTextSizeFactorY[2] > 5)) axisTextSizeFactorY[2] <- 0.8
+if (is.na(xAxisScale[1]) | is.na(xAxisScale[2]))	xAxisScale <- NULL
 
 # set paramters to flow variable if required
 if (useFlowVar) params <- flowVariable
@@ -3141,7 +3176,15 @@ if(!is.na(title)) m <- m + ggtitle(label = title)
 m <- m + theme(legend.position = legendPosition)
 if(!setBkgWhite) { m <- m + theme_gray(base_size = plotTextSize) 
 } else { m <- m + theme_bw(base_size = plotTextSize) }
-m <- m + facet_wrap( ~ variable,scales = "free")
+m <- m + facet_wrap( ~ variable, scales = free.scales)
+
+#axis label options
+if (useParameterXnameAsAxisLabel) m <- m + labs(x = xAxisLabel)
+m <- m + theme(axis.title.x = element_text(size = plotTextSize[1] * axisTextSizeFactorX[1]), axis.title.y = element_text(size = plotTextSize[1] * axisTextSizeFactorY[1]))
+m <- m + theme(axis.text.x = element_text(size = plotTextSize[1] * axisTextSizeFactorX[2]), axis.text.y = element_text(size = plotTextSize[1] * axisTextSizeFactorY[2]))
+	
+#if(useManualYaxisScale) m <- m + coord_cartesian(ylim = yAxisScale) 
+if(useManualXaxisScale) m <- m + coord_cartesian(xlim = xAxisScale) 
 
 #additional lines like horizontal or vertical
 # debugging work in progress.... MS
