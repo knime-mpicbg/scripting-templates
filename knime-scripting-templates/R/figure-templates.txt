@@ -3091,25 +3091,21 @@ if(t_set1 | t_set2 | t_set3 | t_accent | t_dark2 | t_paired) {
     colorPalette <- "ggplot default"
 } 
 
-if (useKNIMEColors) {
-    # check if color model is joined to data table
-    if (!length(which(c("R","G","B","A") %in% names(kIn))) == 4) {
-        colorPalette <- "standard"
-        warning("KNIME colors not available in input table, standard palette is used instead")
-        # if yes, generate color table from KNIME colors
-    } else { 
-        # check whether colors belong to grouping factor  
-        colorTable <- lapply(factors, FUN = function(x) {
-            subdata <- subset(kIn, kIn[, factorName] == x, select = c(R, G, B, A, RGBA), drop = FALSE)
-            if(length(unique(subdata$RGBA)) > 1) stop("KNIME color model does not fit to selected factor column")
-            subdata[1,]
-        })
-        # create color vector
-        names(colorTable) <- factors
-        colorTable <- do.call("rbind", colorTable)
-        factorColors <- rgb(colorTable$R, colorTable$G, colorTable$B, colorTable$A, max =  255) 
-        names(factorColors) <- factors
-    }
+# color model checks: is it available? is it defined for the grouping column?
+if(useKNIMEColors && !exists("kIn.color.model")) {
+	stop("No KNIME color model provided. Script was stopped!")
+	useKNIMEColors <- FALSE
+}
+colourCol <- factorName
+if(useKNIMEColors && names(kIn.color.model[1]) != colourCol) {
+	stop(paste("KNIME color model is different (", names(kIn.color.model[1]), ") from selected color grouping column (", colourCol, ") in template. Script was stopped!"))
+	useKNIMEColors <- FALSE
+} 
+if(useKNIMEColors) {
+	kIn.color.model$color <- as.character(kIn.color.model$color)
+	colourCol <- names(kIn.color.model)[1]
+	factorColors <- kIn.color.model[,2]
+	names(factorColors) <- kIn.color.model[,1]
 }
 
 # reshape data
