@@ -20,8 +20,15 @@ Retrieve information about python and pandas version
 <![CDATA[
 
 import sys
+import os
+import platform
 
-pyOut = pd.DataFrame({'Package': ['python','pandas','pythonpath'], 'Version': [version, pandasversion, sys.executable]})
+pythonpath = sys.executable
+
+if platform.system() == 'Windows':
+    pythonpath = pythonpath.replace('\\', '/')
+
+pyOut = pd.DataFrame({'Package': ['python','pandas','pythonpath'], 'Version': [version, pandasversion, pythonpath]})
 
 ]]>
 </rgg>
