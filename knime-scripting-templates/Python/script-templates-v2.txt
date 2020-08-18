@@ -1,0 +1,27 @@
+########################################################################################
+# name: Python Installation details
+# author: Antje Janosch
+# category: utilities
+# preview: 
+
+Retrieve information about python and pandas version
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+
+<!-- 3. Script-->
+
+<![CDATA[
+
+import sys
+
+pyOut = pd.DataFrame({'Package': ['python','pandas','pythonpath'], 'Version': [version, pandasversion, sys.executable]})
+
+]]>
+</rgg>
