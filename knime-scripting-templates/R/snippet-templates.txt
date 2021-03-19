@@ -2090,3 +2090,87 @@ if (storeRandomDistributionTable) {
 
 ]]>
 </rgg>
+
+######################################################################################
+# name: Uniform Manifold Approximation and Projection (UMAP)
+# author: Martin Stoeter
+# category: dimension_reduction
+# preview: 
+
+Uniform Manifold Approximation and Projection (UMAP) is an algorithm for dimensional reduction. Originally describer here: https://arxiv.org/abs/1802.03426
+This template uses R package 'umap'. More details here: https://cran.r-project.org/web/packages/umap/vignettes/umap.html 
+######
+
+<rgg>
+
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+# 1. Parameter selection
+
+<group>
+# 1) select parameters for UMAP calculation
+paramName = c(<panellistbox label="Parameters for correlation" items="$$$NUM_ATTRIBUTES$$$" span="full"/>);
+
+# 2) UMAP configuration
+<gaprow height="1"/>
+<separator label="UMAP Configuration Options" span="full"/>
+<gaprow height="1"/>
+<hbox>
+<vector label="Number of neighbors:" var="UMAPneighbors" size="1" default-value="15" vector-type="numeric"/>
+<vector label="UMAP dimensions:" var="UMAPdimension" size="1" default-value="2" vector-type="numeric"/>
+<combobox label="UMAP metric" var="UMAPmetric" items="euclidean, cosine, pearson, pearson" />
+<vector label="Minimum distance" var="UMAPmin_dist" size="1" default-value="0.1" vector-type="numeric"/>
+</hbox>
+<hbox>
+<checkbox label="Random seed" var="useRandomSeed" selected="true"/>
+<vector label="Random state:" var="UMAPrandom_state" size="1" default-value="42" vector-type="numeric"/>
+</hbox>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+	
+#2.1 load libraries
+library(umap)
+
+#2.2.1 manage RGG to R: define as numbers
+
+#2.2.2 manage RGG to R: set values to default and check values
+#set configuration for UMAP
+if (useRandomSeed) UMAPrandom_state <- NA
+custom.config = umap.defaults
+custom.config$n_neighbors = as.numeric(UMAPneighbors)     # default: 15
+custom.config$n_components = as.numeric(UMAPdimension)    # default: 2
+custom.config$metric = UMAPmetric                         # default: euclidean
+custom.config$min_dist = as.numeric(UMAPmin_dist)         # defalut: 0.1
+custom.config$random_state = as.numeric(UMAPrandom_state) # default: NA
+
+#make names for UMAP dimension columns
+UMAPcolNames <- paste0('UMAP', 1:UMAPdimensions)
+
+#2.3. calculate
+#use only the data of the selected parameters
+kIn.data <- kIn[paramName]
+
+#do UMAP transformation
+kIn.umap.config <- umap(kIn.data, config=custom.config)   # calc UMAP with custom configuration
+colnames(kIn.umap.config$layout) <- UMAPcolNames
+
+#attach UMAP dimensions to input table
+rOut <- cbind(kIn, kIn.umap.config$layout)
+
+]]>
+
+</rgg>
