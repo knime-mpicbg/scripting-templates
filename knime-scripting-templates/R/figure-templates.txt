@@ -5862,3 +5862,236 @@ Layout Options:
 
     ]]>
 </rgg>
+########################################################################################
+# name: Find Peaks Plot
+# author: Martin Stoeter
+# category: analysis
+# preview: Find_peaks_plot.png
+
+Analyses a sequence of data point and detects peaks therein. 
+The plot version just a visualizes, the snippet version just outputs the peak table.
+######
+<rgg>
+
+    <!--1. Title and short description -->
+    <h3 text="Lineplot with plot options" aligment="center" span="full"/>
+    <separator label="Description" span="full"/>
+    <labelarea span="full">Custom template to create a line plot with peak detection
+https://www.rdocumentation.org/packages/pracma/versions/1.9.9/topics/findpeaks
+Arguments
+1)  x               : numerical vector taken as a time series
+2)  nups            : minimum number of increasing steps before a peak is reached
+3)  ndowns          : minimum number of decreasing steps after the peak
+4)  zeros           : can be "+", "-", or "0"; how to interprete succeeding steps of the same value: increasing, decreasing, or special
+5)  peakpat         : define a peak as a regular pattern, such as the default pattern "[+]1,[-]1,"; if a pattern is provided, the parameters nups and ndowns are not taken into account
+6)  minpeakheight   : the minimum (absolute) height a peak has to have to be recognized as such
+7)  minpeakdistance : the minimum distance (in indices) peaks have to have to be counted
+8)  threshold       : the minimum
+9)  npeaks          : the number of peaks to return
+10) sortstr         : logical; should the peaks be returned sorted in decreasing oreder of their maximum value
+Returns a matrix where each row represents one peak found. The first column gives the height, the second the position/index where the maximum is reached, the third and forth the indices of where the peak begins and ends --- in the sense of where the pattern starts and ends. 
+
+Parameter:
+input data/signal - date series to be used for peak detection
+time series - column with time values for series; -USE INDEX- will return the index values (1 to end of series)
+signal peak threshold - minimum peak height threshold 
+delta slope threshold - minimum difference threshold in slope detection (within chosen distance, onset and offset)
+delta slope distance - distance value (index) in slope between the difference is calculated
+
+To use a flow variable check box and type in variable names using the format: FLOWVAR(variable name)
+Layout Options: 
+ - plot points or lines or both
+ - set size of points (default = [0.7,2.0,1.5,1.2])
+ - give plot title and title factor (default = 1.2)
+ - adjust y-axis scale (enter min + max for y-axis)
+</labelarea>
+
+    <gaprow height="1"/>
+
+    <!-- 2. Configuration-->
+
+    <separator label="Options" span="full"/>
+    <gaprow height="2"/>
+
+    #1.0 Parameter selection
+	#R debugging: delete all variables except kIn
+	#rm(list=ls(all=TRUE)[which(ls(all=TRUE) != "kIn")])
+	<group>
+
+	<hbox>
+	# Define your numerical parameters for input signal
+	signalValueColumn = <combobox items="$$$NUM_ATTRIBUTES$$$" label="input data/signal (1):"/> 
+	# Define your numerical parameters for time series
+	timeColumn = <combobox items="-USE INDEX-,$$$NUM_ATTRIBUTES$$$" label="time series:"/> 
+	output = "table"
+	<combobox var = "output" label = "output" items = "plot,table"/> # delete this line for snippet template, to diaable GUI choise
+
+	</hbox>
+
+	<hbox>
+	# Define peak detection parameters
+	# adjustment parameter, minimum peak height threshold 
+	threshold = as.numeric(<vector label="signal peak threshold (8):" size="1" default-value="0.02" span="full"/>)
+	<checkbox label="plot threshold?" var="plotThreshold" selected="false"/>
+	# adjustment parameter, minimum difference in slope (within chosen distance)
+	minDeltaSlope = as.numeric(<vector label="delta slope threshold:" size="1" default-value="0.005" span="full"/>)
+	# adjustment parameter, distance value (index) in slope between the difference is calculated
+	distanceDeltaSlope = as.numeric(<vector label="delta slope distance:" size="1" default-value="2" span="full"/>)
+	</hbox>
+
+	<separator label="Advanced Peak Detection Options" span="full"/>
+	<hbox>
+	# More/advanced peak definition parameters
+	# adjustment parameter, minimum number of increasing/decreasing steps before/after a peak is reached
+	nUpsDowns = as.numeric(<vector label="min. no. inc./dec. steps before/after a peak (2,3):" size="2" default-value="1,1" span="full"/>)
+	# adjustment parameter, the minimum (absolute) height / distance (indices) peaks has to have to be recognized 
+	minPeakHeightDistance = as.numeric(<vector label="min. height/distance of/between peaks (6,7):" size="2" default-value="-Inf,1" span="full"/>)
+	<checkbox label="plot minPeakHeight?" var="plotMinPeakHeight" selected="false"/>
+	</hbox>
+
+ 	#diagram options
+	<separator label="Layout Options General Plot" span="full"/>
+	<hbox>
+	plotPointsLines = <combobox label = "Points and/or lines:" items = "points_and_lines,points_only,lines_only"/>
+	pointPointSizes = as.numeric(<vector label="Size [signal/peak/start+end/onset-offset]:" size="4" default-value="0.7,2.0,1.5,1.2"/>)
+	</hbox>
+	<hbox>
+	<checkbox label="use fixed y-axis scale" var="useManualYaxisScale" selected="f"/>
+	<vector label="y-axis scale:" var="yAxisScale" size="2" default-value="0,0.2" vector-type="character"/>
+	</hbox>
+
+	<separator label="Layout Options Title" span="full"/>
+	<hbox>
+	<textfield label="plot title:" var="plotTitle" data-type="text" default-value= "" size="5"/>
+	plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default-value="1.2"/>))
+	</hbox>
+
+	</group>
+
+	<![CDATA[
+
+# R code needs styling from here on....
+#2.0 R code	
+
+#2.1 load libaries
+library(pracma)
+
+#2.1.2 Define the data
+# these are the y-values and the data to be processed (finding peaks)
+pSignal <- kIn[, signalValueColumn]
+# if -USE INDEX- then index values are used as x-values otherwise selected column is used (e.g. real time values)
+if (timeColumn != "-USE INDEX-") {
+  xValues <- kIn[, timeColumn]
+  xAxisTitle <- timeColumn
+  } else {
+  xValues <- 1:length(pSignal)
+  xAxisTitle <- "Index"
+  }
+#kIn <- kInOrg # kInOrg <- kIn #save the otiginal kIn table
+kIn[, "xValues"] <- xValues  # here the x-values are added to kIn to be used later in ploting
+
+#2.2.1 manage RGG to R: define as numbers
+#hlines <- as.numeric(hlines)
+yAxisScale <- as.numeric(yAxisScale)
+nUpsDowns <- as.numeric(nUpsDowns)
+minPeakHeightDistance <- as.numeric(minPeakHeightDistance)
+
+#2.2.2 manage RGG to R: set scales to default and check scales
+
+#2.3 calculate
+#findpeaks(x, nups = 1, ndowns = nups, zero = "0", peakpat = NULL, minpeakheight = -Inf, minpeakdistance = 1, threshold = 0, npeaks = 0, sortstr = FALSE)
+#peakTable <- findpeaks(pSignal, npeaks=3, threshold=4, sortstr=TRUE)
+#peakTable <- findpeaks(pSignal, threshold=3, sortstr=FALSE)
+peakTable <- findpeaks(pSignal, nups = nUpsDowns[1], ndowns = nUpsDowns[2], minpeakheight = minPeakHeightDistance[1], minpeakdistance = minPeakHeightDistance[2], threshold=threshold, sortstr=TRUE)
+
+if(is.null(peakTable)) peakTable <- matrix(c(NA,-1,NA,NA), ncol=4)   # if no peaks were found make one row matrix with NAs
+peakTableHeader <- c("height", "position", "start", "end") 
+colnames(peakTable) <- peakTableHeader
+
+#initialize
+peakOnset <- NA
+peakOffset <- NA
+
+if (peakTable[1,"position"] != -1) {
+  for(i in 1:nrow(peakTable)) {
+    print("ok")
+    # initialize for each row in peakTable
+    currentPeakPosition <- peakTable[i, "position"]
+    
+    # find peak onset and move from peak maximum leftwards (lower index) until currentSlopeDelta is smaller than distanceDeltaSlope
+    currentSlopePosition <- currentPeakPosition - distanceDeltaSlope    # currentSlopePosition is positon that is decreased and checked iteratively 
+    if(currentSlopePosition <= 1) currentSlopePosition = 1              # if peak is at left edge of signal
+    currentSlopeDelta <- pSignal[currentPeakPosition] - pSignal[currentSlopePosition]
+    #print(c(i, currentPeakPosition, currentSlopePosition, pSignal[currentPeakPosition], pSignal[currentSlopePosition], currentSlopeDelta, currentSlopeDelta >= minDeltaSlope))
+    # now start moving left
+    while (currentSlopeDelta >= minDeltaSlope & currentSlopePosition > 1) {
+      currentSlopePosition = currentSlopePosition - 1
+      currentSlopeDelta <- pSignal[currentSlopePosition + distanceDeltaSlope] - pSignal[currentSlopePosition]
+      #print(c(i, currentPeakPosition, currentSlopePosition, pSignal[currentSlopePosition + distanceDeltaSlope], pSignal[currentSlopePosition], currentSlopeDelta, currentSlopeDelta > minDeltaSlope))
+    }
+    peakOnset[i] <- currentSlopePosition + 1  # this vector will contain all peak onset indices
+    #print(peakOnset)
+    
+    # find peak offset and move from peak maximum rightwards (higher index) until currentSlopeDelta is smaller than distanceDeltaSlope
+    currentSlopePosition <- currentPeakPosition + distanceDeltaSlope                       # currentSlopePosition is positon that is increased and checked iteratively 
+    if(currentSlopePosition >= length(pSignal)) currentSlopePosition = length(pSignal)     # if peak is at right edge of signal
+    currentSlopeDelta <- pSignal[currentPeakPosition] - pSignal[currentSlopePosition]
+    #print(c(i, currentPeakPosition, currentSlopePosition, pSignal[currentPeakPosition], pSignal[currentSlopePosition], currentSlopeDelta, currentSlopeDelta >= minDeltaSlope))
+    # now start moving right
+    while (currentSlopeDelta >= minDeltaSlope & currentSlopePosition < length(pSignal)) {
+      currentSlopePosition = currentSlopePosition + 1
+      currentSlopeDelta <- pSignal[currentSlopePosition - distanceDeltaSlope] - pSignal[currentSlopePosition]
+      #print(c(i, currentPeakPosition, currentSlopePosition, pSignal[currentSlopePosition - distanceDeltaSlope], pSignal[currentSlopePosition], currentSlopeDelta, currentSlopeDelta > minDeltaSlope))
+    }
+    peakOffset[i] <- currentSlopePosition - 1  # this vector will contain all peak offset indices
+    #print(peakOffset)
+  }
+}
+
+# this is the final index-based result table
+peakTable <- cbind(peakTable, onset = peakOnset, offset = peakOffset)  
+# make rOut data frame for returing data to KNIME
+rOut <- data.frame(peakTable)
+
+# replace index values (position start end onset offset) with real (time series) values from input table
+if (timeColumn != "-USE INDEX-") {
+  if (rOut[1,"position"] != -1) {
+    for (col in 2:6) rOut[, col] <- kIn[rOut[, col], timeColumn]
+  }
+}
+
+#2.4.1 layout plot
+# plot signal values
+if (output == "plot") {  # if this is plot template then true, if this is snippet template then false
+  if (plotPointsLines == "points_and_lines") plotPointsLines <- "o"
+  if (plotPointsLines == "points_only") plotPointsLines <- "p"
+  if (plotPointsLines == "lines_only") plotPointsLines <- "l"
+  plot(x = xValues, y = pSignal, type=plotPointsLines, col="grey40", cex = pointPointSizes[1], ylim = yAxisScale, 
+       main = plotTitle, xlab = xAxisTitle, ylab = signalValueColumn, cex.main = plotTitleSize)
+  grid()
+  
+  #2.4.2 plot data
+  # plot peaks, start, end and values between onset and offset
+  if (peakTable[1,"position"] != -1) {
+    for(i in 1:nrow(peakTable)) {
+      points(kIn[peakTable[i,"onset"]:peakTable[i,"offset"], "xValues"], kIn[peakTable[i,"onset"]:peakTable[i,"offset"], signalValueColumn], pch=20, col="black", cex = pointPointSizes[4])
+    }
+    points(kIn[peakTable[,"position"], "xValues"], kIn[peakTable[,"position"], signalValueColumn], pch=24, col="red", cex = pointPointSizes[2])
+    points(kIn[peakTable[, "start"], "xValues"], kIn[peakTable[, "start"], signalValueColumn], pch=22, col="darkorange", cex = pointPointSizes[3])
+    points(kIn[peakTable[, "end"], "xValues"], kIn[peakTable[, "end"], signalValueColumn], pch=23, col="darkred", cex = pointPointSizes[3])
+  }
+  
+  #2.4.3 plot options
+  # adds horizontal lines
+  if (plotThreshold) abline(h = threshold, lty = 2)
+  if (plotMinPeakHeight) abline(h = minPeakHeightDistance, lty = 3) 
+  #abline(h = hlines[2], lwd = 1.5)
+  
+} # end plot data
+
+# debug
+#rOut
+#peakTable
+#findpeaks(pSignal, threshold=threshold, sortstr=TRUE)
+    ]]>
+</rgg>
