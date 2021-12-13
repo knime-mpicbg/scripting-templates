@@ -5878,6 +5878,7 @@ The plot version just a visualizes, the snippet version just outputs the peak ta
     <separator label="Description" span="full"/>
     <labelarea span="full">Custom template to create a line plot with peak detection
 https://www.rdocumentation.org/packages/pracma/versions/1.9.9/topics/findpeaks
+https://www.mathworks.com/help/signal/ref/findpeaks.html#bufbbs1-2
 Arguments
 1)  x               : numerical vector taken as a time series
 2)  nups            : minimum number of increasing steps before a peak is reached
@@ -5886,7 +5887,7 @@ Arguments
 5)  peakpat         : define a peak as a regular pattern, such as the default pattern "[+]1,[-]1,"; if a pattern is provided, the parameters nups and ndowns are not taken into account
 6)  minpeakheight   : the minimum (absolute) height a peak has to have to be recognized as such
 7)  minpeakdistance : the minimum distance (in indices) peaks have to have to be counted
-8)  threshold       : the minimum
+8)  threshold       : the minimum height difference between a peak and its neighbors. Use this argument to have findpeaks return only those peaks that exceed their immediate neighboring values by at least the value of "threshold"
 9)  npeaks          : the number of peaks to return
 10) sortstr         : logical; should the peaks be returned sorted in decreasing oreder of their maximum value
 Returns a matrix where each row represents one peak found. The first column gives the height, the second the position/index where the maximum is reached, the third and forth the indices of where the peak begins and ends --- in the sense of where the pattern starts and ends. 
@@ -5930,23 +5931,24 @@ Layout Options:
 
 	<hbox>
 	# Define peak detection parameters
-	# adjustment parameter, minimum peak height threshold 
-	threshold = as.numeric(<vector label="signal peak threshold (8):" size="1" default-value="0.02" span="full"/>)
+	# adjustment parameter, minimum peak height threshold and lower threshold
+	minPeakHeight = as.numeric(<vector label="minimum peak height (6):" size="1" default-value="-Inf" span="full"/>)
+	<checkbox label="plot minPeakHeight?" var="plotMinPeakHeight" selected="false"/>
+	threshold = as.numeric(<vector label="minimum peak height difference neighbors (8):" size="1" default-value="0.02" span="full"/>)
 	<checkbox label="plot threshold?" var="plotThreshold" selected="false"/>
 	# adjustment parameter, minimum difference in slope (within chosen distance)
 	minDeltaSlope = as.numeric(<vector label="delta slope threshold:" size="1" default-value="0.005" span="full"/>)
-	# adjustment parameter, distance value (index) in slope between the difference is calculated
-	distanceDeltaSlope = as.numeric(<vector label="delta slope distance:" size="1" default-value="2" span="full"/>)
 	</hbox>
 
 	<separator label="Advanced Peak Detection Options" span="full"/>
 	<hbox>
 	# More/advanced peak definition parameters
+	# adjustment parameter, distance value (index) in slope between the difference is calculated
+	distanceDeltaSlope = as.numeric(<vector label="delta slope distance:" size="1" default-value="2" span="full"/>)
 	# adjustment parameter, minimum number of increasing/decreasing steps before/after a peak is reached
 	nUpsDowns = as.numeric(<vector label="min. no. inc./dec. steps before/after a peak (2,3):" size="2" default-value="1,1" span="full"/>)
 	# adjustment parameter, the minimum (absolute) height / distance (indices) peaks has to have to be recognized 
-	minPeakHeightDistance = as.numeric(<vector label="min. height/distance of/between peaks (6,7):" size="2" default-value="-Inf,1" span="full"/>)
-	<checkbox label="plot minPeakHeight?" var="plotMinPeakHeight" selected="false"/>
+	minPeakDistance = as.numeric(<vector label="min. height/distance of/between peaks (7):" size="1" default-value="1" span="full"/>)
 	</hbox>
 
  	#diagram options
@@ -5994,7 +5996,6 @@ kIn[, "xValues"] <- xValues  # here the x-values are added to kIn to be used lat
 #hlines <- as.numeric(hlines)
 yAxisScale <- as.numeric(yAxisScale)
 nUpsDowns <- as.numeric(nUpsDowns)
-minPeakHeightDistance <- as.numeric(minPeakHeightDistance)
 
 #2.2.2 manage RGG to R: set scales to default and check scales
 
@@ -6002,9 +6003,9 @@ minPeakHeightDistance <- as.numeric(minPeakHeightDistance)
 #findpeaks(x, nups = 1, ndowns = nups, zero = "0", peakpat = NULL, minpeakheight = -Inf, minpeakdistance = 1, threshold = 0, npeaks = 0, sortstr = FALSE)
 #peakTable <- findpeaks(pSignal, npeaks=3, threshold=4, sortstr=TRUE)
 #peakTable <- findpeaks(pSignal, threshold=3, sortstr=FALSE)
-peakTable <- findpeaks(pSignal, nups = nUpsDowns[1], ndowns = nUpsDowns[2], minpeakheight = minPeakHeightDistance[1], minpeakdistance = minPeakHeightDistance[2], threshold=threshold, sortstr=TRUE)
+peakTable <- findpeaks(pSignal, nups = nUpsDowns[1], ndowns = nUpsDowns[2], minpeakheight = minPeakHeight, minpeakdistance = minPeakDistance, threshold=threshold, sortstr=FALSE)
 
-if(is.null(peakTable)) peakTable <- matrix(c(NA,-1,NA,NA), ncol=4)   # if no peaks were found make one row matrix with NAs
+if(is.null(peakTable)) peakTable <- matrix(c(NA,0,NA,NA), ncol=4)   # if no peaks were found make one row matrix with NAs
 peakTableHeader <- c("height", "position", "start", "end") 
 colnames(peakTable) <- peakTableHeader
 
@@ -6012,7 +6013,7 @@ colnames(peakTable) <- peakTableHeader
 peakOnset <- NA
 peakOffset <- NA
 
-if (peakTable[1,"position"] != -1) {
+if (peakTable[1,"position"] != 0) {
   for(i in 1:nrow(peakTable)) {
     print("ok")
     # initialize for each row in peakTable
@@ -6055,7 +6056,7 @@ rOut <- data.frame(peakTable)
 
 # replace index values (position start end onset offset) with real (time series) values from input table
 if (timeColumn != "-USE INDEX-") {
-  if (rOut[1,"position"] != -1) {
+  if (rOut[1,"position"] != 0) {
     for (col in 2:6) rOut[, col] <- kIn[rOut[, col], timeColumn]
   }
 }
@@ -6072,7 +6073,7 @@ if (output == "plot") {  # if this is plot template then true, if this is snippe
   
   #2.4.2 plot data
   # plot peaks, start, end and values between onset and offset
-  if (peakTable[1,"position"] != -1) {
+  if (peakTable[1,"position"] != 0) {
     for(i in 1:nrow(peakTable)) {
       points(kIn[peakTable[i,"onset"]:peakTable[i,"offset"], "xValues"], kIn[peakTable[i,"onset"]:peakTable[i,"offset"], signalValueColumn], pch=20, col="black", cex = pointPointSizes[4])
     }
@@ -6084,7 +6085,7 @@ if (output == "plot") {  # if this is plot template then true, if this is snippe
   #2.4.3 plot options
   # adds horizontal lines
   if (plotThreshold) abline(h = threshold, lty = 2)
-  if (plotMinPeakHeight) abline(h = minPeakHeightDistance, lty = 3) 
+  if (plotMinPeakHeight) abline(h = minPeakHeight, lty = 3) 
   #abline(h = hlines[2], lwd = 1.5)
   
 } # end plot data
