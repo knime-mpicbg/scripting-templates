@@ -592,21 +592,23 @@ rOut <- data.frame(do.call("cbind", new.l))
 </rgg>
 ########################################################################################
 # name: Mahalanobis Distance Calculator
+# author: Antje Janosch
 # category: distance measures
 
-Calculates mahalonobis distances to the mean of a control group (typically your negative controls). 
-Option: choose to use the inverted covariance matrix (default: auto) 
+Calculates the squared mahalonobis distances (MD) to the mean of a reference population (typically your negative controls). 
+Option 'Use inverted': If 'yes', the inverted covariance matrix will be used. If 'auto', the script will make a choice based on the determinant of the covariance matrix.
+Option 'Outlier p-value': The given p-value is used to calculate a MD threshold. Data rows with a MD above this threshold can be considered as outliers. 
 
 ATTENTION: 
-This snippet expects a column named 'treatment' with categorial values! Select a negative control name. This will be used if negative control column is set to -USE SELECTED TREATMENTS- (default).
+This snippet expects a column named 'treatment' with nominal domain values! If it's available, a reference population can be chosen. It will be used if 'Reference population column' is set to -USE SELECTED TREATMENTS- (default).
 
-Alternatively, the message 'Error: Could not find atrribute: treatment' can be ignored, a negative control column can be selected and the name of the negative control can be given as text.   
+Alternatively, the message 'Error: Could not find atrribute: treatment' can be ignored. A reference population column can be selected and the name of the reference population can be given as text. 
 ######
 <rgg>
 
 <!--1. Title and short description -->
 
-<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<h3 text="Mahalanobis Distance Calculator" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
 <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
@@ -623,13 +625,13 @@ Alternatively, the message 'Error: Could not find atrribute: treatment' can be i
 parameters = c(<panellistbox label="Features of interest" items="$$$NUM_ATTRIBUTES$$$" visible-row-count="6" span="full"/>)
 
 # 2) calculate mean and covariance of the negative controls
-treatment = <combobox items="$$$DOMAIN('treatment')$$$" label="Negative control name"/>
+treatment = <combobox items="$$$DOMAIN('treatment')$$$" label="Reference population name"/>
 <hbox>
-<combobox var = "treatmentColumn" label = "Negative control column" items = "-USE SELECTED TREATMENTS-,$$$STR_ATTRIBUTES$$$"/>
-<textfield label = "Negative control:" var="negColtrolName" data-type="text" default-value= "" size="10"/>
+<combobox var = "treatmentColumn" label = "Referene population column" items = "-USE SELECTED TREATMENTS-,$$$STR_ATTRIBUTES$$$"/>
+<textfield label = "Reference population:" var="negColtrolName" data-type="text" default-value= "" size="10"/>
 </hbox>
 <gaprow height="1"/>
-
+<vector  var="p_thresh" label="Outlier p-value" size="1" vector-type="numeric" default-value="0.001"/>
 useInverted = <combobox label="use inverted" items="auto,false,true"/>
 </group>
 
@@ -639,17 +641,23 @@ useInverted = <combobox label="use inverted" items="auto,false,true"/>
 #2.1 load libraries
 library(MASS)
 
+treatmentName <- "treatment"
+
 #2.2.1 manage RGG to R: define as numbers
 
 #2.2.2 manage RGG to R: set values to default and check values
 if (treatmentColumn == "-USE SELECTED TREATMENTS-") {
-	treatmentColumn <- "treatment" #define treatment column as column treatment present in data table
+  if(treatmentName %in% colnames(kIn))
+    treatmentColumn <- treatmentName  #set reference column as column "treatment" which has to be present in data table
+  else
+    stop("A column named 'treatment' is missing in the input table.")
 } else {
-	treatment <- negColtrolName  #set was the used wrote in template
+  treatment <- negColtrolName  #set reference column to given column name
 }
 
 #2.3. calculate
 featSelection = match(parameters, names(kIn))  # get vector for feature columns
+nDegreesFreedom <- length(featSelection) - 1
 negCtrls = kIn[which(kIn[,treatmentColumn] == treatment),]  # get table with only negative control values
 
 #check if enough negative controls values are found and features are selected
@@ -663,24 +671,27 @@ outInverted <- useInverted
 
 #check the determinant of the covariance matrix to prevent error message if determinant is too small
 if(useInverted == "auto") {
-	if(det(ncCov) < .Machine$double.eps) {
-	#if too small take inverse matrix
-	useInverted <- "true"
-	} else useInverted <- "false"
+  if(det(ncCov) < .Machine$double.eps) {
+    #if too small take inverse matrix
+    useInverted <- "true"
+  } else useInverted <- "false"
 }
 if(useInverted == "true") {
-	#if too small take inverse matrix
-	ncCov <- ginv(ncCov)
-	mahaInverted <- TRUE
+  #if too small take inverse matrix
+  ncCov <- ginv(ncCov)
+  mahaInverted <- TRUE
 } 
 if(useInverted == "false") {
-	ncCov <- cov(na.omit(array(nc)))
-	mahaInverted <- FALSE
+  ncCov <- cov(na.omit(array(nc)))
+  mahaInverted <- FALSE
 }
 
 # append the distance as additional column
-kIn$mahadist <- mahalanobis(array(kIn[featSelection]), ncMean, ncCov, inverted = mahaInverted)
-kIn$mahadistMode <- outInverted
+kIn['mahadist'] <- mahalanobis(array(kIn[featSelection]), ncMean, ncCov, inverted = mahaInverted)
+kIn['p-value'] <- pchisq(kIn$mahadist, df=nDegreesFreedom, lower.tail=FALSE)
+kIn['degrees of freedom'] <- nDegreesFreedom
+kIn['mahadist-threshold'] <- qchisq(p_thresh, nDegreesFreedom, lower.tail = FALSE)
+kIn$mahadistMode <- useInverted
 
 rOut <- kIn
 
