@@ -608,7 +608,7 @@ Alternatively, the message 'Error: Could not find atrribute: treatment' can be i
 
 <!--1. Title and short description -->
 
-<h3 text="Mahalanobis Distance Calculator" aligment="center" span="full"/>
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
 <separator label="Description" span="full"/>
 <labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
 <gaprow height="1"/>
@@ -631,7 +631,7 @@ treatment = <combobox items="$$$DOMAIN('treatment')$$$" label="Reference populat
 <textfield label = "Reference population:" var="negColtrolName" data-type="text" default-value= "" size="10"/>
 </hbox>
 <gaprow height="1"/>
-<vector  var="p_thresh" label="Outlier p-value" size="1" vector-type="numeric" default-value="0.001"/>
+p_thresh = as.numeric(<vector label="Outlier p-value" size="1" default-value="0.001"/>)
 useInverted = <combobox label="use inverted" items="auto,false,true"/>
 </group>
 
@@ -667,7 +667,6 @@ if(length(featSelection) < 2 ) stop("not enough features selected, choose at lea
 nc <- negCtrls[,featSelection]
 ncCov <- cov(na.omit(array(nc)))
 ncMean <- colMeans(nc, na.rm=TRUE)
-outInverted <- useInverted
 
 #check the determinant of the covariance matrix to prevent error message if determinant is too small
 if(useInverted == "auto") {
