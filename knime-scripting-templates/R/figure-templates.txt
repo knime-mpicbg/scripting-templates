@@ -566,6 +566,7 @@ Layout Options:
 		useKNIMEColors <- FALSE
 	} 
 	if(useKNIMEColors) {
+		kIn.color.model <- kIn.color.model[order(kIn.color.model[,colourCol]),]
 		kIn.color.model$color <- as.character(kIn.color.model$color)
 		colourCol <- names(kIn.color.model)[1]
 		factorColors <- kIn.color.model[,2]
@@ -3872,6 +3873,7 @@ Layout Options:
 		useKNIMEColors <- FALSE
 	} 
 	if(useKNIMEColors) {
+		kIn.color.model <- kIn.color.model[order(kIn.color.model[,colourCol]),]
 		kIn.color.model$color <- as.character(kIn.color.model$color)
 		colourCol <- names(kIn.color.model)[1]
 		factorColors <- kIn.color.model[,2]
