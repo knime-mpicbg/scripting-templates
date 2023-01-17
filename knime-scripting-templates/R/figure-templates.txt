@@ -3961,14 +3961,14 @@ HINT: usage as Plate Heatmap Plotter:
 	# define 2D matrix as grid for heatmap
 	<separator label="Define 2D matrix for heatmap" span="full"/>
 	<hbox>
-	xValue = <combobox items="$$$NUM_ATTRIBUTES$$$" label="x-axis:"/>
-	yValue = <combobox items="$$$NUM_ATTRIBUTES$$$" label="y-axis:"/>
+	xValue = <combobox items="$$$NUM_ATTRIBUTES$$$" label="x-axis:" default-value="plateColunm"/>
+	yValue = <combobox items="$$$NUM_ATTRIBUTES$$$" label="y-axis:" default-value="plateRow"/>
 	</hbox>	
 	<gaprow height="2"/>
 	<hbox>
 	numberxAxisTickLabels = c(<vector label="range of tick labels on x-axis:" size="1" default-value="-AUTO-"/>)
 	numberyAxisTickLabels = c(<vector label="range of tick labels on y-axis:" size="1" default-value="-AUTO-"/>)
-	invertxAxisDirection = <checkbox label="invert x-axis direction" selected="f"/>	
+	invertxAxisDirection = <checkbox label="invert x-axis direction" selected="t"/>	
 	invertyAxisDirection = <checkbox label="invert y-axis direction" selected="f"/>	
 	</hbox>
 		
