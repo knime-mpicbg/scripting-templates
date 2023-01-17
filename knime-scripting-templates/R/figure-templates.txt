@@ -4515,7 +4515,7 @@ print(p)
 </rgg>
 
 ########################################################################################
-# name: Barplot or Boxplot with points (beta)
+# name: Barplot or Boxplot with points
 # author: Martin Stoeter
 # category: basic/bar-boxplots
 # preview: bar-boxplot.png
@@ -4612,6 +4612,8 @@ dodgeWidth = as.numeric(c(<vector label="dodge width:" size="1" default-value="0
 <hbox>
 plotTheme = <combobox items="black-white,grey,linedraw,light,classic" label="background/theme:"/>
 plotTextSize = as.numeric(c(<vector label="font size [plot]:" size="1" default-value="20"/>))
+twoDgridRow = c(<vector label="2D grid [row]:" size="1" default-value="-AUTO-"/>)
+twoDgridColumn = c(<vector label="2D grid [column]:" size="1" default-value="-AUTO-"/>)
 </hbox>
 
 <separator label="Layout Options Title" span="full"/>
@@ -4635,6 +4637,7 @@ axisTitleSizeFactor = as.numeric(c(<vector label="axis title size [x/y]:" size="
 <hbox>
 useManualYaxisScale = <checkbox label="use fixed y-axis scale" selected="f"/>
 yAxisScale = as.numeric(c(<vector label="y-axis scale [min,max]:" size="2" default-value=","/>))
+free.yscales = <checkbox label="use free y-scales (for 2D grid)" selected="t"/>
 </hbox>
 	
 <separator label="Layout Options Legend" span="full"/>
@@ -4700,12 +4703,24 @@ if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
 	colorPalette <- "ggplot default"
 	}
 
+# set scales for grid
+free.xscales <- FALSE
+if(free.xscales & free.yscales) free.scales <- "free"
+if(free.xscales & !free.yscales) free.scales <- "free_x" 
+if(!free.xscales & free.yscales) free.scales <- "free_y" 
+if(!free.xscales & !free.yscales) free.scales <- "fixed"
+
+# 2D grid options (define rows and columns)
+if(is.na(as.numeric(twoDgridRow))) {twoDgridRow <- NULL  #e.g. is equal to "-AUTO-"
+	} else twoDgridRow <- round(as.numeric(twoDgridRow))
+if(is.na(as.numeric(twoDgridColumn))) {twoDgridColumn <- NULL  #e.g. is equal to "-AUTO-"
+	} else twoDgridColumn <- round(as.numeric(twoDgridColumn))
+
 #2.2.2 manage RGG to R: set scales to default and check scales
 if(plotPoints) boxPlotOutlierColor <- NA
 
 kIn[,xFactor] <- as.factor(kIn[,xFactor])
 
-#2.2.2 manage RGG to R: set scales to default and check scales
 if (is.na(plotTitle))	plotTitle <- NULL		#default if no title is given
 if (is.na(plotTextSize[1]) | (plotTextSize[1] < 0) | (plotTextSize[1] > 40)) plotTextSize[1] <- 14
 if (is.na(plotTitleSize[1]) | (plotTitleSize[1] < 0) | (plotTitleSize[1] > 5)) plotTitleSize[1] <- 1.2
@@ -4790,7 +4805,7 @@ if(plotErrorbars)  p <- p + geom_errorbar(aes_string(ymin = "errorLow", ymax = "
 
 #2.4.2 set optional layout of plot
 # facet
-if(!is.null(facetBy)) p <- p + facet_wrap(as.formula(paste("~", facetBy)))
+if(!is.null(facetBy)) p <- p + facet_wrap(as.formula(paste("~", facetBy)), nrow = twoDgridRow, ncol = twoDgridColumn, scales=free.scales)
 
 #title options
 p <- p + theme(plot.title = element_text(size = plotTextSize[1] * plotTitleSize[1]))
