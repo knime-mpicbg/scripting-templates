@@ -1236,7 +1236,9 @@ for (comb in 1:length(combVec[,1])){
 	kInXtable <- kIn[which(as.character(kIn[,IDgene]) == combVec[comb,1]),c(IDgene, IDoligo, paramName)]
 	kInYtable <- kIn[which(as.character(kIn[,IDgene]) == combVec[comb,2]),c(IDgene, IDoligo, paramName)]
 	#both for loops avoid correlation A vs A (same =1) and redundancy A vs B and B vs A (here necessary because groups are the same!) 
-	for (xOligo in 1:(length(kInXtable[,1])-1)){
+	forLoopVector <- 1:(length(kInXtable[,1])-1)
+    if(length(kInXtable[,1])-1 == 0) forLoopVector <- c()  # generate empty vector
+    for (xOligo in forLoopVector){
 		for (yOligo in (xOligo+1):length(kInYtable[,1])){
 			#correlate all oligos or only the same oligos (oligoA vs oligoA, B, ...)
 			if (allCombiOligo || (kInXtable[xOligo,IDoligo] == kInYtable[yOligo,IDoligo])){	
