@@ -3936,6 +3936,7 @@ Layout Options:
 HINT: usage as Plate Heatmap Plotter:
  - use plateRow as y-axis and check invert
  - use plateColunm as x-axis
+ - set range of tick labels from -AUTO- to 1
  - use variables for color or use flowvariable option to plot many heatmaps 
 ######
 
@@ -3968,8 +3969,8 @@ HINT: usage as Plate Heatmap Plotter:
 	<hbox>
 	numberxAxisTickLabels = c(<vector label="range of tick labels on x-axis:" size="1" default-value="-AUTO-"/>)
 	numberyAxisTickLabels = c(<vector label="range of tick labels on y-axis:" size="1" default-value="-AUTO-"/>)
-	invertxAxisDirection = <checkbox label="invert x-axis direction" selected="t"/>	
-	invertyAxisDirection = <checkbox label="invert y-axis direction" selected="f"/>	
+	invertxAxisDirection = <checkbox label="invert x-axis direction" selected="f"/>	
+	invertyAxisDirection = <checkbox label="invert y-axis direction" selected="t"/>	
 	</hbox>
 		
 	# Define variable to be plotted as color
