@@ -2420,3 +2420,41 @@ if (output == "plot") {  # if this is plot template then true, if this is snippe
 #findpeaks(pSignal, threshold=threshold, sortstr=TRUE)
     ]]>
 </rgg>
+
+#######################################################################################
+# name: Check and clean Rserve session
+# author: Martin Stoeter / Antje Janosch
+# category: utilities
+# preview: 
+
+This snippet lists the variables and tables that are in memory of the launched Rserve session.
+a) get back the names of variables and tables of launched Rserve session as table
+b) delete all varivales and tables in launched Rserve session (provides empty output)
+######
+
+<rgg>
+<!--1. Title and short description -->
+
+<h3 text="$$$TEMPLATE_NAME$$$" aligment="center" span="full"/>
+<separator label="Description" span="full"/>
+<labelarea span="full">$$$TEMPLATE_DESC$$$</labelarea>
+<gaprow height="1"/>
+
+<!-- 2. Configuration-->
+<separator label="Options" span="full"/>
+<gaprow height="2"/>
+
+#1.0 Parameter selection
+<group>
+# 1.1 select type of transformation
+whatToDo = <combobox items="list_variables,delete_variables" label="What do do?"/>
+
+</group>
+
+<![CDATA[
+
+#2.0 R code
+if (whatToDo == "delete_variables") rm(list = ls())
+rOut <- data.frame(name=ls())
+]]>
+</rgg>
