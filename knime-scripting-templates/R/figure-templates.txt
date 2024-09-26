@@ -4544,6 +4544,7 @@ Layout Options:
  - select background/theme and set general font size in plot (default = 14)
  - select different color models for the plot (see: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#rcolorbrewer-palette-chart )
  - give plot title and title factor (default = 1.2)
+ - optional the rows and columns can be defined for the 2D grid
  - x-axis test: angle, text size factor for x-/y-axis (default = 0.8) 
  - y-axis title (or use parameter name: for 2D grid => 'height'), axis title factor (default = 1.0)
  - adjust y-axis scale (check fixed and enter min + max)
@@ -6016,6 +6017,7 @@ yAxisScale <- as.numeric(yAxisScale)
 nUpsDowns <- as.numeric(nUpsDowns)
 
 #2.2.2 manage RGG to R: set scales to default and check scales
+if (!useManualYaxisScale) yAxisScale <- NULL
 
 #2.3 calculate
 #findpeaks(x, nups = 1, ndowns = nups, zero = "0", peakpat = NULL, minpeakheight = -Inf, minpeakdistance = 1, threshold = 0, npeaks = 0, sortstr = FALSE)
