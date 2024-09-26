@@ -327,6 +327,7 @@ Layout Options:
 	<separator label="Layout Options Axes" span="full"/>	
 	<hbox>
 	xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "0,45,90"/>))
+	free.xscales = <checkbox label="use free x-scales (for 2D grid)" selected="f"/>
 	axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
 	</hbox>
 	
@@ -339,7 +340,7 @@ Layout Options:
 	<hbox>
 	useManualYaxisScale = <checkbox label="use fixed y-axis scale" selected="f"/>
 	yAxisScale = as.numeric(c(<vector label="y-axis scale [min,max]:" size="2" default-value=","/>))
-	free.scales = <checkbox label="use free y-scales (for 2D grid)" selected="t"/>
+	free.yscales = <checkbox label="use free y-scales (for 2D grid)" selected="t"/>
 	</hbox>
 
 	<hbox>
@@ -410,7 +411,13 @@ Layout Options:
 		colorPalette <- "ggplot default"
 	}
 
-	if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
+	# set scales for grid
+	if(free.xscales & free.yscales) free.scales <- "free"
+	if(free.xscales & !free.yscales) free.scales <- "free_x" 
+	if(!free.xscales & free.yscales) free.scales <- "free_y" 
+	if(!free.xscales & !free.yscales) free.scales <- "fixed"
+	#if(free.scales) free.scales <- "free_y" else free.scales <- "fixed"
+
 	# 2D grid options (define rows and columns)
 	if(is.na(as.numeric(twoDgridRow))) {twoDgridRow <- NULL  #e.g. is equal to "-AUTO-"
 		} else twoDgridRow <- round(as.numeric(twoDgridRow))
@@ -4629,6 +4636,7 @@ plotTitleSize = as.numeric(c(<vector label="text size [title]:" size="1" default
 <separator label="Layout Options Axes" span="full"/>	
 <hbox>
 xAngle = as.numeric(c(<combobox label = "angle of x-axis labels:" items = "90,45,0"/>))
+free.xscales = <checkbox label="use free x-scales (for 2D grid)" selected="f"/>
 axisTextSizeFactor = as.numeric(c(<vector label="axis text size [x/y]:" size="2" default-value="0.8,0.8"/>))
 </hbox>
 	
@@ -4708,7 +4716,7 @@ if (colorPalette %in% rownames(brewerTable) && !useKNIMEColors) {
 	}
 
 # set scales for grid
-free.xscales <- FALSE
+#free.xscales <- FALSE
 if(free.xscales & free.yscales) free.scales <- "free"
 if(free.xscales & !free.yscales) free.scales <- "free_x" 
 if(!free.xscales & free.yscales) free.scales <- "free_y" 
